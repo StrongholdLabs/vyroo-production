@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ShoppingCart, Plus, Link, X, Check, ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ShoppingCart, Plus, Link, Check, ArrowRight, Package, CreditCard, Globe, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+
+interface SyncStep {
+  label: string;
+  icon: React.ReactNode;
+  duration: number;
+}
+
+const SYNC_STEPS: SyncStep[] = [
+  { label: "Authenticating store access", icon: <Globe size={14} />, duration: 1200 },
+  { label: "Syncing product catalog", icon: <Package size={14} />, duration: 1800 },
+  { label: "Importing inventory data", icon: <RefreshCw size={14} />, duration: 1400 },
+  { label: "Configuring checkout", icon: <CreditCard size={14} />, duration: 1000 },
+];
 
 interface ShopifyConnectModalProps {
   open: boolean;
@@ -16,23 +29,56 @@ interface ShopifyConnectModalProps {
 export function ShopifyConnectModal({ open, onClose }: ShopifyConnectModalProps) {
   const [selected, setSelected] = useState<"new" | "existing" | null>(null);
   const [storeUrl, setStoreUrl] = useState("");
-  const [connecting, setConnecting] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const [phase, setPhase] = useState<"select" | "syncing" | "done">("select");
+  const [syncIndex, setSyncIndex] = useState(0);
+  const [syncProgress, setSyncProgress] = useState(0);
+
+  // Drive the sync animation
+  useEffect(() => {
+    if (phase !== "syncing") return;
+
+    if (syncIndex >= SYNC_STEPS.length) {
+      setPhase("done");
+      return;
+    }
+
+    const step = SYNC_STEPS[syncIndex];
+    const tickInterval = 40;
+    const ticks = Math.floor(step.duration / tickInterval);
+    let tick = 0;
+
+    const baseProgress = (syncIndex / SYNC_STEPS.length) * 100;
+    const stepWeight = 100 / SYNC_STEPS.length;
+
+    const timer = setInterval(() => {
+      tick++;
+      const stepPercent = Math.min(tick / ticks, 1);
+      // Add slight easing
+      const eased = 1 - Math.pow(1 - stepPercent, 2);
+      setSyncProgress(Math.round(baseProgress + stepWeight * eased));
+
+      if (tick >= ticks) {
+        clearInterval(timer);
+        setSyncIndex((i) => i + 1);
+      }
+    }, tickInterval);
+
+    return () => clearInterval(timer);
+  }, [phase, syncIndex]);
 
   const handleConnect = () => {
     if (selected === "existing" && !storeUrl.trim()) return;
-    setConnecting(true);
-    setTimeout(() => {
-      setConnecting(false);
-      setConnected(true);
-    }, 2000);
+    setPhase("syncing");
+    setSyncIndex(0);
+    setSyncProgress(0);
   };
 
   const handleClose = () => {
     setSelected(null);
     setStoreUrl("");
-    setConnecting(false);
-    setConnected(false);
+    setPhase("select");
+    setSyncIndex(0);
+    setSyncProgress(0);
     onClose();
   };
 
@@ -49,8 +95,84 @@ export function ShopifyConnectModal({ open, onClose }: ShopifyConnectModalProps)
           </DialogDescription>
         </DialogHeader>
 
-        {connected ? (
-          <div className="flex flex-col items-center gap-4 py-6">
+        {/* ── Sync progress ── */}
+        {phase === "syncing" && (
+          <div className="space-y-5 py-4 animate-fade-in">
+            {/* Progress bar */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground">Syncing store data…</span>
+                <span className="text-xs text-muted-foreground tabular-nums">{syncProgress}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-accent overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-200 ease-out"
+                  style={{
+                    width: `${syncProgress}%`,
+                    backgroundColor: "hsl(var(--success))",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Step list */}
+            <div className="space-y-2.5">
+              {SYNC_STEPS.map((step, i) => {
+                const isDone = i < syncIndex;
+                const isActive = i === syncIndex;
+
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
+                      isActive ? "bg-accent" : ""
+                    }`}
+                  >
+                    {/* Status icon */}
+                    {isDone ? (
+                      <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: "hsl(var(--success-soft))" }}
+                      >
+                        <Check size={12} className="text-success" />
+                      </div>
+                    ) : isActive ? (
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-accent border border-border">
+                        <div className="w-4 h-4 border-2 border-muted-foreground/30 border-t-foreground rounded-full animate-spin" />
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 border border-border">
+                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+                      </div>
+                    )}
+
+                    {/* Label */}
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className={`flex-shrink-0 ${isDone ? "text-success" : isActive ? "text-foreground" : "text-muted-foreground/50"}`}>
+                        {step.icon}
+                      </span>
+                      <span
+                        className={`truncate ${
+                          isDone ? "text-muted-foreground" : isActive ? "text-foreground font-medium" : "text-muted-foreground/50"
+                        }`}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+
+                    {isDone && (
+                      <span className="text-[10px] text-muted-foreground">Done</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Done ── */}
+        {phase === "done" && (
+          <div className="flex flex-col items-center gap-4 py-6 animate-fade-in">
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center"
               style={{ backgroundColor: "hsl(var(--success-soft))" }}
@@ -63,6 +185,24 @@ export function ShopifyConnectModal({ open, onClose }: ShopifyConnectModalProps)
                 {selected === "new" ? "Your new development store is ready." : `Connected to ${storeUrl || "your store"}.`}
               </p>
             </div>
+
+            {/* Sync summary chips */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {[
+                { label: "47 products", icon: <Package size={12} /> },
+                { label: "Checkout ready", icon: <CreditCard size={12} /> },
+                { label: "Inventory synced", icon: <RefreshCw size={12} /> },
+              ].map((chip, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border text-xs text-muted-foreground"
+                >
+                  {chip.icon}
+                  {chip.label}
+                </div>
+              ))}
+            </div>
+
             <button
               onClick={handleClose}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-foreground text-primary-foreground hover:opacity-90 transition-all active:scale-[0.97]"
@@ -70,9 +210,11 @@ export function ShopifyConnectModal({ open, onClose }: ShopifyConnectModalProps)
               Continue Building
             </button>
           </div>
-        ) : (
+        )}
+
+        {/* ── Selection ── */}
+        {phase === "select" && (
           <div className="space-y-4 pt-2">
-            {/* Option cards */}
             <div className="grid gap-3">
               <button
                 onClick={() => setSelected("new")}
@@ -113,7 +255,6 @@ export function ShopifyConnectModal({ open, onClose }: ShopifyConnectModalProps)
               </button>
             </div>
 
-            {/* Store URL input for existing */}
             {selected === "existing" && (
               <div className="space-y-2 animate-fade-in">
                 <label className="text-xs font-medium text-muted-foreground">Shopify admin URL</label>
@@ -127,24 +268,14 @@ export function ShopifyConnectModal({ open, onClose }: ShopifyConnectModalProps)
               </div>
             )}
 
-            {/* Connect button */}
             {selected && (
               <button
                 onClick={handleConnect}
-                disabled={connecting || (selected === "existing" && !storeUrl.trim())}
+                disabled={selected === "existing" && !storeUrl.trim()}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-foreground text-primary-foreground hover:opacity-90 transition-all active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none"
               >
-                {connecting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    {selected === "new" ? "Create Store" : "Connect Store"}
-                    <ArrowRight size={14} />
-                  </>
-                )}
+                {selected === "new" ? "Create Store" : "Connect Store"}
+                <ArrowRight size={14} />
               </button>
             )}
           </div>
