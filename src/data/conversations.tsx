@@ -176,6 +176,14 @@ export const conversations: Conversation[] = [
     icon: "🔥",
     fileName: "hot_dtc_products_2026.md",
     editorLabel: "Editor",
+    isComplete: true,
+    fileTree: [
+      { name: "data", type: "folder", expanded: true, children: [
+        { name: "tiktok_trends.json", type: "file" },
+        { name: "supplier_list.csv", type: "file" },
+      ]},
+      { name: "hot_dtc_products_2026.md", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Scanning trending products", detail: "Monitoring social media and marketplace trends", status: "complete",
