@@ -28,6 +28,13 @@ export interface CodeLine {
   color?: string;
 }
 
+export interface FileNode {
+  name: string;
+  type: "file" | "folder";
+  children?: FileNode[];
+  expanded?: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -53,6 +60,8 @@ export interface Conversation {
   codeLines: CodeLine[];
   fileName: string;
   editorLabel: string;
+  fileTree?: FileNode[];
+  isComplete?: boolean;
 }
 
 export const conversations: Conversation[] = [
@@ -62,6 +71,15 @@ export const conversations: Conversation[] = [
     icon: "📊",
     fileName: "dtc_skincare_analysis_final.md",
     editorLabel: "Editor",
+    isComplete: true,
+    fileTree: [
+      { name: "research", type: "folder", expanded: true, children: [
+        { name: "brand_data.json", type: "file" },
+        { name: "pricing_matrix.csv", type: "file" },
+      ]},
+      { name: "dtc_skincare_analysis_final.md", type: "file" },
+      { name: "references.md", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Understanding task", detail: "Parsing requirements and planning the research approach", status: "complete",
@@ -158,6 +176,14 @@ export const conversations: Conversation[] = [
     icon: "🔥",
     fileName: "hot_dtc_products_2026.md",
     editorLabel: "Editor",
+    isComplete: true,
+    fileTree: [
+      { name: "data", type: "folder", expanded: true, children: [
+        { name: "tiktok_trends.json", type: "file" },
+        { name: "supplier_list.csv", type: "file" },
+      ]},
+      { name: "hot_dtc_products_2026.md", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Scanning trending products", detail: "Monitoring social media and marketplace trends", status: "complete",
@@ -225,6 +251,9 @@ export const conversations: Conversation[] = [
     icon: "👋",
     fileName: "chat_session.md",
     editorLabel: "Chat",
+    fileTree: [
+      { name: "chat_session.md", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Processing greeting", detail: "Understanding user intent", status: "complete",
@@ -254,6 +283,25 @@ export const conversations: Conversation[] = [
     icon: "🎨",
     fileName: "vyroo_website/index.html",
     editorLabel: "Code Editor",
+    isComplete: true,
+    fileTree: [
+      { name: "src", type: "folder", expanded: true, children: [
+        { name: "components", type: "folder", children: [
+          { name: "Header.tsx", type: "file" },
+          { name: "Hero.tsx", type: "file" },
+          { name: "Features.tsx", type: "file" },
+          { name: "Pricing.tsx", type: "file" },
+        ]},
+        { name: "App.tsx", type: "file" },
+        { name: "index.css", type: "file" },
+      ]},
+      { name: "public", type: "folder", children: [
+        { name: "favicon.svg", type: "file" },
+      ]},
+      { name: "index.html", type: "file" },
+      { name: "package.json", type: "file" },
+      { name: "vite.config.ts", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Analyzing brand requirements", detail: "Understanding Vyroo.ai brand identity", status: "complete",
@@ -311,6 +359,10 @@ export const conversations: Conversation[] = [
     icon: "📱",
     fileName: "meta_ads_strategy.md",
     editorLabel: "Editor",
+    fileTree: [
+      { name: "meta_ads_strategy.md", type: "file" },
+      { name: "audience_segments.json", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Researching Meta Ads best practices", detail: "Analyzing current ad strategies and platform documentation", status: "complete",
@@ -361,6 +413,10 @@ export const conversations: Conversation[] = [
     icon: "🐱",
     fileName: "katten_onderzoek.md",
     editorLabel: "Editor",
+    fileTree: [
+      { name: "katten_onderzoek.md", type: "file" },
+      { name: "bronnen.md", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Interpreting query language", detail: "Detected Dutch language, preparing bilingual response", status: "complete",
@@ -410,6 +466,20 @@ export const conversations: Conversation[] = [
     icon: "🛒",
     fileName: "store_design/App.tsx",
     editorLabel: "Code Editor",
+    fileTree: [
+      { name: "src", type: "folder", expanded: true, children: [
+        { name: "context", type: "folder", children: [
+          { name: "CartContext.tsx", type: "file" },
+        ]},
+        { name: "components", type: "folder", children: [
+          { name: "ProductGrid.tsx", type: "file" },
+          { name: "CartDrawer.tsx", type: "file" },
+          { name: "Header.tsx", type: "file" },
+        ]},
+        { name: "App.tsx", type: "file" },
+      ]},
+      { name: "package.json", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Gathering store requirements", detail: "Understanding product catalog and brand identity", status: "complete",

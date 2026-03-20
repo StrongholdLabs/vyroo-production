@@ -16,7 +16,7 @@ import {
   Folder,
   FolderOpen,
 } from "lucide-react";
-import type { CodeLine, Step } from "@/data/conversations";
+import type { CodeLine, Step, FileNode } from "@/data/conversations";
 
 interface ComputerPanelProps {
   visible: boolean;
@@ -25,37 +25,14 @@ interface ComputerPanelProps {
   steps: Step[];
   fileName: string;
   editorLabel: string;
+  fileTree?: FileNode[];
 }
 
-interface FileNode {
-  name: string;
-  type: "file" | "folder";
-  children?: FileNode[];
-  expanded?: boolean;
-}
-
-const mockFileTree: FileNode[] = [
-  {
-    name: "src", type: "folder", expanded: true, children: [
-      {
-        name: "components", type: "folder", children: [
-          { name: "Header.tsx", type: "file" },
-          { name: "Hero.tsx", type: "file" },
-          { name: "Features.tsx", type: "file" },
-        ]
-      },
-      {
-        name: "pages", type: "folder", expanded: true, children: [
-          { name: "App.tsx", type: "file" },
-        ]
-      },
-      { name: "index.css", type: "file" },
-      { name: "main.tsx", type: "file" },
-    ]
-  },
+const defaultFileTree: FileNode[] = [
+  { name: "src", type: "folder", expanded: true, children: [
+    { name: "index.ts", type: "file" },
+  ]},
   { name: "package.json", type: "file" },
-  { name: "tsconfig.json", type: "file" },
-  { name: "vite.config.ts", type: "file" },
 ];
 
 function FileTreeItem({ node, depth = 0, activeFile }: { node: FileNode; depth?: number; activeFile: string }) {
@@ -91,7 +68,7 @@ function FileTreeItem({ node, depth = 0, activeFile }: { node: FileNode; depth?:
   );
 }
 
-export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, editorLabel }: ComputerPanelProps) {
+export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, editorLabel, fileTree }: ComputerPanelProps) {
   const [activeStep, setActiveStep] = useState(steps.length);
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [visibleLines, setVisibleLines] = useState(0);
@@ -186,7 +163,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         <div className="flex-1 flex overflow-hidden">
           {/* File tree sidebar */}
           <div className="w-44 flex-shrink-0 border-r overflow-y-auto py-2" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
-            {mockFileTree.map((node, i) => (
+            {(fileTree || defaultFileTree).map((node, i) => (
               <FileTreeItem key={i} node={node} activeFile={shortFileName} />
             ))}
           </div>
