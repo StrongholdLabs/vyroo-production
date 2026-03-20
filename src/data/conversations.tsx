@@ -1066,6 +1066,21 @@ export const conversations: Conversation[] = [
     ],
     computerView: {
       type: "editor",
+      timeline: [
+        { id: 1, timestamp: "0:03", type: "search", title: "Searched: hottest DTC nutrition and vitamin products 2026" },
+        { id: 2, timestamp: "0:15", type: "browse", title: "Top 33 Supplement & Vitamin Trends of 2026", domain: "glimpse.co", faviconColor: "#10b981", duration: "42s" },
+        { id: 3, timestamp: "0:48", type: "save", title: "Saved nutrition and vitamin trends data" },
+        { id: 4, timestamp: "1:02", type: "search", title: "Searched: DTC fitness and wellness brand reports 2026" },
+        { id: 5, timestamp: "1:15", type: "browse", title: "Top 33 Health & Wellness Brands in the USA", domain: "clickpost.ai", faviconColor: "#6366f1", duration: "38s" },
+        { id: 6, timestamp: "1:40", type: "browse", title: "Pronto: DTC Fitness Brand Index", domain: "pronto.io", faviconColor: "#f97316", duration: "25s" },
+        { id: 7, timestamp: "1:55", type: "save", title: "Saved DTC health and wellness brand data" },
+        { id: 8, timestamp: "2:10", type: "read", title: "Read saved nutrition and vitamin trends" },
+        { id: 9, timestamp: "2:30", type: "analyze", title: "Identified key trends: organ supplements, brain creatine, hormonal products" },
+        { id: 10, timestamp: "2:45", type: "search", title: "Searched: DTC fitness trends 2026 (alt sources)" },
+        { id: 11, timestamp: "3:00", type: "browse", title: "ACSM Top Fitness Trends for 2026", domain: "acsm.org", faviconColor: "#3b82f6", duration: "35s" },
+        { id: 12, timestamp: "3:20", type: "analyze", title: "Compiled final report from 12+ sources" },
+        { id: 13, timestamp: "3:25", type: "save", title: "Delivered DTC_Wellness_Complete_2026.md to user" },
+      ],
     },
     researchTasks: [
       { id: 1, label: "Research DTC nutrition and vitamin trends in 2026", status: "complete" },
