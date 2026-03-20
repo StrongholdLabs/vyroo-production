@@ -24,9 +24,10 @@ const SYNC_STEPS: SyncStep[] = [
 interface ShopifyConnectModalProps {
   open: boolean;
   onClose: () => void;
+  onConnected?: (storeName: string) => void;
 }
 
-export function ShopifyConnectModal({ open, onClose }: ShopifyConnectModalProps) {
+export function ShopifyConnectModal({ open, onClose, onConnected }: ShopifyConnectModalProps) {
   const [selected, setSelected] = useState<"new" | "existing" | null>(null);
   const [storeUrl, setStoreUrl] = useState("");
   const [phase, setPhase] = useState<"select" | "syncing" | "done">("select");
@@ -204,7 +205,11 @@ export function ShopifyConnectModal({ open, onClose }: ShopifyConnectModalProps)
             </div>
 
             <button
-              onClick={handleClose}
+              onClick={() => {
+                const name = selected === "new" ? "My Dev Store" : (storeUrl || "my-store");
+                onConnected?.(name);
+                handleClose();
+              }}
               className="px-4 py-2 text-sm font-medium rounded-lg bg-foreground text-primary-foreground hover:opacity-90 transition-all active:scale-[0.97]"
             >
               Continue Building
