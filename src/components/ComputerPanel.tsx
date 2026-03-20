@@ -6,7 +6,7 @@ import {
   Search as SearchIcon, Globe, Radio, Clock,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask } from "@/data/conversations";
+import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask, TimelineEntry } from "@/data/conversations";
 import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
 import { TerminalTab } from "@/components/computer/TerminalTab";
