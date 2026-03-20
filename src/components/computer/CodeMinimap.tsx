@@ -21,8 +21,8 @@ const MINIMAP_COLORS: Record<string, string> = {
   function: "hsl(50 70% 65%)",
   variable: "hsl(200 50% 75%)",
   operator: "hsl(180 40% 60%)",
-  punctuation: "hsl(220 10% 45%)",
-  plain: "hsl(210 17% 70%)",
+  punctuation: "hsl(30 6% 45%)",
+  plain: "hsl(35 12% 70%)",
 };
 
 export function CodeMinimap({ codeLines, visibleLines, scrollTop, scrollHeight, clientHeight, onScroll }: CodeMinimapProps) {
