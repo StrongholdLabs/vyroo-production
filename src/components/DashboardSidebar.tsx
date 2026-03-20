@@ -149,8 +149,8 @@ export function DashboardSidebar({
                 <button onClick={() => setSettingsOpen(true)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
                   <Users size={16} />
                 </button>
-                <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
-                  <LayoutGrid size={16} />
+                <button onClick={() => setSettingsOpen(true)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
+                  <Settings size={16} />
                 </button>
                 <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
                   <MessageSquare size={16} />
