@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask, TimelineEntry } from "@/data/conversations";
-import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
+import vyrooIcon from "@/assets/vyroo-icon.png";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
 import { TerminalTab } from "@/components/computer/TerminalTab";
 import { MarkdownRenderer } from "@/components/computer/MarkdownRenderer";
