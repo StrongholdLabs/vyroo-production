@@ -3,7 +3,9 @@ import React from "react";
 import type { BrowserTab, BrowserPageContent } from "@/components/computer/BrowserView";
 import type { SearchResult } from "@/components/computer/SearchView";
 import type { ResearchTask } from "@/components/computer/TaskProgressPanel";
+import type { TimelineEntry } from "@/components/computer/ResearchTimeline";
 export type { ResearchTask } from "@/components/computer/TaskProgressPanel";
+export type { TimelineEntry } from "@/components/computer/ResearchTimeline";
 
 export interface LogEntry {
   time: string;
