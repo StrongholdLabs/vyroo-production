@@ -194,6 +194,11 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                   </div>
                 )}
 
+                {/* Project init card for website conversations */}
+                {isWebsite && conversation.project && (
+                  <ProjectInitCard project={conversation.project} onView={onOpenComputer} />
+                )}
+
                 {/* Task completed */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
