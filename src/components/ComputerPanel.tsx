@@ -3,8 +3,9 @@ import {
   X, Monitor, Maximize2, Square, SkipBack, SkipForward,
   ChevronUp, ChevronRight, Check, Loader2, Code, Eye,
   FileText, Folder, FolderOpen, Terminal, Copy, CheckCheck, GitCompare,
-  Search as SearchIcon, Globe,
+  Search as SearchIcon, Globe, Radio,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask } from "@/data/conversations";
 import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
