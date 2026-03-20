@@ -1,5 +1,5 @@
-import { Globe, ExternalLink, ShoppingCart, Check, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { Globe, ExternalLink, ShoppingCart, Check, RefreshCw, LayoutDashboard, Unplug, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import type { ProjectInfo } from "@/data/conversations";
 import { ShopifyConnectModal } from "@/components/ShopifyConnectModal";
 
