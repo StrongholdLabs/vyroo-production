@@ -94,6 +94,7 @@ const Dashboard = () => {
             steps={conversation.steps}
             fileName={conversation.fileName}
             editorLabel={conversation.editorLabel}
+            fileTree={conversation.fileTree}
           />
         )}
 
