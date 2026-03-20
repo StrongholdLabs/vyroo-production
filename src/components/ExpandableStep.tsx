@@ -133,6 +133,13 @@ export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
           )}
         </div>
       )}
+      {/* Image lightbox */}
+      <ImageLightbox
+        images={imageItems}
+        initialIndex={lightboxIndex}
+        open={lightboxIndex >= 0}
+        onClose={() => setLightboxIndex(-1)}
+      />
     </div>
   );
 }
