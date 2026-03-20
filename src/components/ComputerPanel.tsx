@@ -3,7 +3,7 @@ import {
   X, Monitor, Maximize2, Square, SkipBack, SkipForward,
   ChevronUp, ChevronRight, Check, Loader2, Code, Eye,
   FileText, Folder, FolderOpen, Terminal, Copy, CheckCheck, GitCompare,
-  Search as SearchIcon, Globe, Radio,
+  Search as SearchIcon, Globe, Radio, Clock,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask } from "@/data/conversations";
