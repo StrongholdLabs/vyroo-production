@@ -15,6 +15,7 @@ import { DiffView, generateDiff } from "@/components/computer/DiffView";
 import { BrowserView } from "@/components/computer/BrowserView";
 import { SearchView } from "@/components/computer/SearchView";
 import { TaskProgressPanel } from "@/components/computer/TaskProgressPanel";
+import { ResearchTimeline } from "@/components/computer/ResearchTimeline";
 
 interface ComputerPanelProps {
   visible: boolean;
