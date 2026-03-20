@@ -413,6 +413,10 @@ export const conversations: Conversation[] = [
     icon: "🐱",
     fileName: "katten_onderzoek.md",
     editorLabel: "Editor",
+    fileTree: [
+      { name: "katten_onderzoek.md", type: "file" },
+      { name: "bronnen.md", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Interpreting query language", detail: "Detected Dutch language, preparing bilingual response", status: "complete",
