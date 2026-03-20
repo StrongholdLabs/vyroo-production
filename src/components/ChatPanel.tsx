@@ -133,8 +133,11 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         ))}
 
+        {/* Thinking indicator */}
+        {isThinking && <ThinkingIndicator />}
+
         {/* Follow-ups */}
-        {followUps.length > 0 && (
+        {followUps.length > 0 && !isThinking && (
           <div className="space-y-2 pt-2">
             <span className="text-xs text-muted-foreground font-medium">Suggested follow-ups</span>
             {followUps.map((item, i) => (
