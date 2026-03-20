@@ -71,6 +71,9 @@ export const conversations: Conversation[] = [
           { time: "0:02", text: "Identifying key comparison metrics", type: "action" },
           { time: "0:03", text: "Planning research strategy across 5 brands", type: "result" },
         ],
+        subTasks: [
+          { text: "Create design brainstorm document with three distinct landing ...", type: "edit" },
+        ],
       },
       {
         id: 2, label: "Researching brands", detail: "Browsing documentation and gathering market data", status: "complete",
