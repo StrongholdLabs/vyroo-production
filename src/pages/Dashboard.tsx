@@ -102,6 +102,8 @@ const Dashboard = () => {
                     fileName={conversation.fileName}
                     editorLabel={conversation.editorLabel}
                     fileTree={conversation.fileTree}
+                    computerView={conversation.computerView}
+                    researchTasks={conversation.researchTasks}
                   />
                 </ResizablePanel>
               </>
@@ -129,6 +131,8 @@ const Dashboard = () => {
                 fileName={conversation.fileName}
                 editorLabel={conversation.editorLabel}
                 fileTree={conversation.fileTree}
+                computerView={conversation.computerView}
+                researchTasks={conversation.researchTasks}
               />
             </DrawerContent>
           </Drawer>

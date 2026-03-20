@@ -3,13 +3,17 @@ import {
   X, Monitor, Maximize2, Square, SkipBack, SkipForward,
   ChevronUp, ChevronRight, Check, Loader2, Code, Eye,
   FileText, Folder, FolderOpen, Terminal, Copy, CheckCheck, GitCompare,
+  Search as SearchIcon, Globe,
 } from "lucide-react";
-import type { CodeLine, Step, FileNode } from "@/data/conversations";
+import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask } from "@/data/conversations";
 import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
 import { TerminalTab } from "@/components/computer/TerminalTab";
 import { MarkdownRenderer } from "@/components/computer/MarkdownRenderer";
 import { DiffView, generateDiff } from "@/components/computer/DiffView";
+import { BrowserView } from "@/components/computer/BrowserView";
+import { SearchView } from "@/components/computer/SearchView";
+import { TaskProgressPanel } from "@/components/computer/TaskProgressPanel";
 
 interface ComputerPanelProps {
   visible: boolean;
@@ -19,6 +23,8 @@ interface ComputerPanelProps {
   fileName: string;
   editorLabel: string;
   fileTree?: FileNode[];
+  computerView?: ComputerViewState;
+  researchTasks?: ResearchTask[];
 }
 
 const defaultFileTree: FileNode[] = [
@@ -67,7 +73,7 @@ function FileTreeItem({ node, depth = 0, activeFile }: { node: FileNode; depth?:
   );
 }
 
-export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, editorLabel, fileTree }: ComputerPanelProps) {
+export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, editorLabel, fileTree, computerView, researchTasks }: ComputerPanelProps) {
   const [activeStep, setActiveStep] = useState(steps.length);
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [visibleChars, setVisibleChars] = useState(0);
@@ -152,12 +158,28 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const totalSteps = steps.length;
   const progress = totalChars > 0 ? Math.round((visibleChars / totalChars) * 100) : 100;
   const shortFileName = fileName.split("/").pop() || fileName;
+  const isResearch = !!computerView;
+  const viewType = computerView?.type || "editor";
 
-  const tabs = [
-    { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
-    { key: "preview" as const, icon: Eye, label: "Preview" },
-    { key: "terminal" as const, icon: Terminal, label: "Terminal" },
-  ];
+  // Determine status bar label based on view
+  const statusLabel = viewType === "browser" ? "Browser" : viewType === "search" ? "Search" : editorLabel;
+  const statusAction = viewType === "browser"
+    ? `Browsing ${computerView?.browserUrl || ""}`
+    : viewType === "search"
+    ? `Searching ${computerView?.searchQuery || ""}...`
+    : `${isTyping ? "Creating" : "Created"} file ${shortFileName}`;
+
+  const tabs = isResearch
+    ? [
+        { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
+        { key: "preview" as const, icon: Globe, label: "Browser" },
+        { key: "terminal" as const, icon: SearchIcon, label: "Search" },
+      ]
+    : [
+        { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
+        { key: "preview" as const, icon: Eye, label: "Preview" },
+        { key: "terminal" as const, icon: Terminal, label: "Terminal" },
+      ];
 
   const diffLines = generateDiff(codeLines);
 
@@ -203,9 +225,9 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         ) : (
           <Check size={12} className="text-success" />
         )}
-        <span>Vyroo is using <span className="text-foreground font-medium">{editorLabel}</span></span>
+        <span>Vyroo is using <span className="text-foreground font-medium">{statusLabel}</span></span>
         <span className="text-muted-foreground/50">·</span>
-        <span>{isTyping ? "Creating" : "Created"} file {shortFileName}</span>
+        <span className="truncate">{statusAction}</span>
 
         {/* Right-side tools */}
         <div className="ml-auto flex items-center gap-1">
@@ -293,34 +315,49 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
             totalChars={totalChars}
           />
         )
-      ) : activeTab === "terminal" ? (
-        <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
-          <div className="w-full max-w-md px-8 space-y-6 text-center">
-            <div className="rounded-lg border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--card))" }}>
-              <div className="h-6 border-b border-border flex items-center gap-1.5 px-3">
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
-              </div>
-              <div className="p-4 space-y-3">
-                <div className="h-3 rounded bg-muted w-3/4" />
-                <div className="flex gap-2">
-                  <div className="h-16 rounded bg-muted flex-1" />
-                  <div className="h-16 rounded bg-muted flex-1" />
-                  <div className="h-16 rounded bg-muted flex-1" />
+      ) : activeTab === "preview" ? (
+        isResearch && computerView?.browserTabs && computerView?.browserContent ? (
+          <BrowserView
+            tabs={computerView.browserTabs}
+            url={computerView.browserUrl || ""}
+            pageContent={computerView.browserContent}
+          />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
+            <div className="w-full max-w-md px-8 space-y-6 text-center">
+              <div className="rounded-lg border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--card))" }}>
+                <div className="h-6 border-b border-border flex items-center gap-1.5 px-3">
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
                 </div>
-                <div className="h-3 rounded bg-muted w-1/2" />
-                <div className="h-3 rounded bg-muted w-2/3" />
+                <div className="p-4 space-y-3">
+                  <div className="h-3 rounded bg-muted w-3/4" />
+                  <div className="flex gap-2">
+                    <div className="h-16 rounded bg-muted flex-1" />
+                    <div className="h-16 rounded bg-muted flex-1" />
+                    <div className="h-16 rounded bg-muted flex-1" />
+                  </div>
+                  <div className="h-3 rounded bg-muted w-1/2" />
+                  <div className="h-3 rounded bg-muted w-2/3" />
+                </div>
               </div>
+              <p className="text-sm text-muted-foreground">
+                {isTyping ? "Vyroo is building the website. Hang tight!" : "Preview ready"}
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {isTyping ? "Vyroo is building the website. Hang tight!" : "Preview ready"}
-            </p>
           </div>
-        </div>
-      )}
+        )
+      ) : activeTab === "terminal" ? (
+        isResearch && computerView?.searchResults ? (
+          <SearchView
+            query={computerView.searchQuery || ""}
+            results={computerView.searchResults}
+          />
+        ) : (
+          <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
+        )
+      ) : null}
 
       {/* Playback controls */}
       <div className="flex items-center justify-between px-4 py-2 border-t flex-shrink-0"
@@ -341,44 +378,52 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         </div>
       </div>
 
-      {/* Step indicator */}
-      <div
-        className="border-t flex-shrink-0 cursor-pointer"
-        style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}
-        onClick={() => setStepsExpanded(!stepsExpanded)}
-      >
-        {stepsExpanded && (
-          <div className="px-4 py-2 space-y-1 border-b" style={{ borderColor: "hsl(var(--computer-border))" }}>
-            {steps.map((step) => (
-              <div
-                key={step.id}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors ${
-                  step.id === activeStep ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={(e) => { e.stopPropagation(); setActiveStep(step.id); }}
-              >
-                {step.status === "complete" ? (
-                  <Check size={12} className="text-success flex-shrink-0" />
-                ) : step.status === "active" ? (
-                  <Loader2 size={12} className="text-foreground animate-spin flex-shrink-0" />
-                ) : (
-                  <div className="w-3 h-3 rounded-full border border-border flex-shrink-0" />
-                )}
-                <span className="truncate">{step.label}</span>
-              </div>
-            ))}
+      {/* Research task progress OR step indicator */}
+      {researchTasks ? (
+        <TaskProgressPanel
+          tasks={researchTasks}
+          currentStep={researchTasks.filter(t => t.status === "complete").length + (researchTasks.some(t => t.status === "active") ? 1 : 0)}
+          totalSteps={researchTasks.length}
+        />
+      ) : (
+        <div
+          className="border-t flex-shrink-0 cursor-pointer"
+          style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}
+          onClick={() => setStepsExpanded(!stepsExpanded)}
+        >
+          {stepsExpanded && (
+            <div className="px-4 py-2 space-y-1 border-b" style={{ borderColor: "hsl(var(--computer-border))" }}>
+              {steps.map((step) => (
+                <div
+                  key={step.id}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors ${
+                    step.id === activeStep ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={(e) => { e.stopPropagation(); setActiveStep(step.id); }}
+                >
+                  {step.status === "complete" ? (
+                    <Check size={12} className="text-success flex-shrink-0" />
+                  ) : step.status === "active" ? (
+                    <Loader2 size={12} className="text-foreground animate-spin flex-shrink-0" />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full border border-border flex-shrink-0" />
+                  )}
+                  <span className="truncate">{step.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-3 px-4 py-2.5">
+            <Check size={16} className="text-success flex-shrink-0" />
+            <span className="text-sm text-foreground flex-1 truncate">{currentStep?.label}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{Math.min(activeStep, totalSteps)} / {totalSteps}</span>
+            <ChevronUp
+              size={14}
+              className={`text-muted-foreground transition-transform duration-200 ${stepsExpanded ? "" : "rotate-180"}`}
+            />
           </div>
-        )}
-        <div className="flex items-center gap-3 px-4 py-2.5">
-          <Check size={16} className="text-success flex-shrink-0" />
-          <span className="text-sm text-foreground flex-1 truncate">{currentStep?.label}</span>
-          <span className="text-xs text-muted-foreground tabular-nums">{Math.min(activeStep, totalSteps)} / {totalSteps}</span>
-          <ChevronUp
-            size={14}
-            className={`text-muted-foreground transition-transform duration-200 ${stepsExpanded ? "" : "rotate-180"}`}
-          />
         </div>
-      </div>
+      )}
     </div>
   );
 }

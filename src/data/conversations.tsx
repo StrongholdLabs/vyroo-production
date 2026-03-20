@@ -1,5 +1,9 @@
 import { Search, Globe, FileText, Sparkles, Code, Palette, ShoppingCart, TrendingUp, Calendar, FlaskConical, HelpCircle } from "lucide-react";
 import React from "react";
+import type { BrowserTab, BrowserPageContent } from "@/components/computer/BrowserView";
+import type { SearchResult } from "@/components/computer/SearchView";
+import type { ResearchTask } from "@/components/computer/TaskProgressPanel";
+export type { ResearchTask } from "@/components/computer/TaskProgressPanel";
 
 export interface LogEntry {
   time: string;
@@ -57,11 +61,22 @@ export interface ProjectInfo {
   status: "initialized" | "building" | "complete";
 }
 
+export type ComputerViewType = "editor" | "browser" | "search";
+
+export interface ComputerViewState {
+  type: ComputerViewType;
+  browserTabs?: BrowserTab[];
+  browserUrl?: string;
+  browserContent?: BrowserPageContent;
+  searchQuery?: string;
+  searchResults?: SearchResult[];
+}
+
 export interface Conversation {
   id: string;
   title: string;
   icon: string;
-  type: "intelligence" | "website";
+  type: "intelligence" | "website" | "research";
   steps: Step[];
   messages: ChatMessage[];
   followUps: SuggestedFollowUp[];
@@ -71,6 +86,8 @@ export interface Conversation {
   fileTree?: FileNode[];
   isComplete?: boolean;
   project?: ProjectInfo;
+  computerView?: ComputerViewState;
+  researchTasks?: ResearchTask[];
 }
 
 export const conversations: Conversation[] = [
@@ -812,6 +829,204 @@ export const conversations: Conversation[] = [
       { num: 20, content: "    </main>", color: "text-foreground" },
       { num: 21, content: "  );", color: "text-foreground" },
       { num: 22, content: "}", color: "text-foreground" },
+    ],
+  },
+  {
+    id: "10",
+    title: "Hottest DTC Nutrition and Fitness...",
+    icon: "🔬",
+    type: "research",
+    fileName: "DTC_Wellness_Report_2026.md",
+    editorLabel: "Editor",
+    isComplete: false,
+    fileTree: [
+      { name: "research", type: "folder", expanded: true, children: [
+        { name: "nutrition_trends.json", type: "file" },
+        { name: "fitness_brands.json", type: "file" },
+        { name: "market_data.csv", type: "file" },
+      ]},
+      { name: "DTC_Wellness_Report_2026.md", type: "file" },
+    ],
+    computerView: {
+      type: "browser",
+      browserTabs: [
+        { id: "1", title: "about:blank", url: "about:blank", active: false },
+        { id: "2", title: "Top 33 Supplement & Vitamin...", url: "clickpost.ai/blog/health-and-wellness-brands-in-usa", favicon: "#10b981", active: true },
+      ],
+      browserUrl: "https://www.clickpost.ai/blog/health-and-wellness-brands-in-usa",
+      browserContent: {
+        type: "website",
+        siteName: "GLIMPSE",
+        pageTitle: "The Top 33 Supplement & Vitamin Trends of 2026",
+        sections: [
+          { type: "tags", content: "", tags: [
+            { label: "All Trends", color: "#3b82f6" },
+            { label: "Health & Wellness T...", color: "#6366f1" },
+            { label: "Supplement & V...", color: "#8b5cf6" },
+            { label: "Nutrition Trends", color: "#a855f7" },
+            { label: "Fitness Trends", color: "#d946ef" },
+            { label: "Sleep Trends", color: "#ec4899" },
+            { label: "Mental Health T...", color: "#f43f5e" },
+            { label: "Healthcare Trends", color: "#ef4444" },
+            { label: "Personal Care T...", color: "#f97316" },
+            { label: "Diet Trends", color: "#eab308" },
+          ]},
+          { type: "text", content: "Analyst's Note – Below, we'll dive into the top supplement & vitamin trends of 2026, identified using our software and analyzed for their long-term potential and impact on the supplement & vitamin industry." },
+          { type: "text", content: "First, here's a look at the fastest-growing supplement & vitamin topics of the past year:" },
+          { type: "table", content: "", tableHeaders: ["Rank", "Trending Topic", "Chart", "Growth ⬆", "Categories"],
+            tableRows: [
+              ["1", "Organ Supple...", "📈", "↑ 296%", "Supplement & Vitamin"],
+              ["2", "Creatine for Br...", "📈", "↑ 118%", "Supplement & Vitamin"],
+              ["3", "Beef Liver Sup...", "📈", "↑ 94%", "Supplement & Vitamin"],
+              ["4", "Perimenopaus...", "📈", "↑ 93%", "Supplement & Vitamin"],
+              ["5", "Theanine Sup...", "📈", "↑ 57%", "Supplement & Vitamin"],
+              ["6", "Supplements f...", "📈", "↑ 55%", "Supplement & Vitamin"],
+              ["7", "Postbiotic", "📈", "↑ 55%", "Supplement & Vitamin, Diet"],
+              ["8", "Peptide Suppli...", "📈", "↑ 54%", "Supplement & Vitamin"],
+              ["9", "Magnesium fo...", "📈", "↑ 53%", "Supplement & Vitamin"],
+            ],
+          },
+        ],
+      },
+      searchQuery: "hottest DTC fitness products 2026 trends, top DTC fitness brands 2026 we...",
+      searchResults: [
+        { title: "The Most Popular Fitness Gear Worth Trying in 2026", url: "fitnessmag.com", date: "Jan 7, 2026", snippet: "Achieve your fitness goals this year with our editors' favorite smart fitness trackers, home gym equipment, and recovery devices.", faviconColor: "#ef4444" },
+        { title: "60 Best Fitness Products Of 2026", url: "womenshealthmag.com", date: "Jan 9, 2026", snippet: "Looking for fitness gear you'll use for years? Meet the 2026 Women's Health Fitness Awards winners across equipment, activewear, sneakers, ...", faviconColor: "#f97316" },
+        { title: "The 2026 Men's Health Fitness Awards", url: "menshealth.com", date: "Dec 15, 2025", snippet: "From adjustable dumbbells to mountain bikes to a wild new combination rower/bench press/leg press, we've put all the top-tier fitness releases ...", faviconColor: "#ef4444" },
+        { title: "New Exercise Equipment Trends Transforming Fitness in ...", url: "techfitness.com", date: "Mar 10, 2026", snippet: "Discover the latest new exercise equipment trends reshaping home workouts in 2026. From AI-powered gear to space-saving designs.", faviconColor: "#10b981" },
+        { title: "The Future of Fitness: ACSM Announces Top Trends for 2026", url: "acsm.org", date: "Oct 22, 2025", snippet: "Rounding out the top five fitness trends after Wearable Technology are Fitness Programs for Older Adults, Exercise for Weight Management, Mobile Exercise Apps, ...", faviconColor: "#3b82f6" },
+        { title: "Fitness Trends of 2026: The Rise of Yoga, Home ...", url: "yogajournal.com", date: "Jan 28, 2026", snippet: "Free weights are the most likely item among these planned purchases, followed by treadmills, general home gym equipment, and yoga accessories.", faviconColor: "#22c55e" },
+        { title: "The Best Wearable Fitness Trackers We Tested for 2026", url: "wirecutter.com", date: "Jan 6, 2026", snippet: "From strength training to sleep and recovery, these wearables stood out for turning raw data into useful action.", faviconColor: "#f43f5e" },
+        { title: "The Best Fitness Trackers for Every Type of Exercise", url: "cnet.com", date: "Feb 18, 2026", snippet: "Best fitness tracker overall. Fitbit Charge 6. $135 at Amazon; Best fitness tracker for heart rate. Apple Watch Series 11. $299 at Amazon; Best ...", faviconColor: "#6366f1" },
+      ],
+    },
+    researchTasks: [
+      { id: 1, label: "Research DTC nutrition and vitamin trends in 2026", status: "complete" },
+      { id: 2, label: "Research DTC fitness and wellness product trends in 2026", status: "complete" },
+      { id: 3, label: "Research top DTC brands, market data, and consumer behavior", status: "complete" },
+      { id: 4, label: "Compile and write the comprehensive research report", status: "active", elapsed: "1:59", activity: "Thinking" },
+      { id: 5, label: "Deliver the final report to the user", status: "pending" },
+    ],
+    steps: [
+      {
+        id: 1, label: "Research DTC nutrition and vitamin trends in 2026", detail: "Searching the web for 2026 nutrition and supplement trends", status: "complete",
+        icon: <Search size={14} />,
+        logs: [
+          { time: "0:03", text: "Search for hottest DTC nutrition and vitamin products in 2026.", type: "action" },
+          { time: "0:15", text: "I found recent sources highlighting 2026 DTC nutrition trends like collagen, gut health, and personalized supplements, plus top brands like Ritual and Athletic Greens.", type: "result" },
+          { time: "0:22", text: "Search for hottest DTC fitness and wellness products in 2026.", type: "action" },
+          { time: "0:35", text: "Visit Glimpse and Pronto to get detailed DTC nutrition and vitamin trends for 2026.", type: "action" },
+          { time: "0:48", text: "Save nutrition and vitamin trends for 2026.", type: "action" },
+        ],
+        subTasks: [
+          { text: "Search for hottest DTC nutrition and vitamin products in 2026.", type: "terminal" },
+          { text: "Visit Glimpse and Pronto to get detailed DTC nutrition and vitamin trends for 2026.", type: "terminal" },
+          { text: "Save nutrition and vitamin trends for 2026.", type: "edit" },
+        ],
+      },
+      {
+        id: 2, label: "Research DTC fitness and wellness product trends in 2026", detail: "Browsing fitness and wellness market reports", status: "complete",
+        icon: <Search size={14} />,
+        logs: [
+          { time: "1:02", text: "Handling browser issue", type: "action" },
+          { time: "1:15", text: "Search for accessible DTC fitness and wellness brand reports for 2026.", type: "action" },
+          { time: "1:28", text: "Found top DTC fitness and wellness brands for 2026, including Nike, Adidas, Athleta, and supplement brands like Ritual and Athletic Greens.", type: "result" },
+          { time: "1:40", text: "Visit ClickPost and Pronto to get detailed DTC health and wellness brand trends for 2026.", type: "action" },
+          { time: "1:55", text: "Save DTC health and wellness brand data for 2026.", type: "action" },
+        ],
+        subTasks: [
+          { text: "Search for accessible DTC fitness and wellness brand reports for 2026.", type: "terminal" },
+          { text: "Visit ClickPost and Pronto to get detailed DTC health and wellness brand trends for 2026.", type: "terminal" },
+          { text: "Save DTC health and wellness brand data for 2026.", type: "edit" },
+        ],
+      },
+      {
+        id: 3, label: "Compile and write the comprehensive research report", detail: "Reading saved data and synthesizing into a comprehensive report", status: "active",
+        icon: <FileText size={14} />,
+        logs: [
+          { time: "2:10", text: "Read the saved nutrition and vitamin trends.", type: "action" },
+          { time: "2:18", text: "Read the saved DTC health and wellness brand data.", type: "action" },
+          { time: "2:30", text: "Identified key trends: growth in organ supplements, brain creatine, hormonal and child-specific products, with gummies favored by Gen Z and adults; brands focus on stress, gut, and mental health.", type: "result" },
+          { time: "2:45", text: "Search for DTC fitness product trends and brands for 2026 from alternative sources.", type: "action" },
+          { time: "3:00", text: "Visit ACSM to get detailed DTC fitness and wellness trends for 2026.", type: "action" },
+        ],
+        subTasks: [
+          { text: "Read the saved nutrition and vitamin trends.", type: "edit" },
+          { text: "Read the saved DTC health and wellness brand data.", type: "edit" },
+          { text: "Search for DTC fitness product trends and brands for 2026 from alternative sources.", type: "terminal" },
+          { text: "Visit ACSM to get detailed DTC fitness and wellness trends for 2026.", type: "terminal" },
+        ],
+      },
+      {
+        id: 4, label: "Deliver the final report to the user", detail: "Finalizing and delivering the report", status: "pending",
+        icon: <Sparkles size={14} />,
+        logs: [],
+      },
+    ],
+    messages: [
+      { id: "1", role: "user", content: "Can you conduct a deep research on what the hottest DTC products are in 2026 in nutrition products like vitamines, fitness prodcuts etc" },
+      { id: "2", role: "assistant", content: "I will conduct a deep research on the hottest DTC nutrition and fitness products for 2026 and prepare a comprehensive report for you." },
+    ],
+    followUps: [
+      { icon: <Search size={16} />, text: "Summarize the report's insights on the most promising DTC nutrition products for 2026." },
+      { icon: <TrendingUp size={16} />, text: "Identify the emerging trends in DTC fitness products highlighted in the report." },
+      { icon: <FileText size={16} />, text: "Create a presentation about the key findings from the DTC Wellness Report 2026." },
+    ],
+    codeLines: [
+      { num: 1, content: "# DTC Wellness Report 2026", color: "text-red-400" },
+      { num: 2, content: "" },
+      { num: 3, content: "## 1. Executive Summary", color: "text-red-400" },
+      { num: 4, content: "" },
+      { num: 5, content: "This report provides a comprehensive analysis of the hottest", color: "text-foreground" },
+      { num: 6, content: "Direct-to-Consumer (DTC) products in nutrition, vitamins,", color: "text-foreground" },
+      { num: 7, content: "fitness, and related wellness categories for 2026.", color: "text-foreground" },
+      { num: 8, content: "" },
+      { num: 9, content: "## 2. Key DTC Nutrition and Vitamin Trends [1][2]", color: "text-red-400" },
+      { num: 10, content: "" },
+      { num: 11, content: "### 2.1 Top Trending Supplement Categories", color: "text-red-400" },
+      { num: 12, content: "" },
+      { num: 13, content: "1. **Organ Supplements**: Nose-to-tail nutrition with liver,", color: "text-foreground" },
+      { num: 14, content: "   heart, and kidney capsules seeing 296% growth.", color: "text-foreground" },
+      { num: 15, content: "2. **Creatine for Brain Health**: Beyond athletic performance,", color: "text-foreground" },
+      { num: 16, content: "   creatine is marketed for cognitive enhancement (118% growth).", color: "text-foreground" },
+      { num: 17, content: "3. **Exercise for Weight Management**: This trend has gained", color: "text-foreground" },
+      { num: 18, content: "   prominence, particularly with the increased use of obesity", color: "text-foreground" },
+      { num: 19, content: "   management medications like GLP-1 RAs.", color: "text-foreground" },
+      { num: 20, content: "4. **Mobile Exercise Apps**: Mobile applications continue to", color: "text-foreground" },
+      { num: 21, content: "   be a cornerstone of fitness, offering guided workouts.", color: "text-foreground" },
+      { num: 22, content: "5. **Balance, Flow, and Core Strength**: There's a noticeable", color: "text-foreground" },
+      { num: 23, content: "   shift towards more holistic and functional fitness approaches.", color: "text-foreground" },
+      { num: 24, content: "" },
+      { num: 25, content: "### 2.2 Other Notable Trends in Fitness and Wellness [3]", color: "text-red-400" },
+      { num: 26, content: "" },
+      { num: 27, content: "- **Adult Recreation and Sport Clubs**: The rise in popularity", color: "text-foreground" },
+      { num: 28, content: "  of activities like Pickleball and a general desire for social", color: "text-foreground" },
+      { num: 29, content: "  connection through exercise.", color: "text-foreground" },
+      { num: 30, content: "- **Hyper-Personalized Fitness**: The industry is moving towards", color: "text-foreground" },
+      { num: 31, content: "  highly individualized fitness plans, leveraging AI and data.", color: "text-foreground" },
+      { num: 32, content: "- **Home Gym Equipment**: Despite the return to gyms, home", color: "text-foreground" },
+      { num: 33, content: "  fitness remains strong, with free weights, treadmills, and", color: "text-foreground" },
+      { num: 34, content: "  yoga accessories being popular purchases.", color: "text-foreground" },
+      { num: 35, content: "- **Recovery Tools**: Increased focus on post-workout recovery", color: "text-foreground" },
+      { num: 36, content: "  is leading to demand for smart recovery devices.", color: "text-foreground" },
+      { num: 37, content: "" },
+      { num: 38, content: "### 2.3 Key DTC Fitness and Wellness Brands [2] [3]", color: "text-red-400" },
+      { num: 39, content: "" },
+      { num: 40, content: "| Brand | Category | Key Product | Growth |", color: "text-foreground" },
+      { num: 41, content: "| :---- | :---- | :---- | :---- |", color: "text-muted-foreground" },
+      { num: 42, content: "| **AG1 (Athletic Greens)** | Daily Nutrition | Comprehensive powder | ↑ High |", color: "text-foreground" },
+      { num: 43, content: "| **Oura Ring** | Wearable Health | Sleep tracker | ↑ High |", color: "text-foreground" },
+      { num: 44, content: "| **Moon Juice** | Adaptogens | Wellness \"dusts\" | ↑ Medium |", color: "text-foreground" },
+      { num: 45, content: "| **Four Sigmatic** | Mushroom Coffee | Functional blends | ↑ Medium |", color: "text-foreground" },
+      { num: 46, content: "| **Steel Supplements** | Fitness | Performance supps | ↑ High |", color: "text-foreground" },
+      { num: 47, content: "" },
+      { num: 48, content: "## 3. Market Dynamics and Consumer Behavior", color: "text-red-400" },
+      { num: 49, content: "" },
+      { num: 50, content: "### Market Stats (2026)", color: "text-red-400" },
+      { num: 51, content: "- **US Dietary Supplements Market**: $68.74 billion in 2025", color: "text-foreground" },
+      { num: 52, content: "- **US Vitamin Supplements Market**: $15.06 billion in 2024", color: "text-foreground" },
+      { num: 53, content: "- **US Herbal Dietary Supplement Sales**: $13.231 billion", color: "text-foreground" },
+      { num: 54, content: "- **Global Wearable Technology Market**: $84.53 billion", color: "text-foreground" },
     ],
   },
 ];
