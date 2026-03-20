@@ -123,7 +123,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const isTyping = visibleChars < totalChars;
 
   useEffect(() => {
-    if (codeRef.current) {
+    if (codeRef.current && isLive) {
       codeRef.current.scrollTop = codeRef.current.scrollHeight;
       setScrollState({
         scrollTop: codeRef.current.scrollTop,
@@ -131,7 +131,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         clientHeight: codeRef.current.clientHeight,
       });
     }
-  }, [visibleChars]);
+  }, [visibleChars, isLive]);
 
   const handleCodeScroll = useCallback(() => {
     if (codeRef.current) {
