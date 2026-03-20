@@ -22,6 +22,7 @@ interface Task {
 }
 
 const mockTasks: Task[] = [
+  { id: "10", title: "Hottest DTC Nutrition and Fitness...", icon: "🔬" },
   { id: "1", title: "Top 5 DTC Skincare Brands and P...", icon: "📊" },
   { id: "2", title: "Hottest 2026 DTC Products to Re...", icon: "🔥" },
   { id: "3", title: "Hello", icon: "👋" },
@@ -31,10 +32,10 @@ const mockTasks: Task[] = [
   { id: "7", title: "Minimalist Online Store for Specia...", icon: "🛒" },
   { id: "8", title: "Designing a Website for Vyroo.ai I...", icon: "🌐" },
   { id: "9", title: "Build a Landing Page", icon: "🚀" },
-  { id: "10", title: "Stock Analysis", icon: "📈" },
-  { id: "11", title: "Scheduling Tool with Event Creati...", icon: "📅" },
-  { id: "12", title: "How to Test a Product Before Selli...", icon: "🧪" },
-  { id: "13", title: "What Can I Do?", icon: "❓" },
+  { id: "11", title: "Stock Analysis", icon: "📈" },
+  { id: "12", title: "Scheduling Tool with Event Creati...", icon: "📅" },
+  { id: "13", title: "How to Test a Product Before Selli...", icon: "🧪" },
+  { id: "14", title: "What Can I Do?", icon: "❓" },
 ];
 
 interface DashboardSidebarProps {
