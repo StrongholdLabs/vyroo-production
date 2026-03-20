@@ -24,8 +24,8 @@ export function InlineComputerCard({ steps, onOpenComputer }: InlineComputerCard
         onClick={onOpenComputer}
       >
         {/* Mini browser stream preview as thumbnail */}
-        <div className="w-20 h-16 rounded-lg overflow-hidden flex-shrink-0 relative border border-border" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
-          <div className="absolute inset-0 scale-[0.28] origin-top-left" style={{ width: "357%", height: "357%" }}>
+        <div className="w-28 h-20 rounded-xl overflow-hidden flex-shrink-0 relative border border-border shadow-[0_10px_30px_hsl(220_20%_4%_/_0.35)]" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
+          <div className="absolute inset-0 scale-[0.24] origin-top-left" style={{ width: "417%", height: "417%" }}>
             <BrowserStreamPreview />
           </div>
         </div>
