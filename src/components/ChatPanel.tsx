@@ -96,9 +96,75 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                     <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
                       <FileText size={16} className="text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground truncate">{msg.reportTitle}</span>
-                      <button className="ml-auto p-1 text-muted-foreground hover:text-foreground">
-                        <span className="text-xs">•••</span>
-                      </button>
+                      <div className="ml-auto relative">
+                        <button
+                          onClick={() => setReportMenuOpen(reportMenuOpen === msg.id ? null : msg.id)}
+                          className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent"
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+                        {reportMenuOpen === msg.id && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setReportMenuOpen(null)} />
+                            <div
+                              className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-20 shadow-xl"
+                              style={{ backgroundColor: "hsl(var(--popover))" }}
+                            >
+                              <button
+                                onClick={() => { setReportMenuOpen(null); setPreviewMsg(msg); }}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Eye size={16} className="text-muted-foreground" />
+                                Preview
+                              </button>
+                              <button
+                                onClick={() => setReportMenuOpen(null)}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Share2 size={16} className="text-muted-foreground" />
+                                Share
+                              </button>
+                              <button
+                                onClick={() => setReportMenuOpen(null)}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Download size={16} className="text-muted-foreground" />
+                                <span className="flex-1 text-left">Download</span>
+                                <ChevronRight size={14} className="text-muted-foreground" />
+                              </button>
+                              <div className="h-px bg-border my-1" />
+                              <button
+                                onClick={() => setReportMenuOpen(null)}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Globe size={16} className="text-[hsl(210_60%_55%)]" />
+                                Convert to Google Docs
+                              </button>
+                              <button
+                                onClick={() => setReportMenuOpen(null)}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Globe size={16} className="text-[hsl(45_80%_55%)]" />
+                                Save to Google Drive
+                              </button>
+                              <button
+                                onClick={() => setReportMenuOpen(null)}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Globe size={16} className="text-[hsl(210_80%_55%)]" />
+                                Save to OneDrive (personal)
+                              </button>
+                              <button
+                                onClick={() => setReportMenuOpen(null)}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Globe size={16} className="text-[hsl(210_60%_45%)]" />
+                                Save to OneDrive (work/school)
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <div className="px-4 py-3 space-y-2">
                       <p className="text-xs text-muted-foreground leading-relaxed">{msg.reportSummary}</p>
