@@ -174,7 +174,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         )}
 
         {/* Publish card for completed conversations */}
-        {isComplete && !isThinking && (
+        {isComplete && !isThinking && conversation.editorLabel === "Code Editor" && (
           <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
             <div className="flex items-center gap-3 px-4 py-3">
               <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "hsl(var(--success-soft))" }}>
