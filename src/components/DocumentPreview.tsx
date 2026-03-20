@@ -351,6 +351,13 @@ export function DocumentPreview({ open, onClose, title, summary, tableData }: Do
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <button
+            onClick={() => setTocOpen(!tocOpen)}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent"
+            title={tocOpen ? "Hide contents" : "Show contents"}
+          >
+            {tocOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+          </button>
           <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent">
             <Maximize2 size={16} />
           </button>
