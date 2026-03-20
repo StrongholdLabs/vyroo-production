@@ -82,7 +82,8 @@ export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
                   {step.subTasks.filter(t => t.type === "image" && t.imageUrl).map((task, i) => (
                     <div
                       key={`img-${i}`}
-                      className="relative w-28 h-20 rounded-lg overflow-hidden flex-shrink-0 border border-border group"
+                      className="relative w-28 h-20 rounded-lg overflow-hidden flex-shrink-0 border border-border group cursor-pointer"
+                      onClick={() => setLightboxIndex(i)}
                     >
                       <img
                         src={task.imageUrl}
