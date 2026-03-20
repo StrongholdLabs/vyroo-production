@@ -483,6 +483,12 @@ export const conversations: Conversation[] = [
     id: "7",
     title: "Minimalist Online Store for Specia...",
     icon: "🛒",
+    type: "website",
+    project: {
+      name: "Specialty Coffee Store",
+      description: "Minimalist e-commerce store",
+      status: "building",
+    },
     fileName: "store_design/App.tsx",
     editorLabel: "Code Editor",
     fileTree: [
