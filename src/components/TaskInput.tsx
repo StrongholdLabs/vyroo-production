@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { ArrowUp, Plus, Smile, Mic, X, Link2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCreateConversation, useSendMessage } from "@/hooks/useConversations";
 
 interface Integration {
   id: string;
@@ -30,11 +32,35 @@ export function TaskInput() {
   const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const createConversation = useCreateConversation();
+  const sendMessage = useSendMessage();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!value.trim()) return;
-    navigate("/dashboard", { state: { task: value } });
-    setValue("");
+
+    // Redirect to login if not authenticated
+    if (!user) {
+      navigate("/login", { state: { from: "/dashboard" } });
+      return;
+    }
+
+    // Create a new conversation and send the first message
+    try {
+      const conv = await createConversation.mutateAsync({
+        title: value.slice(0, 60) + (value.length > 60 ? "..." : ""),
+      });
+      await sendMessage.mutateAsync({
+        conversationId: conv.id,
+        content: value,
+      });
+      navigate(`/dashboard/${conv.id}`);
+      setValue("");
+    } catch {
+      // Fallback for mock mode
+      navigate("/dashboard", { state: { task: value } });
+      setValue("");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

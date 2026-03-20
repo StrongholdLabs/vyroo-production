@@ -14,9 +14,11 @@ import {
   Link2,
   ExternalLink,
   ChevronDown,
+  Key,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { APIKeySettings } from "@/components/APIKeySettings";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -26,6 +28,7 @@ interface SettingsDialogProps {
 const navItems = [
   { id: "account", label: "Account", icon: User },
   { id: "settings", label: "Settings", icon: SettingsIcon },
+  { id: "api-keys", label: "API Keys", icon: Key },
   { id: "usage", label: "Usage", icon: BarChart3 },
   { id: "scheduled", label: "Scheduled tasks", icon: CalendarClock },
   { id: "mail", label: "Mail Vyroo", icon: Mail },
@@ -270,8 +273,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </div>
             )}
 
+            {/* API Keys tab */}
+            {activeTab === "api-keys" && (
+              <div className="px-6 py-5">
+                <APIKeySettings />
+              </div>
+            )}
+
             {/* Placeholder for other tabs */}
-            {activeTab !== "settings" && activeTab !== "usage" && (
+            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "api-keys" && (
               <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-3">
                   {(() => {

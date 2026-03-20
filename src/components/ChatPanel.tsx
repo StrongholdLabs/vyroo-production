@@ -15,6 +15,7 @@ import {
   Download,
   MoreHorizontal,
   ChevronRight,
+  Square,
 } from "lucide-react";
 import type { Conversation, ChatMessage as ChatMsg } from "@/data/conversations";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
@@ -24,6 +25,8 @@ import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { InlineComputerCard } from "@/components/InlineComputerCard";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { ProjectInitCard } from "@/components/ProjectInitCard";
+import { ModelSwitcher } from "@/components/ModelSwitcher";
+import { useAIChat } from "@/hooks/useAIChat";
 
 interface ChatPanelProps {
   conversation: Conversation;
@@ -34,40 +37,34 @@ interface ChatPanelProps {
 
 export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage }: ChatPanelProps) {
   const [message, setMessage] = useState("");
-  const [isThinking, setIsThinking] = useState(false);
   const [reportMenuOpen, setReportMenuOpen] = useState<string | null>(null);
   const [previewMsg, setPreviewMsg] = useState<ChatMsg | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError } = useAIChat({
+    conversationId: conversation.id,
+  });
 
   const { steps, messages, followUps } = conversation;
   const isComplete = conversation.isComplete ?? false;
   const isWebsite = conversation.type === "website";
   const totalSteps = steps.length;
   const completedSteps = steps.filter((s) => s.status === "complete").length;
+  const isThinking = isStreaming;
 
-  // Simulate thinking on send
   const handleSend = () => {
     if (!message.trim()) return;
     onSendMessage?.(message);
+    sendAI(message);
     setMessage("");
-    setIsThinking(true);
-    setTimeout(() => setIsThinking(false), 3000);
   };
-
-  // Show thinking briefly on conversation switch
-  useEffect(() => {
-    setIsThinking(true);
-    const t = setTimeout(() => setIsThinking(false), 2000);
-    return () => clearTimeout(t);
-  }, [conversation.id]);
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-12 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground font-body">Vyroo 1.6 Lite</span>
-          <ChevronDown size={12} className="text-muted-foreground" />
+          <ModelSwitcher />
         </div>
         <div className="flex items-center gap-1">
           {[Sparkles, ArrowUp, Globe, FileText].map((Icon, i) => (
@@ -235,8 +232,22 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           <span className="text-sm text-muted-foreground font-medium">Vyroo will continue working after your reply</span>
         </div>
 
+        {/* Streaming response */}
+        {isStreaming && streamingContent && (
+          <div className="space-y-2">
+            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{streamingContent}<span className="inline-block w-0.5 h-4 bg-foreground animate-pulse ml-0.5 align-text-bottom" /></p>
+          </div>
+        )}
+
+        {/* AI error */}
+        {aiError && (
+          <div className="px-3 py-2 rounded-lg border border-destructive/30 bg-destructive/10 text-sm text-destructive">
+            {aiError}
+          </div>
+        )}
+
         {/* Thinking indicator */}
-        {isThinking && <ThinkingIndicator />}
+        {isThinking && !streamingContent && <ThinkingIndicator />}
 
         {/* Follow-ups */}
         {followUps.length > 0 && !isThinking && (
@@ -334,13 +345,22 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
               <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent active:scale-95">
                 <Mic size={18} />
               </button>
-              <button
-                onClick={handleSend}
-                disabled={!message.trim()}
-                className="p-2.5 rounded-xl bg-foreground text-primary-foreground disabled:opacity-20 hover:opacity-90 transition-all duration-150 active:scale-95"
-              >
-                <ArrowUp size={16} />
-              </button>
+              {isStreaming ? (
+                <button
+                  onClick={abort}
+                  className="p-2.5 rounded-xl bg-destructive text-destructive-foreground hover:opacity-90 transition-all duration-150 active:scale-95"
+                >
+                  <Square size={16} />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={!message.trim()}
+                  className="p-2.5 rounded-xl bg-foreground text-primary-foreground disabled:opacity-20 hover:opacity-90 transition-all duration-150 active:scale-95"
+                >
+                  <ArrowUp size={16} />
+                </button>
+              )}
             </div>
           </div>
         </div>

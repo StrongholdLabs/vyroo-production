@@ -2,12 +2,21 @@ import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { useAuth } from "@/contexts/AuthContext";
+
+const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI;
+const isMacElectron = isElectron && (window as any).electronAPI?.platform === "darwin";
 
 export function Header() {
+  const { user, loading } = useAuth();
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-      <div className="max-w-screen-xl mx-auto flex items-center justify-between h-12 px-4 md:px-6">
-        <Link to="/" className="flex items-center gap-2 font-body font-semibold text-foreground text-sm tracking-tight">
+    <header
+      className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50"
+      style={isElectron ? { WebkitAppRegion: "drag" } as React.CSSProperties : undefined}
+    >
+      <div className={`max-w-screen-xl mx-auto flex items-center justify-between h-12 px-4 md:px-6 ${isMacElectron ? "pl-20" : ""}`}>
+        <Link to="/" className="flex items-center gap-2 font-body font-semibold text-foreground text-sm tracking-tight" style={isElectron ? { WebkitAppRegion: "no-drag" } as React.CSSProperties : undefined}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-foreground">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
             <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -22,8 +31,27 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          <NotificationBell />
-          <ProfileAvatar />
+          {!loading && !user ? (
+            <>
+              <Link
+                to="/login"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium"
+              >
+                Sign in
+              </Link>
+              <Link
+                to="/signup"
+                className="px-3 py-1.5 rounded-lg bg-foreground text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                Sign up
+              </Link>
+            </>
+          ) : (
+            <>
+              <NotificationBell />
+              <ProfileAvatar />
+            </>
+          )}
         </div>
       </div>
     </header>

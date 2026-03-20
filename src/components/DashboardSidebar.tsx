@@ -12,32 +12,11 @@ import {
   MessageSquare,
   LayoutGrid,
   Users,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
-
-interface Task {
-  id: string;
-  title: string;
-  icon?: string;
-}
-
-const mockTasks: Task[] = [
-  { id: "11", title: "2026 DTC Wellness Market Report...", icon: "✅" },
-  { id: "10", title: "Hottest DTC Nutrition and Fitness...", icon: "🔬" },
-  { id: "1", title: "Top 5 DTC Skincare Brands and P...", icon: "📊" },
-  { id: "2", title: "Hottest 2026 DTC Products to Re...", icon: "🔥" },
-  { id: "3", title: "Hello", icon: "👋" },
-  { id: "4", title: "Designing a Website for Vyroo.ai I...", icon: "🎨" },
-  { id: "5", title: "Using Meta Ads to Attract More C...", icon: "📱" },
-  { id: "6", title: "Waar komen katten vandaan?", icon: "🐱" },
-  { id: "7", title: "Minimalist Online Store for Specia...", icon: "🛒" },
-  { id: "8", title: "Designing a Website for Vyroo.ai I...", icon: "🌐" },
-  { id: "9", title: "Build a Landing Page", icon: "🚀" },
-  { id: "12", title: "Stock Analysis", icon: "📈" },
-  { id: "13", title: "Scheduling Tool with Event Creati...", icon: "📅" },
-  { id: "14", title: "How to Test a Product Before Selli...", icon: "🧪" },
-  { id: "15", title: "What Can I Do?", icon: "❓" },
-];
+import { useConversations, useDeleteConversation } from "@/hooks/useConversations";
 
 interface DashboardSidebarProps {
   collapsed: boolean;
@@ -53,6 +32,8 @@ export function DashboardSidebar({
   onSelect,
 }: DashboardSidebarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { data: conversations, isLoading } = useConversations();
+  const deleteConversation = useDeleteConversation();
 
   return (
     <>
@@ -121,20 +102,39 @@ export function DashboardSidebar({
 
           {/* Task list */}
           <div className="flex-1 overflow-y-auto px-2 space-y-px">
-            {mockTasks.map((task) => (
-              <button
-                key={task.id}
-                onClick={() => onSelect(task.id)}
-                className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors duration-150 group text-sm ${
-                  activeId === task.id
-                    ? "bg-accent text-foreground"
-                    : "text-sidebar-foreground hover:bg-accent/50 hover:text-foreground"
-                }`}
-              >
-                <span className="text-xs flex-shrink-0">{task.icon}</span>
-                <span className="truncate">{task.title}</span>
-              </button>
-            ))}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={16} className="animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              (conversations ?? []).map((conv) => (
+                <div
+                  key={conv.id}
+                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors duration-150 group text-sm ${
+                    activeId === conv.id
+                      ? "bg-accent text-foreground"
+                      : "text-sidebar-foreground hover:bg-accent/50 hover:text-foreground"
+                  }`}
+                >
+                  <button
+                    onClick={() => onSelect(conv.id)}
+                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                  >
+                    <span className="text-xs flex-shrink-0">{conv.icon}</span>
+                    <span className="truncate">{conv.title}</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteConversation.mutate(conv.id);
+                    }}
+                    className="p-0.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Bottom referral + icons */}
