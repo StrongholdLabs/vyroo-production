@@ -163,7 +163,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         <div className="flex-1 flex overflow-hidden">
           {/* File tree sidebar */}
           <div className="w-44 flex-shrink-0 border-r overflow-y-auto py-2" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
-            {mockFileTree.map((node, i) => (
+            {(fileTree || defaultFileTree).map((node, i) => (
               <FileTreeItem key={i} node={node} activeFile={shortFileName} />
             ))}
           </div>
