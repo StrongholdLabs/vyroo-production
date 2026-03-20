@@ -78,25 +78,43 @@ const Dashboard = () => {
       )}
 
       <main className="flex-1 flex overflow-hidden relative">
-        <div className="flex-1 flex flex-col min-w-0">
-          <ChatPanel
-            conversation={conversation}
-            computerVisible={isMobile ? false : computerVisible}
-            onOpenComputer={handleOpenComputer}
-          />
-        </div>
+        {!isMobile ? (
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel defaultSize={computerVisible ? 55 : 100} minSize={30}>
+              <div className="flex flex-col h-full min-w-0">
+                <ChatPanel
+                  conversation={conversation}
+                  computerVisible={computerVisible}
+                  onOpenComputer={handleOpenComputer}
+                />
+              </div>
+            </ResizablePanel>
 
-        {/* Desktop computer panel */}
-        {!isMobile && (
-          <ComputerPanel
-            visible={computerVisible}
-            onClose={handleCloseComputer}
-            codeLines={conversation.codeLines}
-            steps={conversation.steps}
-            fileName={conversation.fileName}
-            editorLabel={conversation.editorLabel}
-            fileTree={conversation.fileTree}
-          />
+            {computerVisible && (
+              <>
+                <ResizableHandle />
+                <ResizablePanel defaultSize={45} minSize={25} maxSize={65}>
+                  <ComputerPanel
+                    visible={true}
+                    onClose={handleCloseComputer}
+                    codeLines={conversation.codeLines}
+                    steps={conversation.steps}
+                    fileName={conversation.fileName}
+                    editorLabel={conversation.editorLabel}
+                    fileTree={conversation.fileTree}
+                  />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        ) : (
+          <div className="flex-1 flex flex-col min-w-0">
+            <ChatPanel
+              conversation={conversation}
+              computerVisible={false}
+              onOpenComputer={handleOpenComputer}
+            />
+          </div>
         )}
 
         {/* Mobile computer panel as bottom drawer */}
