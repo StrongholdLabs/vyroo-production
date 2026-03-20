@@ -14,7 +14,7 @@ interface CodeMinimapProps {
 const MINIMAP_COLORS: Record<string, string> = {
   keyword: "hsl(280 60% 70%)",
   string: "hsl(100 50% 60%)",
-  comment: "hsl(220 10% 40%)",
+  comment: "hsl(30 6% 40%)",
   number: "hsl(30 80% 65%)",
   tag: "hsl(355 65% 65%)",
   attribute: "hsl(200 60% 65%)",
