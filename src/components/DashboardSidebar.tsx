@@ -149,7 +149,7 @@ export function DashboardSidebar({
                   <MessageSquare size={16} />
                 </button>
               </div>
-              <span className="text-[10px] text-muted-foreground">from <span className="font-medium">Ⓜ Meta</span></span>
+              
             </div>
           </div>
         </>
