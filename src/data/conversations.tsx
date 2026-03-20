@@ -72,6 +72,7 @@ export interface ComputerViewState {
   browserContent?: BrowserPageContent;
   searchQuery?: string;
   searchResults?: SearchResult[];
+  timeline?: TimelineEntry[];
 }
 
 export interface Conversation {
