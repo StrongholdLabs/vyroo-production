@@ -225,9 +225,9 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         ) : (
           <Check size={12} className="text-success" />
         )}
-        <span>Vyroo is using <span className="text-foreground font-medium">{editorLabel}</span></span>
+        <span>Vyroo is using <span className="text-foreground font-medium">{statusLabel}</span></span>
         <span className="text-muted-foreground/50">·</span>
-        <span>{isTyping ? "Creating" : "Created"} file {shortFileName}</span>
+        <span className="truncate">{statusAction}</span>
 
         {/* Right-side tools */}
         <div className="ml-auto flex items-center gap-1">
