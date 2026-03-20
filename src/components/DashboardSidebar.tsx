@@ -48,7 +48,11 @@ export function DashboardSidebar({
   activeId,
   onSelect,
 }: DashboardSidebarProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   return (
+    <>
+    <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     <aside
       className={`h-full flex flex-col border-r border-sidebar-border transition-all duration-300 ease-out ${
         collapsed ? "w-0 overflow-hidden md:w-14" : "w-64"
