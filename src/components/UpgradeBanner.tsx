@@ -75,7 +75,7 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
         <button
           onClick={handleUpgrade}
           className="flex-1 py-2 text-sm text-foreground rounded-lg transition-colors active:scale-[0.98] flex items-center justify-center gap-2 font-medium"
-          style={{ backgroundColor: "hsl(210 40% 35%)", }}
+          style={{ backgroundColor: "hsl(38 50% 28%)" }}
         >
           Build with 1.6 Max
           <Sparkles size={14} className="text-foreground" />

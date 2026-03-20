@@ -296,7 +296,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
       ) : activeTab === "terminal" ? (
         <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(220 10% 8%)" }}>
+        <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-sunken))" }}>
           <div className="w-full max-w-md px-8 space-y-6 text-center">
             <div className="rounded-lg border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--card))" }}>
               <div className="h-6 border-b border-border flex items-center gap-1.5 px-3">

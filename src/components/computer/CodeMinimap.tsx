@@ -96,9 +96,9 @@ export function CodeMinimap({ codeLines, visibleLines, scrollTop, scrollHeight, 
         style={{
           top: `${viewportTop}px`,
           height: `${viewportHeight}px`,
-          backgroundColor: "hsl(210 17% 90% / 0.08)",
-          borderTop: "1px solid hsl(210 17% 90% / 0.15)",
-          borderBottom: "1px solid hsl(210 17% 90% / 0.15)",
+          backgroundColor: "hsl(35 12% 90% / 0.08)",
+          borderTop: "1px solid hsl(35 12% 90% / 0.15)",
+          borderBottom: "1px solid hsl(35 12% 90% / 0.15)",
         }}
       />
     </div>
