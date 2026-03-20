@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Plus,
@@ -12,6 +13,7 @@ import {
   LayoutGrid,
   Users,
 } from "lucide-react";
+import { SettingsDialog } from "@/components/SettingsDialog";
 
 interface Task {
   id: string;
@@ -46,7 +48,11 @@ export function DashboardSidebar({
   activeId,
   onSelect,
 }: DashboardSidebarProps) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   return (
+    <>
+    <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     <aside
       className={`h-full flex flex-col border-r border-sidebar-border transition-all duration-300 ease-out ${
         collapsed ? "w-0 overflow-hidden md:w-14" : "w-64"
@@ -140,7 +146,7 @@ export function DashboardSidebar({
             </div>
             <div className="flex items-center justify-between px-3 pb-2">
               <div className="flex items-center gap-1">
-                <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
+                <button onClick={() => setSettingsOpen(true)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
                   <Users size={16} />
                 </button>
                 <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
@@ -174,6 +180,7 @@ export function DashboardSidebar({
         </div>
       )}
     </aside>
+    </>
   );
 }
 
