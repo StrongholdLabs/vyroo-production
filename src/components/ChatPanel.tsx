@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Check,
   ChevronDown,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { Conversation } from "@/data/conversations";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
+import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 
 interface ChatPanelProps {
   conversation: Conversation;
@@ -23,17 +24,28 @@ interface ChatPanelProps {
 
 export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage }: ChatPanelProps) {
   const [message, setMessage] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { steps, messages, followUps } = conversation;
   const totalSteps = steps.length;
   const completedSteps = steps.filter((s) => s.status === "complete").length;
 
+  // Simulate thinking on send
   const handleSend = () => {
     if (!message.trim()) return;
     onSendMessage?.(message);
     setMessage("");
+    setIsThinking(true);
+    setTimeout(() => setIsThinking(false), 3000);
   };
+
+  // Show thinking briefly on conversation switch
+  useEffect(() => {
+    setIsThinking(true);
+    const t = setTimeout(() => setIsThinking(false), 2000);
+    return () => clearTimeout(t);
+  }, [conversation.id]);
 
   return (
     <div className="flex flex-col h-full">
@@ -121,8 +133,11 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         ))}
 
+        {/* Thinking indicator */}
+        {isThinking && <ThinkingIndicator />}
+
         {/* Follow-ups */}
-        {followUps.length > 0 && (
+        {followUps.length > 0 && !isThinking && (
           <div className="space-y-2 pt-2">
             <span className="text-xs text-muted-foreground font-medium">Suggested follow-ups</span>
             {followUps.map((item, i) => (
