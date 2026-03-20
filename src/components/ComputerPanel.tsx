@@ -6,7 +6,7 @@ import {
   Search as SearchIcon, Globe, Radio, Clock,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask } from "@/data/conversations";
+import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask, TimelineEntry } from "@/data/conversations";
 import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
 import { TerminalTab } from "@/components/computer/TerminalTab";
@@ -156,6 +156,14 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
     setPrevTab(activeTab);
     setActiveTab(tab);
   }, [activeTab]);
+
+  const handleTimelineEntryClick = useCallback((entry: TimelineEntry) => {
+    if (entry.type === "browse") {
+      handleTabChange("preview");
+    } else if (entry.type === "search") {
+      handleTabChange("terminal");
+    }
+  }, [handleTabChange]);
 
   const handleMinimapScroll = useCallback((ratio: number) => {
     if (codeRef.current) codeRef.current.scrollTop = ratio * codeRef.current.scrollHeight;
@@ -385,7 +393,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
         )
       ) : activeTab === "timeline" && computerView?.timeline ? (
-        <ResearchTimeline entries={computerView.timeline} />
+        <ResearchTimeline entries={computerView.timeline} onEntryClick={handleTimelineEntryClick} />
       ) : null}
         </motion.div>
       </AnimatePresence>
