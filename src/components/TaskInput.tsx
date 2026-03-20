@@ -1,24 +1,24 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp, Plus, Smile, Mic, X, Link2 } from "lucide-react";
+import { ArrowUp, Plus, Smile, Mic, X, Link2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Integration {
   id: string;
   name: string;
   icon: string;
-  status: "Connect" | "Install" | "Connected";
+  defaultStatus: "Connect" | "Install";
   badge?: string;
 }
 
-const integrations: Integration[] = [
-  { id: "github", name: "GitHub", icon: "🐙", status: "Connect" },
-  { id: "gmail", name: "Gmail", icon: "✉️", status: "Connect" },
-  { id: "browser", name: "My Browser", icon: "🌐", status: "Install" },
-  { id: "meta", name: "Meta Ads Manager", icon: "📘", status: "Connect", badge: "Beta" },
-  { id: "instagram", name: "Instagram", icon: "📷", status: "Connect", badge: "Beta" },
-  { id: "outlook", name: "Outlook Mail", icon: "📨", status: "Connect" },
-  { id: "gcal", name: "Google Calendar", icon: "📅", status: "Connect" },
-  { id: "ocal", name: "Outlook Calendar", icon: "📆", status: "Connect" },
+const defaultIntegrations: Integration[] = [
+  { id: "github", name: "GitHub", icon: "🐙", defaultStatus: "Connect" },
+  { id: "gmail", name: "Gmail", icon: "✉️", defaultStatus: "Connect" },
+  { id: "browser", name: "My Browser", icon: "🌐", defaultStatus: "Install" },
+  { id: "meta", name: "Meta Ads Manager", icon: "📘", defaultStatus: "Connect", badge: "Beta" },
+  { id: "instagram", name: "Instagram", icon: "📷", defaultStatus: "Connect", badge: "Beta" },
+  { id: "outlook", name: "Outlook Mail", icon: "📨", defaultStatus: "Connect" },
+  { id: "gcal", name: "Google Calendar", icon: "📅", defaultStatus: "Connect" },
+  { id: "ocal", name: "Outlook Calendar", icon: "📆", defaultStatus: "Connect" },
 ];
 
 const connectedIcons = ["🟢", "📘", "🔵", "💬", "🟣", "📎"];
