@@ -466,6 +466,20 @@ export const conversations: Conversation[] = [
     icon: "🛒",
     fileName: "store_design/App.tsx",
     editorLabel: "Code Editor",
+    fileTree: [
+      { name: "src", type: "folder", expanded: true, children: [
+        { name: "context", type: "folder", children: [
+          { name: "CartContext.tsx", type: "file" },
+        ]},
+        { name: "components", type: "folder", children: [
+          { name: "ProductGrid.tsx", type: "file" },
+          { name: "CartDrawer.tsx", type: "file" },
+          { name: "Header.tsx", type: "file" },
+        ]},
+        { name: "App.tsx", type: "file" },
+      ]},
+      { name: "package.json", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Gathering store requirements", detail: "Understanding product catalog and brand identity", status: "complete",
