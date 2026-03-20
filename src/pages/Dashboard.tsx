@@ -7,7 +7,8 @@ import { getConversation } from "@/data/conversations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
-import { Menu } from "lucide-react";
+import { Menu, GripVertical } from "lucide-react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
 const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -77,25 +78,45 @@ const Dashboard = () => {
       )}
 
       <main className="flex-1 flex overflow-hidden relative">
-        <div className="flex-1 flex flex-col min-w-0">
-          <ChatPanel
-            conversation={conversation}
-            computerVisible={isMobile ? false : computerVisible}
-            onOpenComputer={handleOpenComputer}
-          />
-        </div>
-
-        {/* Desktop computer panel */}
-        {!isMobile && (
-          <ComputerPanel
-            visible={computerVisible}
-            onClose={handleCloseComputer}
-            codeLines={conversation.codeLines}
-            steps={conversation.steps}
-            fileName={conversation.fileName}
-            editorLabel={conversation.editorLabel}
-            fileTree={conversation.fileTree}
-          />
+        {!isMobile ? (
+          <PanelGroup direction="horizontal" autoSaveId="vyroo-layout">
+            <Panel defaultSize={computerVisible ? 55 : 100} minSize={30}>
+              <div className="flex flex-col h-full min-w-0">
+                <ChatPanel
+                  conversation={conversation}
+                  computerVisible={computerVisible}
+                  onOpenComputer={handleOpenComputer}
+                />
+              </div>
+            </Panel>
+            {computerVisible && (
+              <>
+                <PanelResizeHandle className="w-1.5 relative group flex items-center justify-center hover:bg-accent/50 transition-colors data-[resize-handle-active]:bg-accent">
+                  <div className="absolute w-px h-full bg-border group-hover:bg-muted-foreground/30 transition-colors" />
+                  <GripVertical size={12} className="text-muted-foreground/40 group-hover:text-muted-foreground transition-colors z-10" />
+                </PanelResizeHandle>
+                <Panel defaultSize={45} minSize={25} maxSize={70}>
+                  <ComputerPanel
+                    visible={true}
+                    onClose={handleCloseComputer}
+                    codeLines={conversation.codeLines}
+                    steps={conversation.steps}
+                    fileName={conversation.fileName}
+                    editorLabel={conversation.editorLabel}
+                    fileTree={conversation.fileTree}
+                  />
+                </Panel>
+              </>
+            )}
+          </PanelGroup>
+        ) : (
+          <div className="flex-1 flex flex-col min-w-0">
+            <ChatPanel
+              conversation={conversation}
+              computerVisible={false}
+              onOpenComputer={handleOpenComputer}
+            />
+          </div>
         )}
 
         {/* Mobile computer panel as bottom drawer */}
