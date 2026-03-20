@@ -109,7 +109,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
       <div className="computer-header flex items-center justify-between px-4 h-10 flex-shrink-0">
         <div className="flex items-center gap-2">
           <Monitor size={14} className="text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground font-body">Manus's Computer</span>
+          <span className="text-sm font-medium text-foreground font-body">Vyroo's Computer</span>
         </div>
         <div className="flex items-center gap-1">
           <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Square size={14} /></button>
@@ -153,7 +153,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         ) : (
           <Check size={12} className="text-success" />
         )}
-        <span>Manus is using <span className="text-foreground font-medium">{editorLabel}</span></span>
+        <span>Vyroo is using <span className="text-foreground font-medium">{editorLabel}</span></span>
         <span className="text-muted-foreground/50">·</span>
         <span>{isTyping ? "Creating" : "Created"} file {shortFileName}</span>
       </div>
@@ -218,7 +218,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              {isTyping ? "Manus is building the website. Hang tight!" : "Preview ready"}
+              {isTyping ? "Vyroo is building the website. Hang tight!" : "Preview ready"}
             </p>
             {isTyping && (
               <p className="text-xs text-muted-foreground/60">

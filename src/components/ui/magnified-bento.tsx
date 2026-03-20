@@ -33,7 +33,7 @@ const TAG_ROWS = [
 ];
 
 const CONFIG = {
-  title: "Manus's Computer",
+  title: "Vyroo's Computer",
   description:
     "Real-time browser streaming — watch the AI work inside a live sandboxed environment.",
   lensSize: 80,

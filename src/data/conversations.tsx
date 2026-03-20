@@ -265,14 +265,14 @@ export const conversations: Conversation[] = [
     ],
     messages: [
       { id: "1", role: "user", content: "Hello" },
-      { id: "2", role: "assistant", content: "Hello! 👋 I'm Manus, your AI assistant. I can help you with research, writing, coding, data analysis, and much more. What would you like to work on today?" },
+      { id: "2", role: "assistant", content: "Hello! 👋 I'm Vyroo, your AI assistant. I can help you with research, writing, coding, data analysis, and much more. What would you like to work on today?" },
     ],
     followUps: [
       { icon: <Search size={16} />, text: "Help me research a topic" },
       { icon: <Code size={16} />, text: "Build a website for me" },
     ],
     codeLines: [
-      { num: 1, content: "# Welcome to Manus", color: "text-red-400" },
+      { num: 1, content: "# Welcome to Vyroo", color: "text-red-400" },
       { num: 2, content: "" },
       { num: 3, content: "No active task. Start by assigning a task.", color: "text-muted-foreground" },
     ],

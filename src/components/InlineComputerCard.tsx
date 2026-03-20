@@ -30,10 +30,10 @@ export function InlineComputerCard({ steps, onOpenComputer }: InlineComputerCard
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground">Manus's computer</p>
+          <p className="text-sm font-medium text-foreground">Vyroo's computer</p>
           <div className="flex items-center gap-1.5">
             <Monitor size={11} className="text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Manus is using Editor</span>
+            <span className="text-xs text-muted-foreground">Vyroo is using Editor</span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
