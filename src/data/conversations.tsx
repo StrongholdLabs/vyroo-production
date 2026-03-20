@@ -292,6 +292,12 @@ export const conversations: Conversation[] = [
     id: "4",
     title: "Designing a Website for Vyroo.ai I...",
     icon: "🎨",
+    type: "website",
+    project: {
+      name: "Vyroo.ai - AI Revenue Operator",
+      description: "Landing page for Vyroo.ai",
+      status: "complete",
+    },
     fileName: "vyroo_website/index.html",
     editorLabel: "Code Editor",
     isComplete: true,
