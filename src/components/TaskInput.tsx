@@ -27,6 +27,7 @@ export function TaskInput() {
   const [value, setValue] = useState("");
   const [showIntegrations, setShowIntegrations] = useState(false);
   const [dismissedBar, setDismissedBar] = useState(false);
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
