@@ -135,15 +135,6 @@ export function DashboardSidebar({
 
           {/* Bottom referral + icons */}
           <div className="flex-shrink-0 border-t border-sidebar-border">
-            <div className="mx-3 my-2 px-3 py-2.5 rounded-lg flex items-center gap-2 cursor-pointer transition-colors duration-150"
-              style={{ backgroundColor: "hsl(var(--accent))" }}
-            >
-              <Share2 size={14} className="text-muted-foreground" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground">Share Manus with a friend</p>
-                <p className="text-[10px] text-muted-foreground">Get 500 credits each</p>
-              </div>
-            </div>
             <div className="flex items-center justify-between px-3 pb-2">
               <div className="flex items-center gap-1">
                 <button onClick={() => setSettingsOpen(true)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
