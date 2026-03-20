@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronUp, Check, Loader2, Globe, FileEdit, Image, Terminal } from "lucide-react";
 import type { Step } from "@/data/conversations";
+import { ImageLightbox } from "@/components/ImageLightbox";
 
 interface ExpandableStepProps {
   step: Step;
