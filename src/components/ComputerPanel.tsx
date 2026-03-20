@@ -398,10 +398,20 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: "hsl(var(--step-line))" }}>
             <div className="h-full rounded-full bg-success transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex items-center gap-1">
-            <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-foreground animate-pulse" : "bg-success"}`} />
-            <span className="text-[10px] text-muted-foreground">{isTyping ? "writing" : "done"}</span>
-          </div>
+          {isTyping && !isLive ? (
+            <button
+              onClick={handleJumpToLive}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors active:scale-95"
+            >
+              <Radio size={10} className="animate-pulse" />
+              <span>LIVE</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-destructive animate-pulse" : "bg-success"}`} />
+              <span className="text-[10px] text-muted-foreground">{isTyping ? "live" : "done"}</span>
+            </div>
+          )}
         </div>
       </div>
 
