@@ -339,6 +339,16 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         </div>
         </div>
       </div>
+      {/* Document preview modal */}
+      {previewMsg && (
+        <DocumentPreview
+          open={!!previewMsg}
+          onClose={() => setPreviewMsg(null)}
+          title={previewMsg.reportTitle || ""}
+          summary={previewMsg.reportSummary || ""}
+          tableData={previewMsg.tableData}
+        />
+      )}
     </div>
   );
 }
