@@ -1,6 +1,15 @@
 import { ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useModelSettings, AVAILABLE_MODELS } from "@/hooks/useModelSettings";
+import { useModelSettings, AVAILABLE_MODELS, type AIProvider } from "@/hooks/useModelSettings";
+
+const PROVIDER_LABELS: Record<AIProvider, string> = {
+  claude: "Claude",
+  openai: "OpenAI",
+  gemini: "Gemini",
+  together: "Meta Llama",
+};
+
+const PROVIDER_ORDER: AIProvider[] = ["claude", "openai", "gemini", "together"];
 
 export function ModelSwitcher() {
   const { model, currentModel, setModel } = useModelSettings();
@@ -15,8 +24,12 @@ export function ModelSwitcher() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const claudeModels = AVAILABLE_MODELS.filter((m) => m.provider === "claude");
-  const openaiModels = AVAILABLE_MODELS.filter((m) => m.provider === "openai");
+  // Group models by provider
+  const modelsByProvider = PROVIDER_ORDER.map((provider) => ({
+    provider,
+    label: PROVIDER_LABELS[provider],
+    models: AVAILABLE_MODELS.filter((m) => m.provider === provider),
+  })).filter((group) => group.models.length > 0);
 
   return (
     <div ref={ref} className="relative">
@@ -30,45 +43,36 @@ export function ModelSwitcher() {
 
       {open && (
         <div
-          className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-border overflow-hidden shadow-xl z-50 animate-scale-in"
+          className="absolute left-0 top-full mt-2 w-64 rounded-xl border border-border overflow-hidden shadow-xl z-50 animate-scale-in"
           style={{ backgroundColor: "hsl(var(--popover))" }}
         >
-          {/* Claude models */}
-          <div className="px-3 py-2">
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Claude</span>
-          </div>
-          {claudeModels.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => { setModel(m.id); setOpen(false); }}
-              className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                model === m.id
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              }`}
-            >
-              {m.name}
-            </button>
-          ))}
-
-          <div className="h-px bg-border" />
-
-          {/* OpenAI models */}
-          <div className="px-3 py-2">
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">OpenAI</span>
-          </div>
-          {openaiModels.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => { setModel(m.id); setOpen(false); }}
-              className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                model === m.id
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              }`}
-            >
-              {m.name}
-            </button>
+          {modelsByProvider.map((group, groupIdx) => (
+            <div key={group.provider}>
+              {groupIdx > 0 && <div className="h-px bg-border" />}
+              <div className="px-3 py-2">
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  {group.label}
+                </span>
+              </div>
+              {group.models.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => { setModel(m.id); setOpen(false); }}
+                  className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                    model === m.id
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span>{m.name}</span>
+                    {m.description && (
+                      <span className="text-[10px] text-muted-foreground/70 ml-2">{m.description}</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       )}

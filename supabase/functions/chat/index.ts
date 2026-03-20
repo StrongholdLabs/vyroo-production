@@ -1,7 +1,12 @@
 // Supabase Edge Function: AI Chat Proxy
-// Streams responses from Claude or OpenAI, keeping API keys server-side
+// Streams responses from multiple LLM providers, keeping API keys server-side
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveProvider, getFallbackChain } from "../_shared/provider-registry.ts";
+import { streamAnthropic } from "../_shared/providers/anthropic.ts";
+import { streamOpenAI } from "../_shared/providers/openai.ts";
+import { streamGemini } from "../_shared/providers/gemini.ts";
+import { streamTogether } from "../_shared/providers/together.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +14,17 @@ const corsHeaders = {
 };
 
 const SYSTEM_PROMPT = `You are Vyroo, an advanced AI assistant. You help users with research, analysis, coding, design, and any task they need. Be helpful, concise, and thorough. When working on tasks, break them into clear steps and provide actionable results.`;
+
+// Map provider IDs to their stream functions
+const STREAM_FUNCTIONS: Record<
+  string,
+  (apiKey: string, messages: any[], model: string, systemPrompt?: string) => ReadableStream
+> = {
+  anthropic: streamAnthropic,
+  openai: streamOpenAI,
+  gemini: streamGemini,
+  together: streamTogether,
+};
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -52,22 +68,49 @@ Deno.serve(async (req) => {
     const selectedProvider = provider || "claude";
     const selectedModel = model || (selectedProvider === "claude" ? "claude-sonnet-4-20250514" : "gpt-4o");
 
-    // Get the user's API key for the selected provider
-    const { data: keyData, error: keyError } = await supabase
+    // Resolve the provider from the model prefix
+    const { providerId, dbProvider } = resolveProvider(selectedModel);
+
+    // Try to get user's API key for the resolved provider
+    let apiKey: string | null = null;
+    let actualProviderId = providerId;
+
+    const { data: keyData } = await supabase
       .from("user_api_keys")
       .select("encrypted_key")
       .eq("user_id", user.id)
-      .eq("provider", selectedProvider)
+      .eq("provider", dbProvider)
       .single();
 
-    if (keyError || !keyData) {
+    if (keyData) {
+      apiKey = keyData.encrypted_key;
+    } else {
+      // Try fallback chain
+      const fallbacks = getFallbackChain(providerId);
+      for (const fallbackDbProvider of fallbacks) {
+        const { data: fallbackKey } = await supabase
+          .from("user_api_keys")
+          .select("encrypted_key")
+          .eq("user_id", user.id)
+          .eq("provider", fallbackDbProvider)
+          .single();
+
+        if (fallbackKey) {
+          apiKey = fallbackKey.encrypted_key;
+          // Map DB provider back to registry provider ID
+          if (fallbackDbProvider === "claude") actualProviderId = "anthropic";
+          else actualProviderId = fallbackDbProvider;
+          break;
+        }
+      }
+    }
+
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: `No ${selectedProvider} API key configured. Add one in Settings > API Keys.` }),
+        JSON.stringify({ error: `No API key configured for ${dbProvider}. Add one in Settings > API Keys.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const apiKey = keyData.encrypted_key;
 
     // Insert user message
     await supabase.from("messages").insert({
@@ -89,119 +132,51 @@ Deno.serve(async (req) => {
       content: m.content,
     }));
 
-    // Build the streaming response
+    // Get the stream function for the resolved provider
+    const streamFn = STREAM_FUNCTIONS[actualProviderId];
+    if (!streamFn) {
+      return new Response(
+        JSON.stringify({ error: `Unsupported provider: ${actualProviderId}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create the provider stream (each adapter returns SSE-formatted ReadableStream)
+    const providerStream = streamFn(apiKey, messages, selectedModel, SYSTEM_PROMPT);
+
+    // Wrap the provider stream to capture the full response and save it
     const encoder = new TextEncoder();
     let fullResponse = "";
 
-    const stream = new ReadableStream({
+    const outputStream = new ReadableStream({
       async start(controller) {
         try {
-          if (selectedProvider === "claude") {
-            // Claude API streaming
-            const anthropicMessages = messages
-              .filter((m) => m.role !== "system")
-              .map((m) => ({ role: m.role, content: m.content }));
+          const reader = providerStream.getReader();
 
-            const response = await fetch("https://api.anthropic.com/v1/messages", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-api-key": apiKey,
-                "anthropic-version": "2023-06-01",
-              },
-              body: JSON.stringify({
-                model: selectedModel,
-                max_tokens: 4096,
-                stream: true,
-                system: SYSTEM_PROMPT,
-                messages: anthropicMessages,
-              }),
-            });
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-            if (!response.ok) {
-              const err = await response.text();
-              controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ error: `Claude API: ${err}` })}\n\n`));
-              controller.close();
-              return;
-            }
+            // Decode the chunk to capture tokens for DB storage
+            const chunk = new TextDecoder().decode(value);
 
-            const reader = response.body!.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split("\n");
-              buffer = lines.pop() || "";
-              for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                  const data = line.slice(6);
-                  if (data === "[DONE]") break;
-                  try {
-                    const parsed = JSON.parse(data);
-                    if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-                      const token = parsed.delta.text;
-                      fullResponse += token;
-                      controller.enqueue(encoder.encode(`event: token\ndata: ${JSON.stringify({ token })}\n\n`));
-                    }
-                  } catch { /* skip */ }
+            // Extract token text from SSE format for accumulation
+            const lines = chunk.split("\n");
+            for (const line of lines) {
+              if (line.startsWith("data: ") && !line.includes('"error"')) {
+                try {
+                  const parsed = JSON.parse(line.slice(6));
+                  if (parsed.token) {
+                    fullResponse += parsed.token;
+                  }
+                } catch {
+                  // Skip
                 }
               }
             }
-          } else {
-            // OpenAI API streaming
-            const openaiMessages = [
-              { role: "system", content: SYSTEM_PROMPT },
-              ...messages.map((m) => ({ role: m.role, content: m.content })),
-            ];
 
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${apiKey}`,
-              },
-              body: JSON.stringify({
-                model: selectedModel,
-                stream: true,
-                messages: openaiMessages,
-              }),
-            });
-
-            if (!response.ok) {
-              const err = await response.text();
-              controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify({ error: `OpenAI API: ${err}` })}\n\n`));
-              controller.close();
-              return;
-            }
-
-            const reader = response.body!.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
-
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-              buffer += decoder.decode(value, { stream: true });
-              const lines = buffer.split("\n");
-              buffer = lines.pop() || "";
-              for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                  const data = line.slice(6);
-                  if (data === "[DONE]") break;
-                  try {
-                    const parsed = JSON.parse(data);
-                    const token = parsed.choices?.[0]?.delta?.content;
-                    if (token) {
-                      fullResponse += token;
-                      controller.enqueue(encoder.encode(`event: token\ndata: ${JSON.stringify({ token })}\n\n`));
-                    }
-                  } catch { /* skip */ }
-                }
-              }
-            }
+            // Forward the chunk as-is to the client
+            controller.enqueue(value);
           }
 
           // Save the complete assistant message
@@ -212,11 +187,58 @@ Deno.serve(async (req) => {
               content: fullResponse,
             });
 
-            // Update conversation timestamp
+            // Update conversation timestamp and message count
             await supabase
               .from("conversations")
-              .update({ updated_at: new Date().toISOString() })
+              .update({
+                updated_at: new Date().toISOString(),
+                last_message_preview: message.slice(0, 100),
+              })
               .eq("id", conversationId);
+
+            // Increment message count
+            await supabase.rpc("increment_message_count", { conv_id: conversationId }).catch(() => {
+              // Fallback if RPC doesn't exist yet
+            });
+
+            // Auto-title: check if this conversation needs a title
+            try {
+              const { data: conv } = await supabase
+                .from("conversations")
+                .select("auto_titled")
+                .eq("id", conversationId)
+                .single();
+
+              if (conv && !conv.auto_titled) {
+                // Call auto-title edge function inline
+                const titleResponse = await fetch(
+                  `${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-title`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: authHeader!,
+                    },
+                    body: JSON.stringify({
+                      conversationId,
+                      userMessage: message,
+                      assistantMessage: fullResponse.slice(0, 300),
+                    }),
+                  }
+                );
+
+                if (titleResponse.ok) {
+                  const { title } = await titleResponse.json();
+                  if (title) {
+                    controller.enqueue(
+                      encoder.encode(`event: title\ndata: ${JSON.stringify({ title })}\n\n`)
+                    );
+                  }
+                }
+              }
+            } catch {
+              // Title generation is non-critical, don't fail the stream
+            }
           }
 
           controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`));
@@ -230,7 +252,7 @@ Deno.serve(async (req) => {
       },
     });
 
-    return new Response(stream, {
+    return new Response(outputStream, {
       headers: {
         ...corsHeaders,
         "Content-Type": "text/event-stream",

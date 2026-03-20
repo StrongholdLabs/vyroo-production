@@ -1,0 +1,106 @@
+// Anthropic (Claude) Messages API streaming adapter
+
+export interface ChatMsg {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+/**
+ * Stream a response from Anthropic's Messages API.
+ * Returns a ReadableStream that emits SSE-formatted token events.
+ */
+export function streamAnthropic(
+  apiKey: string,
+  messages: ChatMsg[],
+  model: string,
+  systemPrompt?: string
+): ReadableStream {
+  const encoder = new TextEncoder();
+
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        const anthropicMessages = messages
+          .filter((m) => m.role !== "system")
+          .map((m) => ({ role: m.role, content: m.content }));
+
+        const body: Record<string, unknown> = {
+          model,
+          max_tokens: 4096,
+          stream: true,
+          messages: anthropicMessages,
+        };
+
+        if (systemPrompt) {
+          body.system = systemPrompt;
+        }
+
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          const err = await response.text();
+          controller.enqueue(
+            encoder.encode(
+              `event: error\ndata: ${JSON.stringify({ error: `Claude API (${response.status}): ${err}` })}\n\n`
+            )
+          );
+          controller.close();
+          return;
+        }
+
+        const reader = response.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(data);
+                if (
+                  parsed.type === "content_block_delta" &&
+                  parsed.delta?.text
+                ) {
+                  const token = parsed.delta.text;
+                  controller.enqueue(
+                    encoder.encode(
+                      `event: token\ndata: ${JSON.stringify({ token })}\n\n`
+                    )
+                  );
+                }
+              } catch {
+                // Skip non-JSON lines
+              }
+            }
+          }
+        }
+
+        controller.close();
+      } catch (error) {
+        controller.enqueue(
+          encoder.encode(
+            `event: error\ndata: ${JSON.stringify({ error: String(error) })}\n\n`
+          )
+        );
+        controller.close();
+      }
+    },
+  });
+}

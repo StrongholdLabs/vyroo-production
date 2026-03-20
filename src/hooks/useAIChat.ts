@@ -2,15 +2,22 @@ import { useState, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { streamChat } from "@/lib/ai-stream";
 import { useModelSettings } from "@/hooks/useModelSettings";
+import { broadcastEvent } from "@/hooks/useBroadcastSync";
 
 interface UseAIChatOptions {
   conversationId: string;
+}
+
+export interface FollowUp {
+  text: string;
+  category: string;
 }
 
 export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
   const { provider, model } = useModelSettings();
@@ -20,6 +27,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
       setIsStreaming(true);
       setStreamingContent("");
       setError(null);
+      setFollowUps([]); // Clear previous follow-ups
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -33,6 +41,14 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         onToken: (token) => {
           setStreamingContent((prev) => prev + token);
         },
+        onTitle: (title) => {
+          // Auto-title received — invalidate conversations list
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          broadcastEvent("title-updated", conversationId);
+        },
+        onFollowUps: (newFollowUps) => {
+          setFollowUps(newFollowUps);
+        },
         onError: (err) => {
           setError(err);
           setIsStreaming(false);
@@ -45,6 +61,8 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
             queryKey: ["conversation", conversationId],
           });
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          // Broadcast to other tabs
+          broadcastEvent("message-created", conversationId);
         },
       });
     },
@@ -63,5 +81,6 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
     isStreaming,
     streamingContent,
     error,
+    followUps,
   };
 }

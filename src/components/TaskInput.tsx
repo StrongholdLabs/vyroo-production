@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp, Plus, Smile, Mic, X, Link2, Check } from "lucide-react";
+import { ArrowUp, Plus, Smile, X, Link2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { useCreateConversation, useSendMessage } from "@/hooks/useConversations";
 
 interface Integration {
@@ -161,9 +162,7 @@ export function TaskInput() {
             <button className="p-2 text-muted-foreground hover:text-foreground transition-colors duration-150 rounded-lg hover:bg-secondary active:scale-95">
               <Smile size={18} />
             </button>
-            <button className="p-2 text-muted-foreground hover:text-foreground transition-colors duration-150 rounded-lg hover:bg-secondary active:scale-95">
-              <Mic size={18} />
-            </button>
+            <VoiceMicButton onTranscript={(text) => setValue(text)} />
             <button
               onClick={handleSubmit}
               disabled={!value.trim()}

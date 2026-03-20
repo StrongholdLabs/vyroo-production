@@ -181,6 +181,21 @@ const TOKEN_COLORS: Record<Token["type"], string> = {
   plain: "text-foreground",
 };
 
+/** Returns typing delay in ms for a character based on its context */
+export function getTypingDelay(char: string, nextChars: string): number {
+  // Whitespace and punctuation: fast
+  if (/[\s{}()\[\];,.<>:=+\-*/&|!?]/.test(char)) {
+    return 10 + Math.random() * 10; // 10-20ms
+  }
+  // Check if we're in a keyword (look-ahead heuristic)
+  const word = (char + nextChars).match(/^[a-zA-Z_$]+/)?.[0] || "";
+  if (word.length >= 2 && KEYWORDS.has(word)) {
+    return 40 + Math.random() * 20; // 40-60ms
+  }
+  // Normal characters
+  return 25 + Math.random() * 10; // 25-35ms
+}
+
 export function TokenizedLine({ content }: { content: string }) {
   const tokens = tokenize(content);
   return (

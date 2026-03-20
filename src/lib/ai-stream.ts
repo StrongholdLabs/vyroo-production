@@ -3,16 +3,18 @@ import { supabase } from "@/lib/supabase";
 export interface StreamOptions {
   conversationId: string;
   message: string;
-  provider: "claude" | "openai";
+  provider: string;
   model: string;
   onToken: (token: string) => void;
   onError: (error: string) => void;
   onDone: () => void;
+  onTitle?: (title: string) => void;
+  onFollowUps?: (followUps: { text: string; category: string }[]) => void;
   signal?: AbortSignal;
 }
 
 export async function streamChat(options: StreamOptions) {
-  const { conversationId, message, provider, model, onToken, onError, onDone, signal } = options;
+  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, signal } = options;
 
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
@@ -62,6 +64,10 @@ export async function streamChat(options: StreamOptions) {
             const parsed = JSON.parse(data);
             if (eventType === "token" && parsed.token) {
               onToken(parsed.token);
+            } else if (eventType === "title" && parsed.title) {
+              onTitle?.(parsed.title);
+            } else if (eventType === "followups" && parsed.followUps) {
+              onFollowUps?.(parsed.followUps);
             } else if (eventType === "error") {
               onError(parsed.error || "Unknown error");
               return;

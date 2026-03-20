@@ -10,6 +10,8 @@ import Index from "./pages/Index.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
+import Connectors from "./pages/Connectors.tsx";
+import Skills from "./pages/Skills.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -35,6 +37,22 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/skills"
+                element={
+                  <ProtectedRoute>
+                    <Skills />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/connectors"
+                element={
+                  <ProtectedRoute>
+                    <Connectors />
                   </ProtectedRoute>
                 }
               />

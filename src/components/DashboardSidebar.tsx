@@ -4,6 +4,7 @@ import {
   Plus,
   Search,
   ChevronLeft,
+  ChevronDown,
   Settings,
   Bot,
   BookOpen,
@@ -14,9 +15,13 @@ import {
   Users,
   Loader2,
   Trash2,
+  Plug,
+  Zap,
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { useConversations, useDeleteConversation } from "@/hooks/useConversations";
+import { useBroadcastSync } from "@/hooks/useBroadcastSync";
+import { groupConversationsByTime } from "@/lib/time-groups";
 
 interface DashboardSidebarProps {
   collapsed: boolean;
@@ -34,6 +39,12 @@ export function DashboardSidebar({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { data: conversations, isLoading } = useConversations();
   const deleteConversation = useDeleteConversation();
+
+  // Enable cross-tab sync
+  useBroadcastSync();
+
+  // Group conversations by time
+  const groups = conversations ? groupConversationsByTime(conversations as any[]) : null;
 
   return (
     <>
@@ -53,7 +64,7 @@ export function DashboardSidebar({
               <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               <circle cx="12" cy="12" r="1.5" fill="currentColor" />
             </svg>
-            <span>manus</span>
+            <span>Vyroo</span>
           </Link>
         )}
         <button
@@ -70,6 +81,8 @@ export function DashboardSidebar({
           <div className="px-2 space-y-0.5">
             <SidebarNavItem icon={<Plus size={16} />} label="New task" to="/" />
             <SidebarNavItem icon={<Bot size={16} />} label="Agents" badge="New" />
+            <SidebarNavItem icon={<Zap size={16} />} label="Skills" to="/skills" />
+            <SidebarNavItem icon={<Plug size={16} />} label="Connectors" to="/connectors" />
             <SidebarNavItem icon={<Search size={16} />} label="Search" />
             <SidebarNavItem icon={<BookOpen size={16} />} label="Library" />
           </div>
@@ -90,54 +103,47 @@ export function DashboardSidebar({
             </button>
           </div>
 
-          {/* All tasks */}
-          <div className="px-3 mt-2 mb-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">All tasks</span>
-              <button className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
-                <Settings size={12} />
-              </button>
-            </div>
-          </div>
-
-          {/* Task list */}
-          <div className="flex-1 overflow-y-auto px-2 space-y-px">
+          {/* Time-grouped conversations */}
+          <div className="flex-1 overflow-y-auto px-2 space-y-1">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 size={16} className="animate-spin text-muted-foreground" />
               </div>
-            ) : (
-              (conversations ?? []).map((conv) => (
-                <div
-                  key={conv.id}
-                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors duration-150 group text-sm ${
-                    activeId === conv.id
-                      ? "bg-accent text-foreground"
-                      : "text-sidebar-foreground hover:bg-accent/50 hover:text-foreground"
-                  }`}
-                >
-                  <button
-                    onClick={() => onSelect(conv.id)}
-                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                  >
-                    <span className="text-xs flex-shrink-0">{conv.icon}</span>
-                    <span className="truncate">{conv.title}</span>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteConversation.mutate(conv.id);
-                    }}
-                    className="p-0.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              ))
-            )}
+            ) : groups ? (
+              <>
+                <TimeGroup
+                  title="Today"
+                  conversations={groups.today}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  onDelete={(id) => deleteConversation.mutate(id)}
+                />
+                <TimeGroup
+                  title="Yesterday"
+                  conversations={groups.yesterday}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  onDelete={(id) => deleteConversation.mutate(id)}
+                />
+                <TimeGroup
+                  title="Last 7 Days"
+                  conversations={groups.lastWeek}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  onDelete={(id) => deleteConversation.mutate(id)}
+                />
+                <TimeGroup
+                  title="Older"
+                  conversations={groups.older}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  onDelete={(id) => deleteConversation.mutate(id)}
+                />
+              </>
+            ) : null}
           </div>
 
-          {/* Bottom referral + icons */}
+          {/* Bottom icons */}
           <div className="flex-shrink-0 border-t border-sidebar-border">
             <div className="flex items-center justify-between px-3 pb-2">
               <div className="flex items-center gap-1">
@@ -151,7 +157,6 @@ export function DashboardSidebar({
                   <MessageSquare size={16} />
                 </button>
               </div>
-              
             </div>
           </div>
         </>
@@ -178,6 +183,78 @@ export function DashboardSidebar({
     </>
   );
 }
+
+// ─── Time Group Section ───
+
+interface TimeGroupProps {
+  title: string;
+  conversations: any[];
+  activeId: string;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function TimeGroup({ title, conversations, activeId, onSelect, onDelete }: TimeGroupProps) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (conversations.length === 0) return null;
+
+  return (
+    <div className="mb-1">
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="flex items-center gap-1.5 w-full px-2 py-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
+      >
+        <ChevronDown
+          size={10}
+          className={`transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`}
+        />
+        <span>{title}</span>
+        <span className="ml-auto text-[10px] font-normal tabular-nums opacity-60">{conversations.length}</span>
+      </button>
+      {!collapsed && (
+        <div className="space-y-px mt-0.5">
+          {conversations.map((conv) => (
+            <div
+              key={conv.id}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors duration-150 group text-sm ${
+                activeId === conv.id
+                  ? "bg-accent text-foreground"
+                  : "text-sidebar-foreground hover:bg-accent/50 hover:text-foreground"
+              }`}
+            >
+              <button
+                onClick={() => onSelect(conv.id)}
+                className="flex-1 min-w-0 text-left flex flex-col gap-0.5"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs flex-shrink-0">{conv.icon}</span>
+                  <span className="truncate text-sm">{conv.title}</span>
+                </div>
+                {conv.last_message_preview && (
+                  <span className="text-[11px] text-muted-foreground/60 truncate pl-5">
+                    {conv.last_message_preview}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(conv.id);
+                }}
+                className="p-0.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Nav Item ───
 
 function SidebarNavItem({ icon, label, badge, to }: { icon: React.ReactNode; label: string; badge?: string; to?: string }) {
   const content = (

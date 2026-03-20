@@ -22,7 +22,7 @@ export function Header() {
             <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             <circle cx="12" cy="12" r="1.5" fill="currentColor" />
           </svg>
-          <span>manus</span>
+          <span>Vyroo</span>
         </Link>
 
         <div className="flex items-center gap-2">

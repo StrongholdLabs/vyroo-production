@@ -1,19 +1,24 @@
 import { useState, useCallback } from "react";
 
-export type AIProvider = "claude" | "openai";
+export type AIProvider = "claude" | "openai" | "gemini" | "together";
 
 export interface ModelOption {
   id: string;
   name: string;
   provider: AIProvider;
+  description?: string;
 }
 
 export const AVAILABLE_MODELS: ModelOption[] = [
-  { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", provider: "claude" },
-  { id: "claude-opus-4-20250514", name: "Claude Opus 4", provider: "claude" },
-  { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5", provider: "claude" },
-  { id: "gpt-4o", name: "GPT-4o", provider: "openai" },
-  { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "openai" },
+  { id: "claude-sonnet-4-20250514", name: "Claude Sonnet 4", provider: "claude", description: "Balanced performance" },
+  { id: "claude-opus-4-20250514", name: "Claude Opus 4", provider: "claude", description: "Most capable Claude" },
+  { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5", provider: "claude", description: "Fast and lightweight" },
+  { id: "gpt-4o", name: "GPT-4o", provider: "openai", description: "Flagship OpenAI model" },
+  { id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "openai", description: "Cost-effective" },
+  { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "gemini", description: "Fast and efficient" },
+  { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", provider: "gemini", description: "Most capable Gemini" },
+  { id: "llama-3.3-70b", name: "Llama 3.3 70B", provider: "together", description: "Open source, cost-effective" },
+  { id: "llama-4-scout", name: "Llama 4 Scout", provider: "together", description: "Latest Meta model" },
 ];
 
 const STORAGE_KEY = "vyroo-model-settings";

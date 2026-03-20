@@ -6,7 +6,7 @@ import {
   Sparkles,
   ArrowUp,
   Plus,
-  Mic,
+
   Star,
   ArrowRight,
   Globe,
@@ -26,6 +26,8 @@ import { InlineComputerCard } from "@/components/InlineComputerCard";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { ProjectInitCard } from "@/components/ProjectInitCard";
 import { ModelSwitcher } from "@/components/ModelSwitcher";
+import { VoiceMicButton } from "@/components/VoiceMicButton";
+import { FollowUpPanel } from "@/components/FollowUpPanel";
 import { useAIChat } from "@/hooks/useAIChat";
 
 interface ChatPanelProps {
@@ -41,11 +43,13 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const [previewMsg, setPreviewMsg] = useState<ChatMsg | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError } = useAIChat({
+  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps } = useAIChat({
     conversationId: conversation.id,
   });
 
-  const { steps, messages, followUps } = conversation;
+  const { steps, messages, followUps: staticFollowUps } = conversation;
+  // Use AI-generated follow-ups if available, otherwise fall back to conversation's static ones
+  const dynamicFollowUps = aiFollowUps.length > 0 ? aiFollowUps : [];
   const isComplete = conversation.isComplete ?? false;
   const isWebsite = conversation.type === "website";
   const totalSteps = steps.length;
@@ -249,12 +253,25 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         {/* Thinking indicator */}
         {isThinking && !streamingContent && <ThinkingIndicator />}
 
-        {/* Follow-ups */}
-        {followUps.length > 0 && !isThinking && (
+        {/* AI-generated follow-ups */}
+        <FollowUpPanel
+          followUps={dynamicFollowUps}
+          visible={!isThinking && dynamicFollowUps.length > 0}
+          onSelect={(text) => {
+            onSendMessage?.(text);
+            sendAI(text);
+          }}
+        />
+
+        {/* Static follow-ups (from conversation data, fallback) */}
+        {staticFollowUps.length > 0 && dynamicFollowUps.length === 0 && !isThinking && (
           <div className="space-y-2 pt-2">
             <span className="text-xs text-muted-foreground font-medium">Suggested follow-ups</span>
-            {followUps.map((item, i) => (
-              <button key={i} className="suggested-followup w-full text-left">
+            {staticFollowUps.map((item, i) => (
+              <button key={i} className="suggested-followup w-full text-left" onClick={() => {
+                onSendMessage?.(item.text);
+                sendAI(item.text);
+              }}>
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <span className="text-muted-foreground flex-shrink-0">{item.icon}</span>
                   <span className="text-sm text-foreground truncate">{item.text}</span>
@@ -342,9 +359,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
               </button>
             </div>
             <div className="flex items-center gap-1">
-              <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent active:scale-95">
-                <Mic size={18} />
-              </button>
+              <VoiceMicButton onTranscript={(text) => setMessage((prev) => prev + text)} />
               {isStreaming ? (
                 <button
                   onClick={abort}
