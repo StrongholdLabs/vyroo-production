@@ -194,8 +194,79 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </div>
             )}
 
+            {/* Usage tab */}
+            {activeTab === "usage" && (
+              <div className="px-6 py-5 space-y-6">
+                {/* Credits overview */}
+                <div>
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Credits overview</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: "Credits used", value: "2,847", sub: "of 5,000", pct: 57 },
+                      { label: "Tasks completed", value: "143", sub: "this month", pct: 72 },
+                      { label: "Avg. per task", value: "19.9", sub: "credits", pct: 40 },
+                    ].map((stat) => (
+                      <div key={stat.label} className="rounded-lg border border-border p-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+                        <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                        <p className="text-lg font-semibold text-foreground tabular-nums">{stat.value}</p>
+                        <p className="text-[10px] text-muted-foreground mb-2">{stat.sub}</p>
+                        <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: "hsl(var(--step-line))" }}>
+                          <div className="h-full rounded-full bg-success transition-all" style={{ width: `${stat.pct}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Usage chart */}
+                <div>
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Daily usage (last 14 days)</h3>
+                  <div className="flex items-end gap-1 h-28 px-1">
+                    {[35, 52, 18, 67, 44, 89, 73, 28, 95, 61, 42, 78, 55, 38].map((v, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
+                        <div
+                          className="w-full rounded-sm transition-colors duration-150 group-hover:bg-success"
+                          style={{
+                            height: `${v}%`,
+                            backgroundColor: `hsl(var(--success) / ${0.3 + (v / 100) * 0.7})`,
+                          }}
+                        />
+                        <span className="text-[8px] text-muted-foreground/50 tabular-nums">{i + 7}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Recent tasks */}
+                <div>
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Recent tasks</h3>
+                  <div className="space-y-2">
+                    {[
+                      { name: "DTC Skincare Analysis", credits: 34, time: "2h ago" },
+                      { name: "2026 Product Trends", credits: 28, time: "5h ago" },
+                      { name: "Meta Ads Campaign", credits: 41, time: "1d ago" },
+                      { name: "Stock Analysis Report", credits: 22, time: "1d ago" },
+                      { name: "Website Design for Vyroo", credits: 56, time: "2d ago" },
+                    ].map((task) => (
+                      <div key={task.name} className="flex items-center justify-between py-1.5">
+                        <span className="text-sm text-foreground truncate">{task.name}</span>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span className="text-xs text-muted-foreground tabular-nums">{task.credits} credits</span>
+                          <span className="text-[10px] text-muted-foreground/60">{task.time}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Placeholder for other tabs */}
-            {activeTab !== "settings" && (
+            {activeTab !== "settings" && activeTab !== "usage" && (
               <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-3">
                   {(() => {
