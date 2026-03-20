@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronUp, Check, Loader2, Globe } from "lucide-react";
+import { ChevronUp, Check, Loader2, Globe, FileEdit, Image, Terminal } from "lucide-react";
 import type { Step } from "@/data/conversations";
 
 interface ExpandableStepProps {
@@ -29,8 +29,8 @@ export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
             <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
           </div>
         ) : (
-          <div className="w-5 h-5 rounded-full flex items-center justify-center bg-amber-500/20">
-            <Loader2 size={12} className="text-amber-400 animate-spin" />
+          <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(210 40% 25%)" }}>
+            <Loader2 size={12} className="text-[hsl(210_50%_70%)] animate-spin" />
           </div>
         )}
         <span className={`text-sm font-medium ${isComplete ? "text-foreground" : isPending ? "text-muted-foreground" : "text-foreground"}`}>
@@ -45,23 +45,43 @@ export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
       {/* Expanded content */}
       {expanded && (
         <div className="ml-7 space-y-3 animate-fade-in">
+          {/* Summary text */}
           <p className="text-sm text-muted-foreground leading-relaxed">{step.detail}</p>
 
-          {/* Project card - shown for first step */}
-          {step.id === 1 && (
-            <div className="rounded-xl overflow-hidden max-w-md" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+          {/* Project initialization card - for first step */}
+          {step.id === 1 && step.status === "complete" && (
+            <div className="rounded-xl overflow-hidden max-w-md border border-border" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
               <div className="flex items-center gap-3 px-4 py-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-600/20 flex items-center justify-center flex-shrink-0">
-                  <Globe size={16} className="text-emerald-400" />
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "hsl(var(--success-soft))" }}>
+                  <Globe size={16} className="text-success" />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">Project Analysis</p>
-                  <div className="flex items-center gap-1.5">
-                    <Loader2 size={10} className="text-muted-foreground animate-spin" />
-                    <span className="text-xs text-muted-foreground">Initializing...</span>
-                  </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{step.label}</p>
+                  <span className="text-xs text-muted-foreground">Project initialized</span>
                 </div>
+                <button className="px-4 py-1.5 text-xs font-medium text-foreground border border-border rounded-lg hover:bg-accent transition-colors active:scale-[0.97]">
+                  View
+                </button>
               </div>
+            </div>
+          )}
+
+          {/* Sub-task chips */}
+          {step.subTasks && step.subTasks.length > 0 && (
+            <div className="space-y-1.5">
+              {step.subTasks.map((task, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs log-line"
+                  style={{ backgroundColor: "hsl(var(--surface-elevated))", animationDelay: `${i * 80}ms` }}
+                >
+                  {task.type === "edit" && <FileEdit size={12} className="text-muted-foreground flex-shrink-0" />}
+                  {task.type === "image" && <Image size={12} className="text-muted-foreground flex-shrink-0" />}
+                  {task.type === "terminal" && <Terminal size={12} className="text-muted-foreground flex-shrink-0" />}
+                  {!task.type && <FileEdit size={12} className="text-muted-foreground flex-shrink-0" />}
+                  <span className="text-muted-foreground truncate">{task.text}</span>
+                </div>
+              ))}
             </div>
           )}
 

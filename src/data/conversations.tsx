@@ -7,6 +7,11 @@ export interface LogEntry {
   type: "info" | "action" | "result";
 }
 
+export interface SubTask {
+  text: string;
+  type?: "edit" | "image" | "terminal";
+}
+
 export interface Step {
   id: number;
   label: string;
@@ -14,6 +19,7 @@ export interface Step {
   status: "complete" | "active" | "pending";
   icon: React.ReactNode;
   logs: LogEntry[];
+  subTasks?: SubTask[];
 }
 
 export interface CodeLine {
@@ -65,6 +71,9 @@ export const conversations: Conversation[] = [
           { time: "0:02", text: "Identifying key comparison metrics", type: "action" },
           { time: "0:03", text: "Planning research strategy across 5 brands", type: "result" },
         ],
+        subTasks: [
+          { text: "Create design brainstorm document with three distinct landing ...", type: "edit" },
+        ],
       },
       {
         id: 2, label: "Researching brands", detail: "Browsing documentation and gathering market data", status: "complete",
@@ -91,6 +100,12 @@ export const conversations: Conversation[] = [
           { time: "2:10", text: "Structuring report sections", type: "action" },
           { time: "2:25", text: "Writing executive summary", type: "action" },
           { time: "2:55", text: "Report compiled: dtc_skincare_analysis_final.md", type: "result" },
+        ],
+        subTasks: [
+          { text: "Update index.css with modern minimalist color theme and typo...", type: "edit" },
+          { text: "Generate three high-quality hero and accent images for the mo...", type: "image" },
+          { text: "Generate three high-quality hero and accent images for the mo...", type: "image" },
+          { text: "Generate three high-quality hero and accent images for the mo...", type: "image" },
         ],
       },
     ],
