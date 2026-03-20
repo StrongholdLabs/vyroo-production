@@ -16,7 +16,7 @@ import {
   Folder,
   FolderOpen,
 } from "lucide-react";
-import type { CodeLine, Step } from "@/data/conversations";
+import type { CodeLine, Step, FileNode } from "@/data/conversations";
 
 interface ComputerPanelProps {
   visible: boolean;
@@ -25,37 +25,14 @@ interface ComputerPanelProps {
   steps: Step[];
   fileName: string;
   editorLabel: string;
+  fileTree?: FileNode[];
 }
 
-interface FileNode {
-  name: string;
-  type: "file" | "folder";
-  children?: FileNode[];
-  expanded?: boolean;
-}
-
-const mockFileTree: FileNode[] = [
-  {
-    name: "src", type: "folder", expanded: true, children: [
-      {
-        name: "components", type: "folder", children: [
-          { name: "Header.tsx", type: "file" },
-          { name: "Hero.tsx", type: "file" },
-          { name: "Features.tsx", type: "file" },
-        ]
-      },
-      {
-        name: "pages", type: "folder", expanded: true, children: [
-          { name: "App.tsx", type: "file" },
-        ]
-      },
-      { name: "index.css", type: "file" },
-      { name: "main.tsx", type: "file" },
-    ]
-  },
+const defaultFileTree: FileNode[] = [
+  { name: "src", type: "folder", expanded: true, children: [
+    { name: "index.ts", type: "file" },
+  ]},
   { name: "package.json", type: "file" },
-  { name: "tsconfig.json", type: "file" },
-  { name: "vite.config.ts", type: "file" },
 ];
 
 function FileTreeItem({ node, depth = 0, activeFile }: { node: FileNode; depth?: number; activeFile: string }) {
