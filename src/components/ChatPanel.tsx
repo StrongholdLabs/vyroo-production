@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { Conversation } from "@/data/conversations";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
+import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 
 interface ChatPanelProps {
   conversation: Conversation;
