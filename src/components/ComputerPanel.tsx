@@ -68,7 +68,7 @@ function FileTreeItem({ node, depth = 0, activeFile }: { node: FileNode; depth?:
   );
 }
 
-export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, editorLabel }: ComputerPanelProps) {
+export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, editorLabel, fileTree }: ComputerPanelProps) {
   const [activeStep, setActiveStep] = useState(steps.length);
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [visibleLines, setVisibleLines] = useState(0);
