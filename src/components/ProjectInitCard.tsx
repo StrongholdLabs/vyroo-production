@@ -1,4 +1,4 @@
-import { Globe, ExternalLink, ShoppingCart } from "lucide-react";
+import { Globe, ExternalLink, ShoppingCart, Check, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import type { ProjectInfo } from "@/data/conversations";
 import { ShopifyConnectModal } from "@/components/ShopifyConnectModal";
@@ -10,6 +10,8 @@ interface ProjectInitCardProps {
 
 export function ProjectInitCard({ project, onView }: ProjectInitCardProps) {
   const [showShopify, setShowShopify] = useState(false);
+  const [connectedStore, setConnectedStore] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const statusLabel =
     project.status === "initialized"
@@ -17,6 +19,18 @@ export function ProjectInitCard({ project, onView }: ProjectInitCardProps) {
       : project.status === "building"
         ? "Building..."
         : "Ready";
+
+  const handleShopifyClose = () => {
+    setShowShopify(false);
+  };
+
+  const handleStoreConnected = (storeName: string) => {
+    setShowShopify(false);
+    setSyncing(true);
+    setConnectedStore(storeName);
+    // Simulate live sync finishing
+    setTimeout(() => setSyncing(false), 3000);
+  };
 
   return (
     <>
@@ -36,14 +50,39 @@ export function ProjectInitCard({ project, onView }: ProjectInitCardProps) {
             <p className="text-xs text-muted-foreground">{statusLabel}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowShopify(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg text-foreground transition-colors active:scale-[0.97] hover:opacity-90"
-              style={{ backgroundColor: "hsl(142 60% 45%)", color: "white" }}
-            >
-              <ShoppingCart size={12} />
-              Connect Store
-            </button>
+            {connectedStore ? (
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs"
+                style={{
+                  borderColor: syncing ? "hsl(var(--border))" : "hsl(var(--success) / 0.3)",
+                  backgroundColor: syncing ? "transparent" : "hsl(var(--success-soft))",
+                }}
+              >
+                {syncing ? (
+                  <RefreshCw size={12} className="text-muted-foreground animate-spin" />
+                ) : (
+                  <Check size={12} className="text-success" />
+                )}
+                <span className={`font-medium truncate max-w-[120px] ${syncing ? "text-muted-foreground" : "text-success"}`}>
+                  {syncing ? "Syncing…" : connectedStore}
+                </span>
+                {!syncing && (
+                  <span className="relative flex h-2 w-2 ml-0.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-50" style={{ backgroundColor: "hsl(var(--success))" }} />
+                    <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: "hsl(var(--success))" }} />
+                  </span>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowShopify(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors active:scale-[0.97] hover:opacity-90"
+                style={{ backgroundColor: "hsl(142 60% 45%)", color: "white" }}
+              >
+                <ShoppingCart size={12} />
+                Connect Store
+              </button>
+            )}
             <button
               onClick={onView}
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg border border-border text-foreground hover:bg-accent transition-colors active:scale-[0.97]"
@@ -54,7 +93,11 @@ export function ProjectInitCard({ project, onView }: ProjectInitCardProps) {
           </div>
         </div>
       </div>
-      <ShopifyConnectModal open={showShopify} onClose={() => setShowShopify(false)} />
+      <ShopifyConnectModal
+        open={showShopify}
+        onClose={handleShopifyClose}
+        onConnected={handleStoreConnected}
+      />
     </>
   );
 }
