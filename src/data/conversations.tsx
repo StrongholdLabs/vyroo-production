@@ -655,9 +655,9 @@ export const conversations: Conversation[] = [
           { time: "2:25", text: "Generating hero image variant 3...", type: "action" },
         ],
         subTasks: [
-          { text: "Generate high-quality hero images for the vyroo.ai website with modern AI/tech aesthetic.", type: "image" },
-          { text: "Generate high-quality hero images for the vyroo.ai website with modern AI/tech aesthetic.", type: "image" },
-          { text: "Generate high-quality hero images for the vyroo.ai website with modern AI/tech aesthetic.", type: "image" },
+          { text: "Generate high-quality hero images for the vyroo.ai website with modern AI/tech aesthetic.", type: "image", imageUrl: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=300&h=200&fit=crop" },
+          { text: "Generate high-quality hero images for the vyroo.ai website with modern AI/tech aesthetic.", type: "image", imageUrl: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=300&h=200&fit=crop" },
+          { text: "Generate high-quality hero images for the vyroo.ai website with modern AI/tech aesthetic.", type: "image", imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&h=200&fit=crop" },
         ],
       },
       {
