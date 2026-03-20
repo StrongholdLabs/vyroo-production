@@ -384,6 +384,8 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         ) : (
           <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
         )
+      ) : activeTab === "timeline" && computerView?.timeline ? (
+        <ResearchTimeline entries={computerView.timeline} />
       ) : null}
         </motion.div>
       </AnimatePresence>
