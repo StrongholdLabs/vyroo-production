@@ -1,24 +1,24 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp, Plus, Smile, Mic, X, Link2 } from "lucide-react";
+import { ArrowUp, Plus, Smile, Mic, X, Link2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Integration {
   id: string;
   name: string;
   icon: string;
-  status: "Connect" | "Install" | "Connected";
+  defaultStatus: "Connect" | "Install";
   badge?: string;
 }
 
-const integrations: Integration[] = [
-  { id: "github", name: "GitHub", icon: "🐙", status: "Connect" },
-  { id: "gmail", name: "Gmail", icon: "✉️", status: "Connect" },
-  { id: "browser", name: "My Browser", icon: "🌐", status: "Install" },
-  { id: "meta", name: "Meta Ads Manager", icon: "📘", status: "Connect", badge: "Beta" },
-  { id: "instagram", name: "Instagram", icon: "📷", status: "Connect", badge: "Beta" },
-  { id: "outlook", name: "Outlook Mail", icon: "📨", status: "Connect" },
-  { id: "gcal", name: "Google Calendar", icon: "📅", status: "Connect" },
-  { id: "ocal", name: "Outlook Calendar", icon: "📆", status: "Connect" },
+const defaultIntegrations: Integration[] = [
+  { id: "github", name: "GitHub", icon: "🐙", defaultStatus: "Connect" },
+  { id: "gmail", name: "Gmail", icon: "✉️", defaultStatus: "Connect" },
+  { id: "browser", name: "My Browser", icon: "🌐", defaultStatus: "Install" },
+  { id: "meta", name: "Meta Ads Manager", icon: "📘", defaultStatus: "Connect", badge: "Beta" },
+  { id: "instagram", name: "Instagram", icon: "📷", defaultStatus: "Connect", badge: "Beta" },
+  { id: "outlook", name: "Outlook Mail", icon: "📨", defaultStatus: "Connect" },
+  { id: "gcal", name: "Google Calendar", icon: "📅", defaultStatus: "Connect" },
+  { id: "ocal", name: "Outlook Calendar", icon: "📆", defaultStatus: "Connect" },
 ];
 
 const connectedIcons = ["🟢", "📘", "🔵", "💬", "🟣", "📎"];
@@ -27,6 +27,7 @@ export function TaskInput() {
   const [value, setValue] = useState("");
   const [showIntegrations, setShowIntegrations] = useState(false);
   const [dismissedBar, setDismissedBar] = useState(false);
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -82,23 +83,41 @@ export function TaskInput() {
                   className="absolute left-0 bottom-full mb-2 w-72 rounded-xl border border-border overflow-hidden shadow-xl z-50 animate-scale-in"
                   style={{ backgroundColor: "hsl(var(--popover))" }}
                 >
-                  {integrations.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between px-4 py-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm">{item.icon}</span>
-                        <span className="text-sm text-foreground">{item.name}</span>
-                        {item.badge && (
-                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-border text-muted-foreground">
-                            {item.badge}
+                  {defaultIntegrations.map((item) => {
+                    const isConnected = connectedIds.has(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setConnectedIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(item.id)) next.delete(item.id);
+                            else next.add(item.id);
+                            return next;
+                          });
+                        }}
+                        className="flex items-center justify-between px-4 py-2.5 hover:bg-accent/50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm">{item.icon}</span>
+                          <span className="text-sm text-foreground">{item.name}</span>
+                          {item.badge && (
+                            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                        {isConnected ? (
+                          <span className="flex items-center gap-1 text-xs text-[hsl(var(--success))]">
+                            <Check size={12} />
+                            Connected
                           </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{item.defaultStatus}</span>
                         )}
                       </div>
-                      <span className="text-xs text-muted-foreground">{item.status}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <div className="border-t border-border px-4 py-2.5 flex items-center gap-3 hover:bg-accent/50 transition-colors cursor-pointer">
                     <span className="text-sm"><Plus size={14} /></span>
                     <span className="text-sm text-foreground">Add connectors</span>
