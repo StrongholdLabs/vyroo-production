@@ -41,6 +41,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
 
   const { steps, messages, followUps } = conversation;
   const isComplete = conversation.isComplete ?? false;
+  const isWebsite = conversation.type === "website";
   const totalSteps = steps.length;
   const completedSteps = steps.filter((s) => s.status === "complete").length;
 
