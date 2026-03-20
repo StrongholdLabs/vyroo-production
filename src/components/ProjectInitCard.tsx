@@ -2,6 +2,16 @@ import { Globe, ExternalLink, ShoppingCart, Check, RefreshCw, LayoutDashboard, U
 import { useState, useRef, useEffect } from "react";
 import type { ProjectInfo } from "@/data/conversations";
 import { ShopifyConnectModal } from "@/components/ShopifyConnectModal";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface ProjectInitCardProps {
   project: ProjectInfo;
