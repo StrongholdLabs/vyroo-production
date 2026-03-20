@@ -157,6 +157,14 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
     setActiveTab(tab);
   }, [activeTab]);
 
+  const handleTimelineEntryClick = useCallback((entry: TimelineEntry) => {
+    if (entry.type === "browse") {
+      handleTabChange("preview");
+    } else if (entry.type === "search") {
+      handleTabChange("terminal");
+    }
+  }, [handleTabChange]);
+
   const handleMinimapScroll = useCallback((ratio: number) => {
     if (codeRef.current) codeRef.current.scrollTop = ratio * codeRef.current.scrollHeight;
   }, []);
