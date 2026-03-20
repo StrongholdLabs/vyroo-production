@@ -246,9 +246,24 @@ function generateMarkdown(title: string, summary: string, tableData?: { headers:
 
 export function DocumentPreview({ open, onClose, title, summary, tableData }: DocumentPreviewProps) {
   const [currentPage, setCurrentPage] = useState(0);
+  const [tocOpen, setTocOpen] = useState(true);
 
   const pages = useMemo(() => buildPages(title, summary, tableData), [title, summary, tableData]);
   const totalPages = pages.length;
+
+  const goNext = useCallback(() => setCurrentPage(p => Math.min(totalPages - 1, p + 1)), [totalPages]);
+  const goPrev = useCallback(() => setCurrentPage(p => Math.max(0, p - 1)), []);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); goNext(); }
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); goPrev(); }
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, goNext, goPrev, onClose]);
 
   if (!open) return null;
 
