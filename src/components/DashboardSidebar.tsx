@@ -146,7 +146,7 @@ export function DashboardSidebar({
             </div>
             <div className="flex items-center justify-between px-3 pb-2">
               <div className="flex items-center gap-1">
-                <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
+                <button onClick={() => setSettingsOpen(true)} className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
                   <Users size={16} />
                 </button>
                 <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
