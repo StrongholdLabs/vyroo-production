@@ -12,6 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileDown,
+  List,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import {
   DropdownMenu,
