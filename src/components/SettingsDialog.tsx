@@ -58,7 +58,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <circle cx="12" cy="12" r="1.5" fill="currentColor" />
               </svg>
-              <span className="text-sm font-semibold text-foreground font-body">manus</span>
+              <span className="text-sm font-semibold text-foreground font-body">Vyroo</span>
             </div>
 
             <div className="flex-1 space-y-0.5 px-2">

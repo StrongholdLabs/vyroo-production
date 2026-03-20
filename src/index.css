@@ -227,7 +227,7 @@
   }
 
   .step-icon-active {
-    background-color: hsl(220 8% 22%);
+    background-color: hsl(var(--accent));
     color: hsl(var(--foreground));
   }
 
