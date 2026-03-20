@@ -69,6 +69,29 @@ export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
           {/* Sub-task chips */}
           {step.subTasks && step.subTasks.length > 0 && (
             <div className="space-y-1.5">
+              {/* Image thumbnails row */}
+              {step.subTasks.some(t => t.type === "image" && t.imageUrl) && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {step.subTasks.filter(t => t.type === "image" && t.imageUrl).map((task, i) => (
+                    <div
+                      key={`img-${i}`}
+                      className="relative w-28 h-20 rounded-lg overflow-hidden flex-shrink-0 border border-border group"
+                    >
+                      <img
+                        src={task.imageUrl}
+                        alt={task.text}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {step.status === "active" && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Loader2 size={14} className="text-white animate-spin" />
+                          <span className="text-[10px] text-white ml-1">Loading...</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               {step.subTasks.map((task, i) => (
                 <div
                   key={i}
