@@ -196,11 +196,27 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           <InlineComputerCard steps={steps} onOpenComputer={onOpenComputer} />
         )}
 
-        {/* Steps progress bar */}
+        {/* Steps progress bar with code thumbnail */}
         <div className="sticky bottom-0 pt-4">
-          <div className="rounded-xl border border-border px-4 py-3 flex items-center gap-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
-            <Check size={18} className="text-success flex-shrink-0" />
-            <span className="text-sm text-foreground flex-1">{steps[steps.length - 1]?.label}</span>
+          <div className="rounded-xl border border-border px-3 py-2.5 flex items-center gap-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+            {/* Mini code thumbnail */}
+            <div
+              className="w-14 h-10 rounded-md overflow-hidden flex-shrink-0 border border-border p-1.5"
+              style={{ backgroundColor: "hsl(var(--code-bg))" }}
+              onClick={onOpenComputer}
+              role="button"
+            >
+              <div className="space-y-[3px]">
+                <div className="h-[2px] rounded-full bg-muted-foreground/20 w-full" />
+                <div className="h-[2px] rounded-full bg-muted-foreground/15 w-3/4" />
+                <div className="h-[2px] rounded-full bg-muted-foreground/20 w-5/6" />
+                <div className="h-[2px] rounded-full bg-muted-foreground/10 w-2/3" />
+                <div className="h-[2px] rounded-full bg-muted-foreground/15 w-4/5" />
+                <div className="h-[2px] rounded-full bg-muted-foreground/20 w-1/2" />
+              </div>
+            </div>
+            <Check size={16} className="text-success flex-shrink-0" />
+            <span className="text-sm text-foreground flex-1 truncate">{steps[steps.length - 1]?.label}</span>
             <span className="text-xs text-muted-foreground tabular-nums">{completedSteps} / {totalSteps}</span>
             <ChevronDown size={16} className="text-muted-foreground" />
           </div>
