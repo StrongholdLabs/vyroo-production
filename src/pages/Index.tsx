@@ -23,6 +23,15 @@ const Index = () => {
           }`}
           style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
         >
+          {/* Free plan banner */}
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Free plan</span>
+            <span className="text-muted-foreground/40">|</span>
+            <button className="text-[hsl(var(--success))] hover:underline font-medium transition-colors">
+              Start free trial
+            </button>
+          </div>
+
           <h1
             className="font-display text-4xl md:text-5xl lg:text-[3.5rem] text-foreground leading-[1.1] tracking-tight text-center"
             style={{ textWrap: "balance" as any }}
