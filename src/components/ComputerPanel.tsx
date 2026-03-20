@@ -3,7 +3,7 @@ import {
   X, Monitor, Maximize2, Square, SkipBack, SkipForward,
   ChevronUp, ChevronRight, Check, Loader2, Code, Eye,
   FileText, Folder, FolderOpen, Terminal, Copy, CheckCheck, GitCompare,
-  Search as SearchIcon, Globe, Radio,
+  Search as SearchIcon, Globe, Radio, Clock,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask } from "@/data/conversations";
@@ -15,6 +15,7 @@ import { DiffView, generateDiff } from "@/components/computer/DiffView";
 import { BrowserView } from "@/components/computer/BrowserView";
 import { SearchView } from "@/components/computer/SearchView";
 import { TaskProgressPanel } from "@/components/computer/TaskProgressPanel";
+import { ResearchTimeline } from "@/components/computer/ResearchTimeline";
 
 interface ComputerPanelProps {
   visible: boolean;
@@ -78,8 +79,8 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const [activeStep, setActiveStep] = useState(steps.length);
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [visibleChars, setVisibleChars] = useState(0);
-  const [activeTab, setActiveTab] = useState<"code" | "preview" | "terminal">("code");
-  const [prevTab, setPrevTab] = useState<"code" | "preview" | "terminal">("code");
+  const [activeTab, setActiveTab] = useState<"code" | "preview" | "terminal" | "timeline">("code");
+  const [prevTab, setPrevTab] = useState<"code" | "preview" | "terminal" | "timeline">("code");
   const [showDiff, setShowDiff] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -151,7 +152,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
     }
   }, []);
 
-  const handleTabChange = useCallback((tab: "code" | "preview" | "terminal") => {
+  const handleTabChange = useCallback((tab: "code" | "preview" | "terminal" | "timeline") => {
     setPrevTab(activeTab);
     setActiveTab(tab);
   }, [activeTab]);
@@ -190,6 +191,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
         { key: "preview" as const, icon: Globe, label: "Browser" },
         { key: "terminal" as const, icon: SearchIcon, label: "Search" },
+        ...(computerView?.timeline ? [{ key: "timeline" as const, icon: Clock, label: "Timeline" }] : []),
       ]
     : [
         { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
@@ -382,6 +384,8 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         ) : (
           <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
         )
+      ) : activeTab === "timeline" && computerView?.timeline ? (
+        <ResearchTimeline entries={computerView.timeline} />
       ) : null}
         </motion.div>
       </AnimatePresence>
