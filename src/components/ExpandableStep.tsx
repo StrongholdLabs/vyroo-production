@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronUp, Check, Loader2, Globe, FileEdit, Image, Terminal } from "lucide-react";
 import type { Step } from "@/data/conversations";
+import { ImageLightbox } from "@/components/ImageLightbox";
 
 interface ExpandableStepProps {
   step: Step;
@@ -9,6 +10,12 @@ interface ExpandableStepProps {
 
 export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
   const [expanded, setExpanded] = useState(isActive ?? false);
+  const [lightboxIndex, setLightboxIndex] = useState(-1);
+
+  // Collect all image sub-tasks for lightbox
+  const imageItems = (step.subTasks || [])
+    .filter((t) => t.type === "image" && t.imageUrl)
+    .map((t) => ({ url: t.imageUrl!, alt: t.text }));
 
   const isComplete = step.status === "complete";
   const isPending = step.status === "pending";
@@ -75,7 +82,8 @@ export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
                   {step.subTasks.filter(t => t.type === "image" && t.imageUrl).map((task, i) => (
                     <div
                       key={`img-${i}`}
-                      className="relative w-28 h-20 rounded-lg overflow-hidden flex-shrink-0 border border-border group"
+                      className="relative w-28 h-20 rounded-lg overflow-hidden flex-shrink-0 border border-border group cursor-pointer"
+                      onClick={() => setLightboxIndex(i)}
                     >
                       <img
                         src={task.imageUrl}
@@ -125,6 +133,13 @@ export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
           )}
         </div>
       )}
+      {/* Image lightbox */}
+      <ImageLightbox
+        images={imageItems}
+        initialIndex={lightboxIndex}
+        open={lightboxIndex >= 0}
+        onClose={() => setLightboxIndex(-1)}
+      />
     </div>
   );
 }
