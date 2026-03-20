@@ -106,7 +106,7 @@ export function ProjectInitCard({ project, onView }: ProjectInitCardProps) {
                       </button>
                       <div className="h-px bg-border my-1" />
                       <button
-                        onClick={() => { setBadgeMenuOpen(false); setConnectedStore(null); setSyncing(false); }}
+                        onClick={() => { setBadgeMenuOpen(false); setShowDisconnectConfirm(true); }}
                         className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs text-destructive hover:bg-accent transition-colors"
                       >
                         <Unplug size={14} />
