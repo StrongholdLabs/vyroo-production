@@ -33,8 +33,8 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
       }`}
       style={{
-        backgroundColor: "hsl(220 12% 18%)",
-        borderColor: "hsl(220 10% 28%)",
+        backgroundColor: "hsl(var(--card))",
+        borderColor: "hsl(var(--border))",
         transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >

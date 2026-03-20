@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import {
   X,
   User,
@@ -41,6 +42,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [productUpdates, setProductUpdates] = useState(true);
   const [emailOnTask, setEmailOnTask] = useState(true);
   const [language, setLanguage] = useState("en");
+  const { theme, setTheme } = useTheme();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -56,7 +58,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <circle cx="12" cy="12" r="1.5" fill="currentColor" />
               </svg>
-              <span className="text-sm font-semibold text-foreground font-body">manus</span>
+              <span className="text-sm font-semibold text-foreground font-body">Vyroo</span>
             </div>
 
             <div className="flex-1 space-y-0.5 px-2">
@@ -128,34 +130,37 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <h3 className="text-sm text-foreground font-medium mb-3">Appearance</h3>
                   <div className="flex gap-4">
                     {[
-                      { label: "Light", active: false },
-                      { label: "Dark", active: true },
-                      { label: "Follow System", active: false },
-                    ].map((mode) => (
-                      <button
-                        key={mode.label}
-                        className={`flex flex-col items-center gap-1.5 group`}
-                      >
-                        <div
-                          className={`w-20 h-14 rounded-lg border-2 transition-colors duration-150 flex items-center justify-center ${
-                            mode.active ? "border-blue-500" : "border-border hover:border-muted-foreground/40"
-                          }`}
-                          style={{ backgroundColor: mode.label === "Light" ? "hsl(220 9% 80%)" : "hsl(220 9% 14%)" }}
+                      { label: "Light", value: "light" },
+                      { label: "Dark", value: "dark" },
+                      { label: "Follow System", value: "system" },
+                    ].map((mode) => {
+                      const isActive = theme === mode.value;
+                      return (
+                        <button
+                          key={mode.label}
+                          onClick={() => setTheme(mode.value)}
+                          className="flex flex-col items-center gap-1.5 group"
                         >
-                          {/* Mini window mockup */}
-                          <div className="w-12 h-8 rounded-sm border border-current/10 overflow-hidden" style={{ backgroundColor: mode.label === "Light" ? "hsl(0 0% 95%)" : "hsl(220 9% 10%)" }}>
-                            <div className="h-1.5 border-b" style={{ borderColor: mode.label === "Light" ? "hsl(220 8% 85%)" : "hsl(220 8% 18%)", backgroundColor: mode.label === "Light" ? "hsl(0 0% 90%)" : "hsl(220 9% 14%)" }} />
-                            <div className="flex h-full">
-                              <div className="w-3 border-r" style={{ borderColor: mode.label === "Light" ? "hsl(220 8% 85%)" : "hsl(220 8% 18%)" }} />
-                              <div className="flex-1" />
+                          <div
+                            className={`w-20 h-14 rounded-lg border-2 transition-colors duration-150 flex items-center justify-center ${
+                              isActive ? "border-blue-500" : "border-border hover:border-muted-foreground/40"
+                            }`}
+                            style={{ backgroundColor: mode.value === "light" ? "hsl(220 9% 80%)" : "hsl(220 9% 14%)" }}
+                          >
+                            <div className="w-12 h-8 rounded-sm border border-current/10 overflow-hidden" style={{ backgroundColor: mode.value === "light" ? "hsl(0 0% 95%)" : "hsl(220 9% 10%)" }}>
+                              <div className="h-1.5 border-b" style={{ borderColor: mode.value === "light" ? "hsl(220 8% 85%)" : "hsl(220 8% 18%)", backgroundColor: mode.value === "light" ? "hsl(0 0% 90%)" : "hsl(220 9% 14%)" }} />
+                              <div className="flex h-full">
+                                <div className="w-3 border-r" style={{ borderColor: mode.value === "light" ? "hsl(220 8% 85%)" : "hsl(220 8% 18%)" }} />
+                                <div className="flex-1" />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <span className={`text-xs ${mode.active ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                          {mode.label}
-                        </span>
-                      </button>
-                    ))}
+                          <span className={`text-xs ${isActive ? "text-foreground font-medium" : "text-muted-foreground"}`}>
+                            {mode.label}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
