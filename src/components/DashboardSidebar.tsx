@@ -180,6 +180,7 @@ export function DashboardSidebar({
         </div>
       )}
     </aside>
+    </>
   );
 }
 
