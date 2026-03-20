@@ -247,6 +247,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
             </div>
           </div>
         </div>
+        </div>
       </div>
     </div>
   );
