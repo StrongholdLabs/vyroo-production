@@ -21,7 +21,7 @@ interface ChatPanelProps {
   onSendMessage?: (msg: string) => void;
 }
 
-export function ChatPanel({ conversation, onSendMessage }: ChatPanelProps) {
+export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage }: ChatPanelProps) {
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
