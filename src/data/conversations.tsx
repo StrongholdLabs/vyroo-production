@@ -429,6 +429,7 @@ export const conversations: Conversation[] = [
     id: "6",
     title: "Waar komen katten vandaan?",
     icon: "🐱",
+    type: "intelligence",
     fileName: "katten_onderzoek.md",
     editorLabel: "Editor",
     fileTree: [
