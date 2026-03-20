@@ -711,6 +711,108 @@ export const conversations: Conversation[] = [
       { num: 20, content: "  --color-destructive: var(--destructive);", color: "text-foreground" },
     ],
   },
+  {
+    id: "9",
+    title: "Build a Landing Page",
+    icon: "🚀",
+    type: "website",
+    fileName: "landing/src/App.tsx",
+    editorLabel: "Code Editor",
+    isComplete: false,
+    project: {
+      name: "My Store Landing Page",
+      description: "High-converting landing page for your Shopify store",
+      status: "building",
+    },
+    fileTree: [
+      { name: "src", type: "folder", expanded: true, children: [
+        { name: "components", type: "folder", children: [
+          { name: "Hero.tsx", type: "file" },
+          { name: "Features.tsx", type: "file" },
+          { name: "CTA.tsx", type: "file" },
+        ]},
+        { name: "App.tsx", type: "file" },
+        { name: "index.css", type: "file" },
+      ]},
+      { name: "package.json", type: "file" },
+    ],
+    steps: [
+      {
+        id: 1, label: "Analyze store and define landing page strategy", detail: "Connecting to your Shopify store, analyzing product catalog, and determining the best landing page structure", status: "complete",
+        icon: <ShoppingCart size={14} />,
+        logs: [
+          { time: "0:05", text: "Connecting to Shopify store via API", type: "action" },
+          { time: "0:18", text: "Found 47 products across 6 collections", type: "result" },
+          { time: "0:25", text: "Identified best-sellers: 3 hero products for landing page", type: "result" },
+          { time: "0:32", text: "Strategy defined: hero + benefits + social proof + CTA", type: "result" },
+        ],
+        subTasks: [
+          { text: "Connect to Shopify store and pull product data.", type: "terminal" },
+          { text: "Analyze top-performing products and categories.", type: "edit" },
+        ],
+      },
+      {
+        id: 2, label: "Generate visuals and build landing page", detail: "Creating hero images, product shots, and building the responsive landing page", status: "active",
+        icon: <Palette size={14} />,
+        logs: [
+          { time: "0:50", text: "Generating hero banner with product lifestyle imagery", type: "action" },
+          { time: "1:10", text: "Building responsive hero section with CTA", type: "action" },
+          { time: "1:25", text: "Adding product feature grid...", type: "info" },
+        ],
+        subTasks: [
+          { text: "Generate hero banner image with modern e-commerce aesthetic.", type: "image", imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=300&h=200&fit=crop" },
+          { text: "Generate product lifestyle photography for feature section.", type: "image", imageUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=300&h=200&fit=crop" },
+          { text: "Generate social proof section background.", type: "image", imageUrl: "https://images.unsplash.com/photo-1553484771-047a44eee27b?w=300&h=200&fit=crop" },
+          { text: "Build Hero component with animated headline and CTA.", type: "edit" },
+          { text: "Build Features grid with product highlights.", type: "edit" },
+        ],
+      },
+      {
+        id: 3, label: "Connect store checkout and deploy", detail: "Integrating Shopify checkout, adding analytics, and deploying the landing page", status: "pending",
+        icon: <Globe size={14} />,
+        logs: [],
+        subTasks: [
+          { text: "Integrate Shopify Buy Button for direct checkout.", type: "edit" },
+          { text: "Add conversion tracking and analytics.", type: "edit" },
+          { text: "Deploy and verify live landing page.", type: "terminal" },
+        ],
+      },
+    ],
+    messages: [
+      { id: "1", role: "user", content: "Build a high-converting landing page for my Shopify store. I want it to showcase my best products with a modern design." },
+      { id: "2", role: "assistant", content: "I've connected to your Shopify store and analyzed your product catalog. You have 47 products across 6 collections — I've identified your 3 top-performing products to feature as heroes on the landing page." },
+      { id: "3", role: "assistant", content: "Now I'm generating custom visuals and building the landing page with a hero section, product features, social proof, and a strong call-to-action. The design will match your store's brand identity." },
+    ],
+    followUps: [
+      { icon: <ShoppingCart size={16} />, text: "Add a discount code banner to the landing page" },
+      { icon: <Palette size={16} />, text: "Change the color scheme to match my brand" },
+      { icon: <Code size={16} />, text: "Add an email capture form for leads" },
+    ],
+    codeLines: [
+      { num: 1, content: "import React from 'react';", color: "text-foreground" },
+      { num: 2, content: "import { Hero } from './components/Hero';", color: "text-foreground" },
+      { num: 3, content: "import { Features } from './components/Features';", color: "text-foreground" },
+      { num: 4, content: "import { CTA } from './components/CTA';", color: "text-foreground" },
+      { num: 5, content: "" },
+      { num: 6, content: "export default function App() {", color: "text-foreground" },
+      { num: 7, content: "  return (", color: "text-foreground" },
+      { num: 8, content: "    <main className=\"min-h-screen bg-white\">", color: "text-foreground" },
+      { num: 9, content: "      <Hero", color: "text-red-400" },
+      { num: 10, content: "        headline=\"Discover Our Best Sellers\"", color: "text-green-400" },
+      { num: 11, content: "        subline=\"Handpicked products loved by 10,000+ customers\"", color: "text-green-400" },
+      { num: 12, content: "        ctaText=\"Shop Now\"", color: "text-green-400" },
+      { num: 13, content: "        ctaLink=\"/collections/best-sellers\"", color: "text-green-400" },
+      { num: 14, content: "      />", color: "text-foreground" },
+      { num: 15, content: "      <Features products={topProducts} />", color: "text-red-400" },
+      { num: 16, content: "      <CTA", color: "text-red-400" },
+      { num: 17, content: "        text=\"Ready to transform your routine?\"", color: "text-green-400" },
+      { num: 18, content: "        buttonText=\"Get 15% Off\"", color: "text-green-400" },
+      { num: 19, content: "      />", color: "text-foreground" },
+      { num: 20, content: "    </main>", color: "text-foreground" },
+      { num: 21, content: "  );", color: "text-foreground" },
+      { num: 22, content: "}", color: "text-foreground" },
+    ],
+  },
 ];
 
 export function getConversation(id: string): Conversation {
