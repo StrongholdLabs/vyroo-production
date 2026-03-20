@@ -259,6 +259,7 @@ export const conversations: Conversation[] = [
     id: "3",
     title: "Hello",
     icon: "👋",
+    type: "intelligence",
     fileName: "chat_session.md",
     editorLabel: "Chat",
     fileTree: [
