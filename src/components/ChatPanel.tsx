@@ -172,6 +172,24 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
+        {/* Publish card for completed conversations */}
+        {isComplete && !isThinking && (
+          <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "hsl(var(--success-soft))" }}>
+                <Globe size={16} className="text-success" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{conversation.title}</p>
+                <p className="text-xs text-muted-foreground">Not published · Just now</p>
+              </div>
+              <button className="px-4 py-1.5 text-xs font-medium text-foreground rounded-lg transition-colors active:scale-[0.97] hover:opacity-90" style={{ backgroundColor: "hsl(var(--success))" }}>
+                Publish
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Inline computer card when panel is closed */}
         {!computerVisible && onOpenComputer && (
           <InlineComputerCard steps={steps} onOpenComputer={onOpenComputer} />
