@@ -2,12 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   X, Monitor, Maximize2, Square, SkipBack, SkipForward,
   ChevronUp, ChevronRight, Check, Loader2, Code, Eye,
-  FileText, Folder, FolderOpen, Terminal,
+  FileText, Folder, FolderOpen, Terminal, Copy, CheckCheck, GitCompare,
 } from "lucide-react";
 import type { CodeLine, Step, FileNode } from "@/data/conversations";
 import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
 import { TerminalTab } from "@/components/computer/TerminalTab";
+import { MarkdownRenderer } from "@/components/computer/MarkdownRenderer";
+import { DiffView, generateDiff } from "@/components/computer/DiffView";
 
 interface ComputerPanelProps {
   visible: boolean;
@@ -26,6 +28,13 @@ const defaultFileTree: FileNode[] = [
   { name: "package.json", type: "file" },
 ];
 
+// Determine if file is code (show code editor) or document (show markdown)
+function isCodeFile(fileName: string): boolean {
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+  const codeExts = ["html", "htm", "tsx", "ts", "jsx", "js", "css", "scss", "json", "yaml", "yml", "toml", "xml", "svg", "py", "rb", "go", "rs", "java", "c", "cpp", "h", "sh", "bash", "sql", "vue", "svelte", "astro"];
+  return codeExts.includes(ext);
+}
+
 function FileTreeItem({ node, depth = 0, activeFile }: { node: FileNode; depth?: number; activeFile: string }) {
   const [open, setOpen] = useState(node.expanded ?? false);
   const isActive = node.type === "file" && node.name === activeFile;
@@ -33,7 +42,7 @@ function FileTreeItem({ node, depth = 0, activeFile }: { node: FileNode; depth?:
     <div>
       <button
         onClick={() => node.type === "folder" && setOpen(!open)}
-        className={`flex items-center gap-1 w-full px-2 py-0.5 text-xs hover:bg-accent/50 transition-colors ${
+        className={`flex items-center gap-1 w-full px-2 py-0.5 text-[12px] hover:bg-accent/50 transition-colors ${
           isActive ? "bg-accent text-foreground" : "text-muted-foreground"
         }`}
         style={{ paddingLeft: `${8 + depth * 12}px` }}
@@ -63,44 +72,39 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [visibleChars, setVisibleChars] = useState(0);
   const [activeTab, setActiveTab] = useState<"code" | "preview" | "terminal">("code");
+  const [showDiff, setShowDiff] = useState(false);
+  const [copied, setCopied] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
   const prevCodeRef = useRef(codeLines);
-
-  // Scroll state for minimap
   const [scrollState, setScrollState] = useState({ scrollTop: 0, scrollHeight: 0, clientHeight: 0 });
 
-  // Compute total characters for chunk-based typing
-  const totalChars = codeLines.reduce((sum, l) => sum + (l.content?.length || 0) + 1, 0); // +1 for newline
+  const isCode = isCodeFile(fileName);
+  const totalChars = codeLines.reduce((sum, l) => sum + (l.content?.length || 0) + 1, 0);
 
   useEffect(() => {
     if (prevCodeRef.current !== codeLines) {
       setVisibleChars(0);
       setActiveStep(steps.length);
+      setShowDiff(false);
       prevCodeRef.current = codeLines;
     }
   }, [codeLines, steps.length]);
 
-  // Chunk-based typing: type 1-5 chars at a time with variable delay
   useEffect(() => {
     if (visibleChars >= totalChars) return;
-    // Type in chunks of 1-4 chars, faster for spaces/punctuation
     const chunkSize = 1 + Math.floor(Math.random() * 3);
-    const delay = 8 + Math.random() * 25; // much faster, char-level
+    const delay = 8 + Math.random() * 25;
     const timer = setTimeout(() => setVisibleChars(v => Math.min(v + chunkSize, totalChars)), delay);
     return () => clearTimeout(timer);
   }, [visibleChars, totalChars]);
 
-  // Calculate which lines are visible and how much of current line
+  // Visible lines for code view
   const { visibleLines, partialContent } = (() => {
     let chars = 0;
     for (let i = 0; i < codeLines.length; i++) {
       const lineLen = (codeLines[i].content?.length || 0) + 1;
       if (chars + lineLen > visibleChars) {
-        const partialLen = visibleChars - chars;
-        return {
-          visibleLines: i,
-          partialContent: codeLines[i].content?.slice(0, Math.max(0, partialLen)) || "",
-        };
+        return { visibleLines: i, partialContent: codeLines[i].content?.slice(0, Math.max(0, visibleChars - chars)) || "" };
       }
       chars += lineLen;
     }
@@ -131,10 +135,16 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   }, []);
 
   const handleMinimapScroll = useCallback((ratio: number) => {
-    if (codeRef.current) {
-      codeRef.current.scrollTop = ratio * codeRef.current.scrollHeight;
-    }
+    if (codeRef.current) codeRef.current.scrollTop = ratio * codeRef.current.scrollHeight;
   }, []);
+
+  const handleCopy = useCallback(() => {
+    const text = codeLines.slice(0, visibleLines).map(l => l.content).join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [codeLines, visibleLines]);
 
   if (!visible) return null;
 
@@ -144,10 +154,12 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const shortFileName = fileName.split("/").pop() || fileName;
 
   const tabs = [
-    { key: "code" as const, icon: Code, label: "Code" },
+    { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
     { key: "preview" as const, icon: Eye, label: "Preview" },
     { key: "terminal" as const, icon: Terminal, label: "Terminal" },
   ];
+
+  const diffLines = generateDiff(codeLines);
 
   return (
     <div className="computer-panel flex flex-col h-full w-full lg:w-[480px] xl:w-[540px] flex-shrink-0 max-lg:border-l-0">
@@ -194,72 +206,104 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         <span>Vyroo is using <span className="text-foreground font-medium">{editorLabel}</span></span>
         <span className="text-muted-foreground/50">·</span>
         <span>{isTyping ? "Creating" : "Created"} file {shortFileName}</span>
+
+        {/* Right-side tools */}
+        <div className="ml-auto flex items-center gap-1">
+          {isCode && (
+            <button
+              onClick={() => setShowDiff(!showDiff)}
+              className={`p-1 rounded transition-colors ${showDiff ? "text-foreground bg-accent" : "text-muted-foreground hover:text-foreground"}`}
+              title="Toggle diff view"
+            >
+              <GitCompare size={12} />
+            </button>
+          )}
+          <button
+            onClick={handleCopy}
+            className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"
+            title="Copy to clipboard"
+          >
+            {copied ? <CheckCheck size={12} className="text-success" /> : <Copy size={12} />}
+          </button>
+        </div>
       </div>
 
       {activeTab === "code" ? (
-        <div className="flex-1 flex overflow-hidden">
-          {/* File tree */}
-          <div className="w-44 flex-shrink-0 border-r overflow-y-auto py-2" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
-            {(fileTree || defaultFileTree).map((node, i) => (
-              <FileTreeItem key={i} node={node} activeFile={shortFileName} />
-            ))}
-          </div>
-
-          {/* Code editor */}
-          <div className="flex-1 flex flex-col min-w-0">
-            <div className="px-3 py-1.5 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))" }}>
-              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs text-muted-foreground" style={{ backgroundColor: "hsl(var(--code-bg))" }}>
-                <span>{shortFileName}</span>
-              </div>
+        isCode ? (
+          /* Code editor view */
+          <div className="flex-1 flex overflow-hidden">
+            {/* File tree */}
+            <div className="w-40 flex-shrink-0 border-r overflow-y-auto py-2" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
+              {(fileTree || defaultFileTree).map((node, i) => (
+                <FileTreeItem key={i} node={node} activeFile={shortFileName} />
+              ))}
             </div>
 
-            <div className="flex-1 flex overflow-hidden">
-              <div ref={codeRef} className="flex-1 overflow-y-auto code-block" onScroll={handleCodeScroll}>
-                <div className="p-4 text-xs leading-[1.7] font-mono">
-                  {/* Fully typed lines */}
-                  {codeLines.slice(0, visibleLines).map((line, i) => (
-                    <div key={`${line.num}-${i}`} className="flex typing-line">
-                      <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{line.num}</span>
-                      <span className="break-all">
-                        <TokenizedLine content={line.content || "\u00A0"} />
-                      </span>
-                    </div>
-                  ))}
-                  {/* Partially typed current line */}
-                  {isTyping && visibleLines < codeLines.length && (
-                    <div className="flex typing-line">
-                      <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{codeLines[visibleLines].num}</span>
-                      <span className="break-all">
-                        <TokenizedLine content={partialContent || "\u00A0"} />
-                        <span className="inline-block w-[2px] h-3.5 bg-foreground/70 animate-pulse ml-[1px] align-text-bottom" />
-                      </span>
-                    </div>
-                  )}
-                  {/* Cursor on empty next line when between lines */}
-                  {isTyping && visibleLines < codeLines.length && partialContent === "" && codeLines[visibleLines].content === "" && (
-                    <div className="flex items-center mt-0">
-                      <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{codeLines[visibleLines].num + 1}</span>
-                    </div>
-                  )}
+            <div className="flex-1 flex flex-col min-w-0">
+              <div className="px-3 py-1.5 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))" }}>
+                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs text-muted-foreground" style={{ backgroundColor: "hsl(var(--code-bg))" }}>
+                  <span>{shortFileName}</span>
                 </div>
               </div>
 
-              {/* Minimap */}
-              <CodeMinimap
-                codeLines={codeLines}
-                visibleLines={visibleLines}
-                scrollTop={scrollState.scrollTop}
-                scrollHeight={scrollState.scrollHeight}
-                clientHeight={scrollState.clientHeight}
-                onScroll={handleMinimapScroll}
-              />
+              <div className="flex-1 flex overflow-hidden">
+                <div ref={codeRef} className="flex-1 overflow-y-auto code-block" onScroll={handleCodeScroll}>
+                  {showDiff ? (
+                    <DiffView diffLines={diffLines} visibleCount={visibleLines} />
+                  ) : (
+                    <div className="p-4 text-[13px] leading-[1.7] font-mono">
+                      {codeLines.slice(0, visibleLines).map((line, i) => (
+                        <div key={`${line.num}-${i}`} className="flex typing-line">
+                          <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{line.num}</span>
+                          <span className="break-all">
+                            <TokenizedLine content={line.content || "\u00A0"} />
+                          </span>
+                        </div>
+                      ))}
+                      {isTyping && visibleLines < codeLines.length && (
+                        <div className="flex typing-line">
+                          <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{codeLines[visibleLines].num}</span>
+                          <span className="break-all">
+                            <TokenizedLine content={partialContent || "\u00A0"} />
+                            <span className="inline-block w-[2px] h-3.5 bg-foreground/70 animate-pulse ml-[1px] align-text-bottom" />
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {!showDiff && (
+                  <CodeMinimap
+                    codeLines={codeLines}
+                    visibleLines={visibleLines}
+                    scrollTop={scrollState.scrollTop}
+                    scrollHeight={scrollState.scrollHeight}
+                    clientHeight={scrollState.clientHeight}
+                    onScroll={handleMinimapScroll}
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          /* Markdown document view */
+          <div className="flex-1 flex overflow-hidden">
+            {/* File tree */}
+            <div className="w-40 flex-shrink-0 border-r overflow-y-auto py-2" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
+              {(fileTree || defaultFileTree).map((node, i) => (
+                <FileTreeItem key={i} node={node} activeFile={shortFileName} />
+              ))}
+            </div>
+            <MarkdownRenderer
+              codeLines={codeLines}
+              visibleChars={visibleChars}
+              totalChars={totalChars}
+            />
+          </div>
+        )
       ) : activeTab === "terminal" ? (
         <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
       ) : (
-        /* Preview view */
         <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(220 10% 8%)" }}>
           <div className="w-full max-w-md px-8 space-y-6 text-center">
             <div className="rounded-lg border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--card))" }}>
