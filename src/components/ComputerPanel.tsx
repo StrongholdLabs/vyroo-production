@@ -219,7 +219,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         {tabs.map(tab => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => handleTabChange(tab.key)}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2 ${
               activeTab === tab.key
                 ? "text-foreground border-foreground"
