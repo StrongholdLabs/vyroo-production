@@ -151,6 +151,28 @@ export function ProjectInitCard({ project, onView }: ProjectInitCardProps) {
         onClose={handleShopifyClose}
         onConnected={handleStoreConnected}
       />
+      <AlertDialog open={showDisconnectConfirm} onOpenChange={setShowDisconnectConfirm}>
+        <AlertDialogContent className="sm:max-w-sm border-border" style={{ backgroundColor: "hsl(var(--card))" }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+              <Unplug size={16} className="text-destructive" />
+              Disconnect Store
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the connection to <span className="font-medium text-foreground">{connectedStore}</span>. Product sync and checkout integration will stop working.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-xs">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { setConnectedStore(null); setSyncing(false); }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs"
+            >
+              Disconnect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
