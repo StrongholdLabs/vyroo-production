@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Users,
 } from "lucide-react";
+import { SettingsDialog } from "@/components/SettingsDialog";
 
 interface Task {
   id: string;
