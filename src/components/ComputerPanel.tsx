@@ -191,6 +191,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
         { key: "preview" as const, icon: Globe, label: "Browser" },
         { key: "terminal" as const, icon: SearchIcon, label: "Search" },
+        ...(computerView?.timeline ? [{ key: "timeline" as const, icon: Clock, label: "Timeline" }] : []),
       ]
     : [
         { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
