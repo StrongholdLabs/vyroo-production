@@ -207,10 +207,12 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         </div>
 
         <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 px-4 md:px-8 lg:px-16 pb-4">
+      <div className="flex-shrink-0 pb-4">
+        <div className={`mx-auto px-4 md:px-8 transition-all duration-300 ${computerVisible ? "max-w-none lg:px-12" : "max-w-3xl"}`}>
         <div className="input-main rounded-2xl overflow-hidden">
           <textarea
             value={message}
