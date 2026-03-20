@@ -12,13 +12,16 @@ import {
   Globe,
 } from "lucide-react";
 import type { Conversation } from "@/data/conversations";
+import { ComputerThumbnail } from "@/components/ComputerThumbnail";
 
 interface ChatPanelProps {
   conversation: Conversation;
+  computerVisible?: boolean;
+  onOpenComputer?: () => void;
   onSendMessage?: (msg: string) => void;
 }
 
-export function ChatPanel({ conversation, onSendMessage }: ChatPanelProps) {
+export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage }: ChatPanelProps) {
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -131,6 +134,17 @@ export function ChatPanel({ conversation, onSendMessage }: ChatPanelProps) {
                 <ArrowRight size={16} className="text-muted-foreground flex-shrink-0" />
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Computer thumbnail when panel is closed */}
+        {!computerVisible && onOpenComputer && (
+          <div className="flex justify-start">
+            <ComputerThumbnail
+              codeLines={conversation.codeLines}
+              fileName={conversation.fileName}
+              onClick={onOpenComputer}
+            />
           </div>
         )}
 
