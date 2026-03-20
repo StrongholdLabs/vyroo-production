@@ -29,10 +29,11 @@ const mockTasks: Task[] = [
   { id: "5", title: "Using Meta Ads to Attract More C...", icon: "📱" },
   { id: "6", title: "Waar komen katten vandaan?", icon: "🐱" },
   { id: "7", title: "Minimalist Online Store for Specia...", icon: "🛒" },
-  { id: "8", title: "Stock Analysis", icon: "📈" },
-  { id: "9", title: "Scheduling Tool with Event Creati...", icon: "📅" },
-  { id: "10", title: "How to Test a Product Before Selli...", icon: "🧪" },
-  { id: "11", title: "What Can I Do?", icon: "❓" },
+  { id: "8", title: "Designing a Website for Vyroo.ai I...", icon: "🌐" },
+  { id: "9", title: "Stock Analysis", icon: "📈" },
+  { id: "10", title: "Scheduling Tool with Event Creati...", icon: "📅" },
+  { id: "11", title: "How to Test a Product Before Selli...", icon: "🧪" },
+  { id: "12", title: "What Can I Do?", icon: "❓" },
 ];
 
 interface DashboardSidebarProps {

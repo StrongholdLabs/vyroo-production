@@ -23,6 +23,7 @@ import { ExpandableStep } from "@/components/ExpandableStep";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { InlineComputerCard } from "@/components/InlineComputerCard";
 import { DocumentPreview } from "@/components/DocumentPreview";
+import { ProjectInitCard } from "@/components/ProjectInitCard";
 
 interface ChatPanelProps {
   conversation: Conversation;
@@ -40,6 +41,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
 
   const { steps, messages, followUps } = conversation;
   const isComplete = conversation.isComplete ?? false;
+  const isWebsite = conversation.type === "website";
   const totalSteps = steps.length;
   const completedSteps = steps.filter((s) => s.status === "complete").length;
 
@@ -192,6 +194,11 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                   </div>
                 )}
 
+                {/* Project init card for website conversations */}
+                {isWebsite && conversation.project && (
+                  <ProjectInitCard project={conversation.project} onView={onOpenComputer} />
+                )}
+
                 {/* Task completed */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -248,7 +255,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         )}
 
         {/* Publish card for completed conversations */}
-        {isComplete && !isThinking && conversation.editorLabel === "Code Editor" && (
+        {isComplete && !isThinking && isWebsite && (
           <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
             <div className="flex items-center gap-3 px-4 py-3">
               <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "hsl(var(--success-soft))" }}>

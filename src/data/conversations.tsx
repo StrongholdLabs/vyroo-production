@@ -50,10 +50,17 @@ export interface SuggestedFollowUp {
   text: string;
 }
 
+export interface ProjectInfo {
+  name: string;
+  description: string;
+  status: "initialized" | "building" | "complete";
+}
+
 export interface Conversation {
   id: string;
   title: string;
   icon: string;
+  type: "intelligence" | "website";
   steps: Step[];
   messages: ChatMessage[];
   followUps: SuggestedFollowUp[];
@@ -62,6 +69,7 @@ export interface Conversation {
   editorLabel: string;
   fileTree?: FileNode[];
   isComplete?: boolean;
+  project?: ProjectInfo;
 }
 
 export const conversations: Conversation[] = [
@@ -69,6 +77,7 @@ export const conversations: Conversation[] = [
     id: "1",
     title: "Top 5 DTC Skincare Brands and P...",
     icon: "📊",
+    type: "intelligence",
     fileName: "dtc_skincare_analysis_final.md",
     editorLabel: "Editor",
     isComplete: true,
@@ -174,6 +183,7 @@ export const conversations: Conversation[] = [
     id: "2",
     title: "Hottest 2026 DTC Products to Re...",
     icon: "🔥",
+    type: "intelligence",
     fileName: "hot_dtc_products_2026.md",
     editorLabel: "Editor",
     isComplete: true,
@@ -249,6 +259,7 @@ export const conversations: Conversation[] = [
     id: "3",
     title: "Hello",
     icon: "👋",
+    type: "intelligence",
     fileName: "chat_session.md",
     editorLabel: "Chat",
     fileTree: [
@@ -281,6 +292,12 @@ export const conversations: Conversation[] = [
     id: "4",
     title: "Designing a Website for Vyroo.ai I...",
     icon: "🎨",
+    type: "website",
+    project: {
+      name: "Vyroo.ai - AI Revenue Operator",
+      description: "Landing page for Vyroo.ai",
+      status: "complete",
+    },
     fileName: "vyroo_website/index.html",
     editorLabel: "Code Editor",
     isComplete: true,
@@ -357,6 +374,7 @@ export const conversations: Conversation[] = [
     id: "5",
     title: "Using Meta Ads to Attract More C...",
     icon: "📱",
+    type: "intelligence",
     fileName: "meta_ads_strategy.md",
     editorLabel: "Editor",
     fileTree: [
@@ -411,6 +429,7 @@ export const conversations: Conversation[] = [
     id: "6",
     title: "Waar komen katten vandaan?",
     icon: "🐱",
+    type: "intelligence",
     fileName: "katten_onderzoek.md",
     editorLabel: "Editor",
     fileTree: [
@@ -464,6 +483,12 @@ export const conversations: Conversation[] = [
     id: "7",
     title: "Minimalist Online Store for Specia...",
     icon: "🛒",
+    type: "website",
+    project: {
+      name: "Specialty Coffee Store",
+      description: "Minimalist e-commerce store",
+      status: "building",
+    },
     fileName: "store_design/App.tsx",
     editorLabel: "Code Editor",
     fileTree: [
@@ -539,6 +564,151 @@ export const conversations: Conversation[] = [
       { num: 12, content: "    </CartProvider>", color: "text-red-400" },
       { num: 13, content: "  );", color: "text-foreground" },
       { num: 14, content: "}", color: "text-foreground" },
+    ],
+  },
+  {
+    id: "8",
+    title: "Designing a Website for Vyroo.ai I...",
+    icon: "🌐",
+    type: "website",
+    fileName: "client/src/index.css",
+    editorLabel: "Code Editor",
+    isComplete: false,
+    project: {
+      name: "Vyroo.ai - AI Revenue Operator",
+      description: "Landing page inspired by Perplexity's design",
+      status: "building",
+    },
+    fileTree: [
+      { name: "client", type: "folder", expanded: true, children: [
+        { name: "src", type: "folder", expanded: true, children: [
+          { name: "components", type: "folder", children: [
+            { name: "Sidebar.tsx", type: "file" },
+            { name: "AskInput.tsx", type: "file" },
+            { name: "ThreadCard.tsx", type: "file" },
+          ]},
+          { name: "contexts", type: "folder", children: [] },
+          { name: "hooks", type: "folder", children: [] },
+          { name: "lib", type: "folder", children: [] },
+          { name: "pages", type: "folder", expanded: true, children: [
+            { name: "Home.tsx", type: "file" },
+            { name: "Discover.tsx", type: "file" },
+            { name: "Library.tsx", type: "file" },
+          ]},
+          { name: "App.tsx", type: "file" },
+          { name: "index.css", type: "file" },
+          { name: "main.tsx", type: "file" },
+        ]},
+        { name: "index.html", type: "file" },
+        { name: "components.json", type: "file" },
+        { name: "package.json", type: "file" },
+        { name: "vite.config.ts", type: "file" },
+      ]},
+      { name: "server", type: "folder", children: [] },
+      { name: "shared", type: "folder", children: [] },
+    ],
+    steps: [
+      {
+        id: 1, label: "Research Perplexity's website design and vyroo.ai brand", detail: "Analyzing both websites for design inspiration", status: "complete",
+        icon: <Search size={14} />,
+        logs: [
+          { time: "0:05", text: "Searching for vyroo.ai to understand its business", type: "action" },
+          { time: "0:12", text: "Found: AI-powered content tools with modern aesthetic", type: "result" },
+          { time: "0:20", text: "Visiting perplexity.ai to analyze design and layout", type: "action" },
+          { time: "0:35", text: "Checking vyroo.ai exists and analyzing current design", type: "action" },
+        ],
+        subTasks: [
+          { text: "Search for vyroo.ai to understand its business and current website.", type: "terminal" },
+          { text: "Visit perplexity.ai to analyze its design and layout.", type: "terminal" },
+          { text: "Check if vyroo.ai exists and what it looks like.", type: "terminal" },
+        ],
+      },
+      {
+        id: 2, label: "Save research findings for Perplexity and Vyroo", detail: "Documenting design patterns and brand elements", status: "complete",
+        icon: <FileText size={14} />,
+        logs: [
+          { time: "0:50", text: "Saving research findings for Perplexity and Vyroo", type: "action" },
+          { time: "1:05", text: "Design patterns documented", type: "result" },
+        ],
+        subTasks: [
+          { text: "Save research findings for Perplexity and Vyroo.", type: "edit" },
+        ],
+      },
+      {
+        id: 3, label: "Create a detailed design proposal and wireframe concepts", detail: "Building comprehensive design document", status: "complete",
+        icon: <Sparkles size={14} />,
+        logs: [
+          { time: "1:15", text: "Creating comprehensive design proposal document", type: "action" },
+          { time: "1:40", text: "Design concept: Conversational Intelligence for Commerce", type: "result" },
+        ],
+        subTasks: [
+          { text: "Create a comprehensive design proposal document for vyroo.ai inspired by Perplexity.", type: "edit" },
+        ],
+      },
+      {
+        id: 4, label: "Gather visual assets and define design system", detail: "Generating hero images and defining color palette", status: "active",
+        icon: <Palette size={14} />,
+        logs: [
+          { time: "2:00", text: "Generating high-quality hero images for the vyroo.ai website", type: "action" },
+          { time: "2:15", text: "Generating hero image variant 2...", type: "action" },
+          { time: "2:25", text: "Generating hero image variant 3...", type: "action" },
+        ],
+        subTasks: [
+          { text: "Generate high-quality hero images for the vyroo.ai website with modern AI/tech aesthetic.", type: "image" },
+          { text: "Generate high-quality hero images for the vyroo.ai website with modern AI/tech aesthetic.", type: "image" },
+          { text: "Generate high-quality hero images for the vyroo.ai website with modern AI/tech aesthetic.", type: "image" },
+        ],
+      },
+      {
+        id: 5, label: "Build the vyroo.ai website prototype", detail: "Developing the full website with components and routing", status: "pending",
+        icon: <Code size={14} />,
+        logs: [],
+        subTasks: [
+          { text: "Update index.css with the Vyroo color palette and typography system.", type: "edit" },
+          { text: "Update index.html with Google Fonts import.", type: "edit" },
+          { text: "Create the Sidebar component for navigation.", type: "edit" },
+          { text: "Create the AskInput component for the main search/query interface.", type: "edit" },
+          { text: "Create the ThreadCard component for displaying responses.", type: "edit" },
+          { text: "Create the Home page with the main interface.", type: "edit" },
+          { text: "Create the Library page.", type: "edit" },
+          { text: "Create the Skills page.", type: "edit" },
+          { text: "Create the Automations page.", type: "edit" },
+          { text: "Update App.tsx to include all new routes.", type: "edit" },
+          { text: "Verify the project structure and check for any build issues.", type: "terminal" },
+        ],
+      },
+    ],
+    messages: [
+      { id: "1", role: "user", content: "Brainstorm a new website for vyroo.ai inspired by Perplexity's design." },
+      { id: "2", role: "assistant", content: "I've received your request to brainstorm a new website for vyroo.ai inspired by Perplexity's design. I'll start by researching both vyroo.ai and Perplexity to create a detailed proposal for you." },
+      { id: "3", role: "assistant", content: "I learned vyroo.ai focuses on AI-powered content tools and has a modern, clean aesthetic. I'll analyze perplexity.ai's design next for inspiration." },
+      { id: "4", role: "assistant", content: "I've checked both sites. Vyroo.ai emphasizes AI-driven store management, automation, and actionable insights. Perplexity.ai has a clean, information-focused AI search interface. Next, I'll analyze their design styles for inspiration." },
+    ],
+    followUps: [
+      { icon: <Code size={16} />, text: "Proceed with building the website prototype" },
+      { icon: <Palette size={16} />, text: "Refine any aspects of the design proposal first" },
+    ],
+    codeLines: [
+      { num: 1, content: "@import \"tailwindcss\";", color: "text-foreground" },
+      { num: 2, content: "@import \"tw-animate-css\";", color: "text-foreground" },
+      { num: 3, content: "" },
+      { num: 4, content: "@custom-variant dark (&:is(.dark *));", color: "text-muted-foreground" },
+      { num: 5, content: "" },
+      { num: 6, content: "@theme inline {", color: "text-foreground" },
+      { num: 7, content: "  --radius-sm: calc(var(--radius) - 4px);", color: "text-foreground" },
+      { num: 8, content: "  --radius-md: calc(var(--radius) - 2px);", color: "text-foreground" },
+      { num: 9, content: "  --radius-lg: var(--radius);", color: "text-foreground" },
+      { num: 10, content: "  --radius-xl: calc(var(--radius) + 4px);", color: "text-foreground" },
+      { num: 11, content: "  --color-background: var(--background);", color: "text-foreground" },
+      { num: 12, content: "  --color-foreground: var(--foreground);", color: "text-foreground" },
+      { num: 13, content: "  --color-card: var(--card);", color: "text-foreground" },
+      { num: 14, content: "  --color-card-foreground: var(--card-foreground);", color: "text-foreground" },
+      { num: 15, content: "  --color-primary: var(--primary);", color: "text-foreground" },
+      { num: 16, content: "  --color-primary-foreground: var(--primary-foreground);", color: "text-foreground" },
+      { num: 17, content: "  --color-secondary: var(--secondary);", color: "text-foreground" },
+      { num: 18, content: "  --color-muted: var(--muted);", color: "text-foreground" },
+      { num: 19, content: "  --color-accent: var(--accent);", color: "text-foreground" },
+      { num: 20, content: "  --color-destructive: var(--destructive);", color: "text-foreground" },
     ],
   },
 ];
