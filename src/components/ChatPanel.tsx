@@ -23,6 +23,7 @@ import { ExpandableStep } from "@/components/ExpandableStep";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { InlineComputerCard } from "@/components/InlineComputerCard";
 import { DocumentPreview } from "@/components/DocumentPreview";
+import { ProjectInitCard } from "@/components/ProjectInitCard";
 
 interface ChatPanelProps {
   conversation: Conversation;
