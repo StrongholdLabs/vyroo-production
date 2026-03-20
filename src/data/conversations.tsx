@@ -10,6 +10,7 @@ export interface LogEntry {
 export interface SubTask {
   text: string;
   type?: "edit" | "image" | "terminal";
+  imageUrl?: string;
 }
 
 export interface Step {
