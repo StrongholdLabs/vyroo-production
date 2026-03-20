@@ -69,7 +69,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-16 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto py-6">
+        <div className={`mx-auto px-4 md:px-8 space-y-6 transition-all duration-300 ${computerVisible ? "max-w-none lg:px-12" : "max-w-3xl"}`}>
         {messages.map((msg) => (
           <div key={msg.id}>
             {msg.role === "user" ? (
