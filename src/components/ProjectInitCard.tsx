@@ -13,6 +13,7 @@ export function ProjectInitCard({ project, onView }: ProjectInitCardProps) {
   const [connectedStore, setConnectedStore] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [badgeMenuOpen, setBadgeMenuOpen] = useState(false);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const badgeRef = useRef<HTMLDivElement>(null);
 
   const statusLabel =
