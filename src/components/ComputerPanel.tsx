@@ -315,34 +315,49 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
             totalChars={totalChars}
           />
         )
-      ) : activeTab === "terminal" ? (
-        <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
-      ) : (
-        <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
-          <div className="w-full max-w-md px-8 space-y-6 text-center">
-            <div className="rounded-lg border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--card))" }}>
-              <div className="h-6 border-b border-border flex items-center gap-1.5 px-3">
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
-              </div>
-              <div className="p-4 space-y-3">
-                <div className="h-3 rounded bg-muted w-3/4" />
-                <div className="flex gap-2">
-                  <div className="h-16 rounded bg-muted flex-1" />
-                  <div className="h-16 rounded bg-muted flex-1" />
-                  <div className="h-16 rounded bg-muted flex-1" />
+      ) : activeTab === "preview" ? (
+        isResearch && computerView?.browserTabs && computerView?.browserContent ? (
+          <BrowserView
+            tabs={computerView.browserTabs}
+            url={computerView.browserUrl || ""}
+            pageContent={computerView.browserContent}
+          />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
+            <div className="w-full max-w-md px-8 space-y-6 text-center">
+              <div className="rounded-lg border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--card))" }}>
+                <div className="h-6 border-b border-border flex items-center gap-1.5 px-3">
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
                 </div>
-                <div className="h-3 rounded bg-muted w-1/2" />
-                <div className="h-3 rounded bg-muted w-2/3" />
+                <div className="p-4 space-y-3">
+                  <div className="h-3 rounded bg-muted w-3/4" />
+                  <div className="flex gap-2">
+                    <div className="h-16 rounded bg-muted flex-1" />
+                    <div className="h-16 rounded bg-muted flex-1" />
+                    <div className="h-16 rounded bg-muted flex-1" />
+                  </div>
+                  <div className="h-3 rounded bg-muted w-1/2" />
+                  <div className="h-3 rounded bg-muted w-2/3" />
+                </div>
               </div>
+              <p className="text-sm text-muted-foreground">
+                {isTyping ? "Vyroo is building the website. Hang tight!" : "Preview ready"}
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {isTyping ? "Vyroo is building the website. Hang tight!" : "Preview ready"}
-            </p>
           </div>
-        </div>
-      )}
+        )
+      ) : activeTab === "terminal" ? (
+        isResearch && computerView?.searchResults ? (
+          <SearchView
+            query={computerView.searchQuery || ""}
+            results={computerView.searchResults}
+          />
+        ) : (
+          <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
+        )
+      ) : null}
 
       {/* Playback controls */}
       <div className="flex items-center justify-between px-4 py-2 border-t flex-shrink-0"
@@ -363,44 +378,52 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         </div>
       </div>
 
-      {/* Step indicator */}
-      <div
-        className="border-t flex-shrink-0 cursor-pointer"
-        style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}
-        onClick={() => setStepsExpanded(!stepsExpanded)}
-      >
-        {stepsExpanded && (
-          <div className="px-4 py-2 space-y-1 border-b" style={{ borderColor: "hsl(var(--computer-border))" }}>
-            {steps.map((step) => (
-              <div
-                key={step.id}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors ${
-                  step.id === activeStep ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-                onClick={(e) => { e.stopPropagation(); setActiveStep(step.id); }}
-              >
-                {step.status === "complete" ? (
-                  <Check size={12} className="text-success flex-shrink-0" />
-                ) : step.status === "active" ? (
-                  <Loader2 size={12} className="text-foreground animate-spin flex-shrink-0" />
-                ) : (
-                  <div className="w-3 h-3 rounded-full border border-border flex-shrink-0" />
-                )}
-                <span className="truncate">{step.label}</span>
-              </div>
-            ))}
+      {/* Research task progress OR step indicator */}
+      {researchTasks ? (
+        <TaskProgressPanel
+          tasks={researchTasks}
+          currentStep={researchTasks.filter(t => t.status === "complete").length + (researchTasks.some(t => t.status === "active") ? 1 : 0)}
+          totalSteps={researchTasks.length}
+        />
+      ) : (
+        <div
+          className="border-t flex-shrink-0 cursor-pointer"
+          style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}
+          onClick={() => setStepsExpanded(!stepsExpanded)}
+        >
+          {stepsExpanded && (
+            <div className="px-4 py-2 space-y-1 border-b" style={{ borderColor: "hsl(var(--computer-border))" }}>
+              {steps.map((step) => (
+                <div
+                  key={step.id}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs cursor-pointer transition-colors ${
+                    step.id === activeStep ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={(e) => { e.stopPropagation(); setActiveStep(step.id); }}
+                >
+                  {step.status === "complete" ? (
+                    <Check size={12} className="text-success flex-shrink-0" />
+                  ) : step.status === "active" ? (
+                    <Loader2 size={12} className="text-foreground animate-spin flex-shrink-0" />
+                  ) : (
+                    <div className="w-3 h-3 rounded-full border border-border flex-shrink-0" />
+                  )}
+                  <span className="truncate">{step.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-3 px-4 py-2.5">
+            <Check size={16} className="text-success flex-shrink-0" />
+            <span className="text-sm text-foreground flex-1 truncate">{currentStep?.label}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{Math.min(activeStep, totalSteps)} / {totalSteps}</span>
+            <ChevronUp
+              size={14}
+              className={`text-muted-foreground transition-transform duration-200 ${stepsExpanded ? "" : "rotate-180"}`}
+            />
           </div>
-        )}
-        <div className="flex items-center gap-3 px-4 py-2.5">
-          <Check size={16} className="text-success flex-shrink-0" />
-          <span className="text-sm text-foreground flex-1 truncate">{currentStep?.label}</span>
-          <span className="text-xs text-muted-foreground tabular-nums">{Math.min(activeStep, totalSteps)} / {totalSteps}</span>
-          <ChevronUp
-            size={14}
-            className={`text-muted-foreground transition-transform duration-200 ${stepsExpanded ? "" : "rotate-180"}`}
-          />
         </div>
-      </div>
+      )}
     </div>
   );
 }
