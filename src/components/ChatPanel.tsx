@@ -34,6 +34,8 @@ interface ChatPanelProps {
 export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage }: ChatPanelProps) {
   const [message, setMessage] = useState("");
   const [isThinking, setIsThinking] = useState(false);
+  const [reportMenuOpen, setReportMenuOpen] = useState<string | null>(null);
+  const [previewMsg, setPreviewMsg] = useState<ChatMsg | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { steps, messages, followUps } = conversation;
