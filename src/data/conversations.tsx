@@ -71,6 +71,15 @@ export const conversations: Conversation[] = [
     icon: "📊",
     fileName: "dtc_skincare_analysis_final.md",
     editorLabel: "Editor",
+    isComplete: true,
+    fileTree: [
+      { name: "research", type: "folder", expanded: true, children: [
+        { name: "brand_data.json", type: "file" },
+        { name: "pricing_matrix.csv", type: "file" },
+      ]},
+      { name: "dtc_skincare_analysis_final.md", type: "file" },
+      { name: "references.md", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Understanding task", detail: "Parsing requirements and planning the research approach", status: "complete",
