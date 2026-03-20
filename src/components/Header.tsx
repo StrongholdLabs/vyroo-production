@@ -1,18 +1,9 @@
 import { Link } from "react-router-dom";
-import { Menu } from "lucide-react";
-import { useState } from "react";
-
-const navLinks = [
-  { label: "Features", href: "#" },
-  { label: "Resources", href: "#" },
-  { label: "Events", href: "#" },
-  { label: "Business", href: "#" },
-  { label: "Pricing", href: "#" },
-];
+import { ChevronDown } from "lucide-react";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export function Header() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
       <div className="max-w-screen-xl mx-auto flex items-center justify-between h-12 px-4 md:px-6">
@@ -25,55 +16,16 @@ export function Header() {
           <span>manus</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-0.5">
-          {navLinks.map((link) => (
-            <a
-              key={link.label}
-              href={link.href}
-              className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors duration-150 rounded-md"
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground font-body">Manus 1.6 Lite</span>
+          <ChevronDown size={12} className="text-muted-foreground" />
+        </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/dashboard"
-            className="hidden md:inline-flex px-3.5 py-1.5 text-sm font-medium text-foreground border border-border rounded-full hover:bg-accent transition-colors duration-150 active:scale-[0.97]"
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/dashboard"
-            className="hidden md:inline-flex px-3.5 py-1.5 text-sm font-medium bg-foreground text-primary-foreground rounded-full hover:opacity-90 transition-all duration-150 active:scale-[0.97]"
-          >
-            Sign up
-          </Link>
-          <button
-            className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            <Menu size={20} />
-          </button>
+          <NotificationBell />
+          <ProfileAvatar />
         </div>
       </div>
-
-      {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-background animate-fade-in">
-          <div className="px-4 py-3 space-y-1">
-            {navLinks.map((link) => (
-              <a key={link.label} href={link.href} className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-md">
-                {link.label}
-              </a>
-            ))}
-            <div className="pt-2 flex gap-2">
-              <Link to="/dashboard" className="flex-1 text-center px-4 py-2 text-sm font-medium border border-border rounded-full text-foreground">Sign in</Link>
-              <Link to="/dashboard" className="flex-1 text-center px-4 py-2 text-sm font-medium bg-foreground text-primary-foreground rounded-full">Sign up</Link>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 }
