@@ -130,7 +130,7 @@ export function ProjectInitCard({ project, onView }: ProjectInitCardProps) {
               <button
                 onClick={() => setShowShopify(true)}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium rounded-lg transition-colors active:scale-[0.97] hover:opacity-90"
-                style={{ backgroundColor: "hsl(142 60% 45%)", color: "white" }}
+                style={{ backgroundColor: "hsl(var(--success))", color: "white" }}
               >
                 <ShoppingCart size={12} />
                 Connect Store
