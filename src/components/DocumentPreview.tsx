@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   X,
   Share2,
@@ -12,6 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileDown,
+  List,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -243,9 +246,24 @@ function generateMarkdown(title: string, summary: string, tableData?: { headers:
 
 export function DocumentPreview({ open, onClose, title, summary, tableData }: DocumentPreviewProps) {
   const [currentPage, setCurrentPage] = useState(0);
+  const [tocOpen, setTocOpen] = useState(true);
 
   const pages = useMemo(() => buildPages(title, summary, tableData), [title, summary, tableData]);
   const totalPages = pages.length;
+
+  const goNext = useCallback(() => setCurrentPage(p => Math.min(totalPages - 1, p + 1)), [totalPages]);
+  const goPrev = useCallback(() => setCurrentPage(p => Math.max(0, p - 1)), []);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); goNext(); }
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); goPrev(); }
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, goNext, goPrev, onClose]);
 
   if (!open) return null;
 
@@ -333,6 +351,13 @@ export function DocumentPreview({ open, onClose, title, summary, tableData }: Do
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <button
+            onClick={() => setTocOpen(!tocOpen)}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent"
+            title={tocOpen ? "Hide contents" : "Show contents"}
+          >
+            {tocOpen ? <PanelLeftClose size={16} /> : <PanelLeft size={16} />}
+          </button>
           <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent">
             <Maximize2 size={16} />
           </button>
@@ -362,10 +387,42 @@ export function DocumentPreview({ open, onClose, title, summary, tableData }: Do
         ))}
       </div>
 
-      {/* Document content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-8 py-10">
-          {pages[currentPage].content}
+      {/* Body with TOC sidebar + content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Table of Contents sidebar */}
+        {tocOpen && (
+          <div className="w-52 flex-shrink-0 border-r border-border overflow-y-auto py-4 px-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+            <div className="flex items-center gap-2 px-2 mb-3">
+              <List size={14} className="text-muted-foreground" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contents</span>
+            </div>
+            <nav className="space-y-0.5">
+              {pages.map((page, i) => (
+                <button
+                  key={page.id}
+                  onClick={() => setCurrentPage(i)}
+                  className={`w-full text-left px-3 py-2 rounded-md text-xs transition-colors ${
+                    currentPage === i
+                      ? "bg-accent text-foreground font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  }`}
+                >
+                  <span className="text-[10px] text-muted-foreground mr-2">{i + 1}</span>
+                  {page.label}
+                </button>
+              ))}
+            </nav>
+            <div className="mt-6 px-2">
+              <p className="text-[10px] text-muted-foreground">← → to navigate pages</p>
+            </div>
+          </div>
+        )}
+
+        {/* Document content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-8 py-10">
+            {pages[currentPage].content}
+          </div>
         </div>
       </div>
 
