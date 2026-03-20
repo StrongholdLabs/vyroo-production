@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  X, Monitor, Maximize2, Square, SkipBack, SkipForward,
+  X, Maximize2,
   ChevronUp, ChevronRight, Check, Loader2, Code, Eye,
   FileText, Folder, FolderOpen, Terminal, Copy, CheckCheck, GitCompare,
+  Cpu, SkipBack, SkipForward,
 } from "lucide-react";
 import type { CodeLine, Step, FileNode } from "@/data/conversations";
 import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
