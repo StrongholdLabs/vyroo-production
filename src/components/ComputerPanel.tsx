@@ -152,7 +152,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
     }
   }, []);
 
-  const handleTabChange = useCallback((tab: "code" | "preview" | "terminal") => {
+  const handleTabChange = useCallback((tab: "code" | "preview" | "terminal" | "timeline") => {
     setPrevTab(activeTab);
     setActiveTab(tab);
   }, [activeTab]);
