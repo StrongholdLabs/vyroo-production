@@ -243,17 +243,31 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
       </div>
 
       {/* Status bar */}
-      <div className="px-4 py-2 border-b flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0"
+      <div className="px-3 py-1.5 border-b flex items-center gap-2.5 text-xs text-muted-foreground flex-shrink-0"
         style={{ borderColor: "hsl(var(--computer-border))" }}
       >
-        {isTyping ? (
-          <Loader2 size={12} className="text-foreground animate-spin" />
-        ) : (
-          <Check size={12} className="text-success" />
-        )}
-        <span>Vyroo is using <span className="text-foreground font-medium">{statusLabel}</span></span>
-        <span className="text-muted-foreground/50">·</span>
-        <span className="truncate">{statusAction}</span>
+        {/* Animated Vyroo icon */}
+        <div className="relative flex-shrink-0">
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center overflow-hidden ${isTyping ? "shadow-[0_0_8px_rgba(255,255,255,0.15)]" : ""}`}
+            style={{ backgroundColor: "hsl(var(--code-bg))" }}
+          >
+            <img
+              src={vyrooIcon}
+              alt="Vyroo"
+              className={`w-4 h-4 object-contain ${isTyping ? "animate-pulse" : ""}`}
+            />
+          </div>
+          {/* Status dot */}
+          <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 transition-colors ${
+            isTyping ? "bg-blue-500 animate-pulse" : "bg-success"
+          }`} style={{ borderColor: "hsl(var(--computer-header))" }} />
+        </div>
+
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-foreground font-medium whitespace-nowrap">{isTyping ? "Working" : "Done"}</span>
+          <span className="text-muted-foreground/30">·</span>
+          <span className="truncate text-muted-foreground">{statusAction}</span>
+        </div>
 
         {/* Right-side tools */}
         <div className="ml-auto flex items-center gap-1">
