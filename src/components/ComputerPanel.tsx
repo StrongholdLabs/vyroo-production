@@ -79,8 +79,8 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const [activeStep, setActiveStep] = useState(steps.length);
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [visibleChars, setVisibleChars] = useState(0);
-  const [activeTab, setActiveTab] = useState<"code" | "preview" | "terminal">("code");
-  const [prevTab, setPrevTab] = useState<"code" | "preview" | "terminal">("code");
+  const [activeTab, setActiveTab] = useState<"code" | "preview" | "terminal" | "timeline">("code");
+  const [prevTab, setPrevTab] = useState<"code" | "preview" | "terminal" | "timeline">("code");
   const [showDiff, setShowDiff] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [copied, setCopied] = useState(false);
