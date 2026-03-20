@@ -888,6 +888,17 @@ export const conversations: Conversation[] = [
           },
         ],
       },
+      searchQuery: "hottest DTC fitness products 2026 trends, top DTC fitness brands 2026 we...",
+      searchResults: [
+        { title: "The Most Popular Fitness Gear Worth Trying in 2026", url: "fitnessmag.com", date: "Jan 7, 2026", snippet: "Achieve your fitness goals this year with our editors' favorite smart fitness trackers, home gym equipment, and recovery devices.", faviconColor: "#ef4444" },
+        { title: "60 Best Fitness Products Of 2026", url: "womenshealthmag.com", date: "Jan 9, 2026", snippet: "Looking for fitness gear you'll use for years? Meet the 2026 Women's Health Fitness Awards winners across equipment, activewear, sneakers, ...", faviconColor: "#f97316" },
+        { title: "The 2026 Men's Health Fitness Awards", url: "menshealth.com", date: "Dec 15, 2025", snippet: "From adjustable dumbbells to mountain bikes to a wild new combination rower/bench press/leg press, we've put all the top-tier fitness releases ...", faviconColor: "#ef4444" },
+        { title: "New Exercise Equipment Trends Transforming Fitness in ...", url: "techfitness.com", date: "Mar 10, 2026", snippet: "Discover the latest new exercise equipment trends reshaping home workouts in 2026. From AI-powered gear to space-saving designs.", faviconColor: "#10b981" },
+        { title: "The Future of Fitness: ACSM Announces Top Trends for 2026", url: "acsm.org", date: "Oct 22, 2025", snippet: "Rounding out the top five fitness trends after Wearable Technology are Fitness Programs for Older Adults, Exercise for Weight Management, Mobile Exercise Apps, ...", faviconColor: "#3b82f6" },
+        { title: "Fitness Trends of 2026: The Rise of Yoga, Home ...", url: "yogajournal.com", date: "Jan 28, 2026", snippet: "Free weights are the most likely item among these planned purchases, followed by treadmills, general home gym equipment, and yoga accessories.", faviconColor: "#22c55e" },
+        { title: "The Best Wearable Fitness Trackers We Tested for 2026", url: "wirecutter.com", date: "Jan 6, 2026", snippet: "From strength training to sleep and recovery, these wearables stood out for turning raw data into useful action.", faviconColor: "#f43f5e" },
+        { title: "The Best Fitness Trackers for Every Type of Exercise", url: "cnet.com", date: "Feb 18, 2026", snippet: "Best fitness tracker overall. Fitbit Charge 6. $135 at Amazon; Best fitness tracker for heart rate. Apple Watch Series 11. $299 at Amazon; Best ...", faviconColor: "#6366f1" },
+      ],
     },
     researchTasks: [
       { id: 1, label: "Research DTC nutrition and vitamin trends in 2026", status: "complete" },
