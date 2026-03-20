@@ -60,6 +60,8 @@ export interface Conversation {
   codeLines: CodeLine[];
   fileName: string;
   editorLabel: string;
+  fileTree?: FileNode[];
+  isComplete?: boolean;
 }
 
 export const conversations: Conversation[] = [
