@@ -7,8 +7,14 @@ import {
   SkipBack,
   SkipForward,
   ChevronUp,
+  ChevronRight,
   Check,
   Loader2,
+  Code,
+  Eye,
+  FileText,
+  Folder,
+  FolderOpen,
 } from "lucide-react";
 import type { CodeLine, Step } from "@/data/conversations";
 
@@ -21,14 +27,78 @@ interface ComputerPanelProps {
   editorLabel: string;
 }
 
+interface FileNode {
+  name: string;
+  type: "file" | "folder";
+  children?: FileNode[];
+  expanded?: boolean;
+}
+
+const mockFileTree: FileNode[] = [
+  {
+    name: "src", type: "folder", expanded: true, children: [
+      {
+        name: "components", type: "folder", children: [
+          { name: "Header.tsx", type: "file" },
+          { name: "Hero.tsx", type: "file" },
+          { name: "Features.tsx", type: "file" },
+        ]
+      },
+      {
+        name: "pages", type: "folder", expanded: true, children: [
+          { name: "App.tsx", type: "file" },
+        ]
+      },
+      { name: "index.css", type: "file" },
+      { name: "main.tsx", type: "file" },
+    ]
+  },
+  { name: "package.json", type: "file" },
+  { name: "tsconfig.json", type: "file" },
+  { name: "vite.config.ts", type: "file" },
+];
+
+function FileTreeItem({ node, depth = 0, activeFile }: { node: FileNode; depth?: number; activeFile: string }) {
+  const [open, setOpen] = useState(node.expanded ?? false);
+  const isActive = node.type === "file" && node.name === activeFile;
+
+  return (
+    <div>
+      <button
+        onClick={() => node.type === "folder" && setOpen(!open)}
+        className={`flex items-center gap-1 w-full px-2 py-0.5 text-xs hover:bg-accent/50 transition-colors ${
+          isActive ? "bg-accent text-foreground" : "text-muted-foreground"
+        }`}
+        style={{ paddingLeft: `${8 + depth * 12}px` }}
+      >
+        {node.type === "folder" ? (
+          <>
+            <ChevronRight size={10} className={`transition-transform ${open ? "rotate-90" : ""}`} />
+            {open ? <FolderOpen size={12} /> : <Folder size={12} />}
+          </>
+        ) : (
+          <>
+            <span className="w-[10px]" />
+            <FileText size={12} />
+          </>
+        )}
+        <span className="truncate ml-1">{node.name}</span>
+      </button>
+      {node.type === "folder" && open && node.children?.map((child, i) => (
+        <FileTreeItem key={i} node={child} depth={depth + 1} activeFile={activeFile} />
+      ))}
+    </div>
+  );
+}
+
 export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, editorLabel }: ComputerPanelProps) {
   const [activeStep, setActiveStep] = useState(steps.length);
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [visibleLines, setVisibleLines] = useState(0);
+  const [activeTab, setActiveTab] = useState<"code" | "preview">("code");
   const codeRef = useRef<HTMLDivElement>(null);
   const prevCodeRef = useRef(codeLines);
 
-  // Reset typing animation when code changes (conversation switch)
   useEffect(() => {
     if (prevCodeRef.current !== codeLines) {
       setVisibleLines(0);
@@ -37,21 +107,15 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
     }
   }, [codeLines, steps.length]);
 
-  // Typing animation: reveal lines one by one
   useEffect(() => {
     if (visibleLines >= codeLines.length) return;
     const delay = visibleLines === 0 ? 300 : 60 + Math.random() * 80;
-    const timer = setTimeout(() => {
-      setVisibleLines((v) => v + 1);
-    }, delay);
+    const timer = setTimeout(() => setVisibleLines((v) => v + 1), delay);
     return () => clearTimeout(timer);
   }, [visibleLines, codeLines.length]);
 
-  // Auto-scroll as lines appear
   useEffect(() => {
-    if (codeRef.current) {
-      codeRef.current.scrollTop = codeRef.current.scrollHeight;
-    }
+    if (codeRef.current) codeRef.current.scrollTop = codeRef.current.scrollHeight;
   }, [visibleLines]);
 
   if (!visible) return null;
@@ -60,6 +124,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const totalSteps = steps.length;
   const isTyping = visibleLines < codeLines.length;
   const progress = codeLines.length > 0 ? Math.round((visibleLines / codeLines.length) * 100) : 100;
+  const shortFileName = fileName.split("/").pop() || fileName;
 
   return (
     <div className="computer-panel flex flex-col h-full w-full lg:w-[480px] xl:w-[540px] flex-shrink-0 max-lg:border-l-0">
@@ -70,16 +135,36 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           <span className="text-sm font-medium text-foreground font-body">Manus's Computer</span>
         </div>
         <div className="flex items-center gap-1">
-          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded">
-            <Square size={14} />
-          </button>
-          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded">
-            <Maximize2 size={14} />
-          </button>
-          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded">
-            <X size={14} />
-          </button>
+          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Square size={14} /></button>
+          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Maximize2 size={14} /></button>
+          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><X size={14} /></button>
         </div>
+      </div>
+
+      {/* Tab bar: Code / Preview */}
+      <div className="flex items-center gap-0 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}>
+        <button
+          onClick={() => setActiveTab("code")}
+          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2 ${
+            activeTab === "code"
+              ? "text-foreground border-foreground"
+              : "text-muted-foreground border-transparent hover:text-foreground"
+          }`}
+        >
+          <Code size={12} />
+          Code
+        </button>
+        <button
+          onClick={() => setActiveTab("preview")}
+          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2 ${
+            activeTab === "preview"
+              ? "text-foreground border-foreground"
+              : "text-muted-foreground border-transparent hover:text-foreground"
+          }`}
+        >
+          <Eye size={12} />
+          Preview
+        </button>
       </div>
 
       {/* Status bar */}
@@ -87,66 +172,100 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         style={{ borderColor: "hsl(var(--computer-border))" }}
       >
         {isTyping ? (
-          <Loader2 size={12} className="text-success animate-spin" />
+          <Loader2 size={12} className="text-foreground animate-spin" />
         ) : (
           <Check size={12} className="text-success" />
         )}
         <span>Manus is using <span className="text-foreground font-medium">{editorLabel}</span></span>
         <span className="text-muted-foreground/50">·</span>
-        <span>{isTyping ? "Creating" : "Created"} file {fileName}</span>
+        <span>{isTyping ? "Creating" : "Created"} file {shortFileName}</span>
       </div>
 
-      {/* File tab */}
-      <div className="px-4 py-1.5 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))" }}>
-        <div className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs text-muted-foreground"
-          style={{ backgroundColor: "hsl(var(--code-bg))" }}
-        >
-          <span>{fileName}</span>
-        </div>
-      </div>
+      {activeTab === "code" ? (
+        /* Code view with file tree */
+        <div className="flex-1 flex overflow-hidden">
+          {/* File tree sidebar */}
+          <div className="w-44 flex-shrink-0 border-r overflow-y-auto py-2" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
+            {mockFileTree.map((node, i) => (
+              <FileTreeItem key={i} node={node} activeFile={shortFileName} />
+            ))}
+          </div>
 
-      {/* Code view with typing effect */}
-      <div ref={codeRef} className="flex-1 overflow-y-auto code-block">
-        <div className="p-4 text-xs leading-[1.7]">
-          {codeLines.slice(0, visibleLines).map((line, i) => (
-            <div key={`${line.num}-${i}`} className="flex typing-line">
-              <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">
-                {line.num}
-              </span>
-              <span className={`${line.color || "text-foreground"} break-all`}>
-                {line.content || "\u00A0"}
-              </span>
+          {/* Code editor */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* File tab */}
+            <div className="px-3 py-1.5 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))" }}>
+              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs text-muted-foreground" style={{ backgroundColor: "hsl(var(--code-bg))" }}>
+                <span>{shortFileName}</span>
+              </div>
             </div>
-          ))}
-          {isTyping && (
-            <div className="flex items-center mt-1">
-              <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">
-                {visibleLines + 1}
-              </span>
-              <span className="typing-cursor" />
+
+            <div ref={codeRef} className="flex-1 overflow-y-auto code-block">
+              <div className="p-4 text-xs leading-[1.7]">
+                {codeLines.slice(0, visibleLines).map((line, i) => (
+                  <div key={`${line.num}-${i}`} className="flex typing-line">
+                    <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{line.num}</span>
+                    <span className={`${line.color || "text-foreground"} break-all`}>{line.content || "\u00A0"}</span>
+                  </div>
+                ))}
+                {isTyping && (
+                  <div className="flex items-center mt-1">
+                    <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{visibleLines + 1}</span>
+                    <span className="typing-cursor" />
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Preview view */
+        <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(220 10% 8%)" }}>
+          <div className="w-full max-w-md px-8 space-y-6 text-center">
+            {/* Skeleton preview */}
+            <div className="rounded-lg border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--card))" }}>
+              <div className="h-6 border-b border-border flex items-center gap-1.5 px-3">
+                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
+                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
+                <div className="w-2 h-2 rounded-full bg-muted-foreground/20" />
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="h-3 rounded bg-muted w-3/4" />
+                <div className="flex gap-2">
+                  <div className="h-16 rounded bg-muted flex-1" />
+                  <div className="h-16 rounded bg-muted flex-1" />
+                  <div className="h-16 rounded bg-muted flex-1" />
+                </div>
+                <div className="h-3 rounded bg-muted w-1/2" />
+                <div className="h-3 rounded bg-muted w-2/3" />
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {isTyping ? "Manus is building the website. Hang tight!" : "Preview ready"}
+            </p>
+            {isTyping && (
+              <p className="text-xs text-muted-foreground/60">
+                Download app and get notified when it's ready.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Playback controls */}
       <div className="flex items-center justify-between px-4 py-2 border-t flex-shrink-0"
         style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}
       >
         <div className="flex items-center gap-2">
-          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-            <SkipBack size={14} />
-          </button>
-          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors">
-            <SkipForward size={14} />
-          </button>
+          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors"><SkipBack size={14} /></button>
+          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors"><SkipForward size={14} /></button>
         </div>
         <div className="flex-1 mx-3 flex items-center gap-2">
           <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: "hsl(var(--step-line))" }}>
             <div className="h-full rounded-full bg-success transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
           <div className="flex items-center gap-1">
-            <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-success animate-pulse" : "bg-success"}`} />
+            <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-foreground animate-pulse" : "bg-success"}`} />
             <span className="text-[10px] text-muted-foreground">{isTyping ? "writing" : "done"}</span>
           </div>
         </div>
@@ -168,7 +287,13 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
                 }`}
                 onClick={(e) => { e.stopPropagation(); setActiveStep(step.id); }}
               >
-                <Check size={12} className="text-success flex-shrink-0" />
+                {step.status === "complete" ? (
+                  <Check size={12} className="text-success flex-shrink-0" />
+                ) : step.status === "active" ? (
+                  <Loader2 size={12} className="text-foreground animate-spin flex-shrink-0" />
+                ) : (
+                  <div className="w-3 h-3 rounded-full border border-border flex-shrink-0" />
+                )}
                 <span className="truncate">{step.label}</span>
               </div>
             ))}

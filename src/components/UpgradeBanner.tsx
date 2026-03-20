@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sparkles, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -9,7 +9,13 @@ interface UpgradeBannerProps {
 
 export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
   const [dismissed, setDismissed] = useState(false);
+  const [visible, setVisible] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 300);
+    return () => clearTimeout(t);
+  }, []);
 
   if (dismissed) return null;
 
@@ -22,11 +28,23 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
   };
 
   return (
-    <div className="rounded-xl border border-border overflow-hidden relative" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+    <div
+      className={`rounded-xl border overflow-hidden relative transition-all duration-500 ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+      }`}
+      style={{
+        backgroundColor: "hsl(220 12% 18%)",
+        borderColor: "hsl(220 10% 28%)",
+        transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+      }}
+    >
+      {/* Subtle gradient accent line at top */}
+      <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, hsl(210 40% 50%), hsl(200 50% 60%), hsl(210 40% 50%))" }} />
+
       {/* Dismiss button */}
       <button
         onClick={() => setDismissed(true)}
-        className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent z-10"
+        className="absolute top-3 right-2 p-1 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent z-10"
       >
         <X size={14} />
       </button>
@@ -39,11 +57,11 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
           </p>
         </div>
         {/* Illustration */}
-        <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-gradient-to-br from-muted/60 to-muted/30 flex items-center justify-center">
+        <div className="flex-shrink-0 w-16 h-16 rounded-lg flex items-center justify-center" style={{ backgroundColor: "hsl(210 30% 22%)" }}>
           <div className="relative">
-            <div className="w-8 h-10 rounded-sm border border-border bg-accent/50 transform -rotate-6" />
-            <div className="w-8 h-10 rounded-sm border border-border bg-accent/50 absolute top-0 left-2 transform rotate-6" />
-            <div className="w-8 h-10 rounded-sm border border-border bg-accent/60 absolute top-0 left-1 transform rotate-0" />
+            <div className="w-8 h-10 rounded-sm border bg-accent/50 transform -rotate-6" style={{ borderColor: "hsl(210 20% 35%)" }} />
+            <div className="w-8 h-10 rounded-sm border bg-accent/50 absolute top-0 left-2 transform rotate-6" style={{ borderColor: "hsl(210 20% 35%)" }} />
+            <div className="w-8 h-10 rounded-sm border bg-accent/60 absolute top-0 left-1 transform rotate-0" style={{ borderColor: "hsl(210 20% 40%)" }} />
           </div>
         </div>
       </div>
@@ -56,7 +74,8 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
         </button>
         <button
           onClick={handleUpgrade}
-          className="flex-1 py-2 text-sm text-foreground border border-border rounded-lg hover:bg-accent transition-colors active:scale-[0.98] flex items-center justify-center gap-2 font-medium"
+          className="flex-1 py-2 text-sm text-foreground rounded-lg transition-colors active:scale-[0.98] flex items-center justify-center gap-2 font-medium"
+          style={{ backgroundColor: "hsl(210 40% 35%)", }}
         >
           Build with 1.6 Max
           <Sparkles size={14} className="text-foreground" />

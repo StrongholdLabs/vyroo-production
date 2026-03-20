@@ -4,13 +4,9 @@ export function ThinkingIndicator() {
   return (
     <div className="flex items-start gap-3 py-2">
       <div className="relative flex-shrink-0">
-        {/* Logo with orbital ring animation */}
+        {/* Logo with glow animation */}
         <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent thinking-logo-ring">
           <img src={manusLogo} alt="Manus" className="w-full h-full object-cover" />
-        </div>
-        {/* Orbiting dot */}
-        <div className="thinking-orbit">
-          <div className="thinking-orbit-dot" />
         </div>
       </div>
       <div className="flex items-center gap-1.5 pt-2">
