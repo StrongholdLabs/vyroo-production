@@ -1,5 +1,8 @@
 import { Search, Globe, FileText, Sparkles, Code, Palette, ShoppingCart, TrendingUp, Calendar, FlaskConical, HelpCircle } from "lucide-react";
 import React from "react";
+import type { BrowserTab, BrowserPageContent } from "@/components/computer/BrowserView";
+import type { SearchResult } from "@/components/computer/SearchView";
+import type { ResearchTask } from "@/components/computer/TaskProgressPanel";
 
 export interface LogEntry {
   time: string;
@@ -57,11 +60,22 @@ export interface ProjectInfo {
   status: "initialized" | "building" | "complete";
 }
 
+export type ComputerViewType = "editor" | "browser" | "search";
+
+export interface ComputerViewState {
+  type: ComputerViewType;
+  browserTabs?: BrowserTab[];
+  browserUrl?: string;
+  browserContent?: BrowserPageContent;
+  searchQuery?: string;
+  searchResults?: SearchResult[];
+}
+
 export interface Conversation {
   id: string;
   title: string;
   icon: string;
-  type: "intelligence" | "website";
+  type: "intelligence" | "website" | "research";
   steps: Step[];
   messages: ChatMessage[];
   followUps: SuggestedFollowUp[];
@@ -71,6 +85,8 @@ export interface Conversation {
   fileTree?: FileNode[];
   isComplete?: boolean;
   project?: ProjectInfo;
+  computerView?: ComputerViewState;
+  researchTasks?: ResearchTask[];
 }
 
 export const conversations: Conversation[] = [
