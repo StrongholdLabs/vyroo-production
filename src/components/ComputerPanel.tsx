@@ -164,30 +164,36 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
 
   return (
     <div className="computer-panel flex flex-col h-full w-full flex-shrink-0">
-      {/* Header */}
-      <div className="computer-header flex items-center justify-between px-4 h-10 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Monitor size={14} className="text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground font-body">Vyroo's Computer</span>
+      {/* Branded header */}
+      <div className="flex items-center justify-between px-4 h-11 flex-shrink-0" style={{ backgroundColor: "hsl(var(--computer-header))", borderBottom: "1px solid hsl(var(--computer-border))" }}>
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: "hsl(var(--success-soft))" }}>
+            <Cpu size={13} className="text-success" />
+          </div>
+          <span className="text-sm font-medium text-foreground font-body tracking-tight">Vyroo Computer</span>
+          <div className="flex items-center gap-1 ml-1">
+            <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-success animate-pulse" : "bg-muted-foreground/30"}`} />
+            <span className="text-[10px] text-muted-foreground">{isTyping ? "Active" : "Idle"}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Square size={14} /></button>
-          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Maximize2 size={14} /></button>
-          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><X size={14} /></button>
+        <div className="flex items-center gap-0.5">
+          <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors rounded-md"><Maximize2 size={13} /></button>
+          <button onClick={onClose} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors rounded-md"><X size={13} /></button>
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex items-center gap-0 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}>
+      {/* Vyroo-branded tab bar */}
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-150 ${
               activeTab === tab.key
-                ? "text-foreground border-foreground"
-                : "text-muted-foreground border-transparent hover:text-foreground"
+                ? "text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
             }`}
+            style={activeTab === tab.key ? { backgroundColor: "hsl(var(--surface-elevated))", boxShadow: "0 1px 3px hsl(0 0% 0% / 0.2)" } : undefined}
           >
             <tab.icon size={12} />
             {tab.label}
