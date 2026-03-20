@@ -12,9 +12,12 @@ import {
   Globe,
 } from "lucide-react";
 import type { Conversation } from "@/data/conversations";
+import { ComputerThumbnail } from "@/components/ComputerThumbnail";
 
 interface ChatPanelProps {
   conversation: Conversation;
+  computerVisible?: boolean;
+  onOpenComputer?: () => void;
   onSendMessage?: (msg: string) => void;
 }
 
