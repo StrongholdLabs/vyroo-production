@@ -14,6 +14,9 @@ import {
 import type { Conversation } from "@/data/conversations";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
+import { ExpandableStep } from "@/components/ExpandableStep";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { InlineComputerCard } from "@/components/InlineComputerCard";
 
 interface ChatPanelProps {
   conversation: Conversation;
