@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,52 +6,66 @@
 
 @layer base {
   :root {
-    --background: 40 20% 97%;
-    --foreground: 30 10% 12%;
+    /* Dark mode Manus-style greys */
+    --background: 220 9% 12%;
+    --foreground: 210 17% 90%;
 
-    --card: 40 20% 98%;
-    --card-foreground: 30 10% 12%;
+    --card: 220 9% 14%;
+    --card-foreground: 210 17% 90%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 30 10% 12%;
+    --popover: 220 9% 16%;
+    --popover-foreground: 210 17% 90%;
 
-    --primary: 30 10% 12%;
-    --primary-foreground: 40 20% 97%;
+    --primary: 210 17% 90%;
+    --primary-foreground: 220 9% 12%;
 
-    --secondary: 36 14% 93%;
-    --secondary-foreground: 30 10% 20%;
+    --secondary: 220 8% 18%;
+    --secondary-foreground: 210 14% 75%;
 
-    --muted: 36 10% 92%;
-    --muted-foreground: 30 6% 50%;
+    --muted: 220 8% 20%;
+    --muted-foreground: 215 10% 52%;
 
-    --accent: 36 14% 93%;
-    --accent-foreground: 30 10% 12%;
+    --accent: 220 8% 20%;
+    --accent-foreground: 210 17% 90%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 36 12% 89%;
-    --input: 36 12% 89%;
-    --ring: 30 10% 12%;
+    --border: 220 8% 20%;
+    --input: 220 8% 22%;
+    --ring: 210 17% 90%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 40 15% 96%;
-    --sidebar-foreground: 30 8% 30%;
-    --sidebar-primary: 30 10% 12%;
-    --sidebar-primary-foreground: 40 20% 97%;
-    --sidebar-accent: 36 14% 93%;
-    --sidebar-accent-foreground: 30 10% 12%;
-    --sidebar-border: 36 12% 89%;
-    --sidebar-ring: 30 10% 12%;
+    --sidebar-background: 220 9% 10%;
+    --sidebar-foreground: 215 10% 65%;
+    --sidebar-primary: 210 17% 90%;
+    --sidebar-primary-foreground: 220 9% 12%;
+    --sidebar-accent: 220 8% 16%;
+    --sidebar-accent-foreground: 210 17% 90%;
+    --sidebar-border: 220 8% 17%;
+    --sidebar-ring: 210 17% 90%;
 
     /* Custom tokens */
-    --surface-elevated: 40 25% 99%;
-    --text-tertiary: 30 4% 64%;
-    --chip-bg: 36 14% 95%;
-    --chip-bg-hover: 36 14% 90%;
-    --input-surface: 0 0% 100%;
+    --surface-elevated: 220 9% 15%;
+    --surface-sunken: 220 9% 9%;
+    --text-tertiary: 215 8% 42%;
+    --chip-bg: 220 8% 18%;
+    --chip-bg-hover: 220 8% 22%;
+    --input-surface: 220 9% 16%;
     --success: 142 60% 45%;
+    --success-soft: 142 30% 18%;
+    --computer-bg: 220 10% 11%;
+    --computer-header: 220 9% 14%;
+    --computer-border: 220 8% 18%;
+    --code-bg: 220 12% 9%;
+    --step-line: 220 8% 22%;
+    --step-line-done: 142 40% 30%;
+    --chat-bubble: 220 9% 16%;
+    --chat-bubble-user: 220 8% 20%;
+    --suggested-bg: 220 8% 14%;
+    --suggested-border: 220 8% 22%;
+    --rating-star: 45 80% 55%;
   }
 }
 
@@ -78,11 +92,19 @@
   .font-body {
     font-family: 'Inter', system-ui, sans-serif;
   }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
 }
 
 @layer components {
   .surface-elevated {
     background-color: hsl(var(--surface-elevated));
+  }
+
+  .surface-sunken {
+    background-color: hsl(var(--surface-sunken));
   }
 
   .chip {
@@ -102,33 +124,124 @@
 
   .input-main {
     background-color: hsl(var(--input-surface));
-    box-shadow: 0 1px 3px 0 hsl(30 10% 12% / 0.04), 0 1px 2px -1px hsl(30 10% 12% / 0.04), 0 0 0 1px hsl(var(--border));
+    box-shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.2), 0 0 0 1px hsl(var(--border));
     transition: box-shadow 0.2s ease-out;
   }
 
   .input-main:focus-within {
-    box-shadow: 0 4px 12px 0 hsl(30 10% 12% / 0.06), 0 1px 3px -1px hsl(30 10% 12% / 0.06), 0 0 0 1px hsl(30 10% 12% / 0.15);
+    box-shadow: 0 4px 12px 0 hsl(0 0% 0% / 0.3), 0 0 0 1px hsl(220 8% 28%);
   }
 
-  .step-dot {
-    @apply w-2 h-2 rounded-full;
+  /* Timeline step styles */
+  .step-connector {
+    position: absolute;
+    left: 15px;
+    top: 32px;
+    width: 2px;
+    bottom: 0;
+    background-color: hsl(var(--step-line));
+    transition: background-color 0.5s ease;
   }
 
-  .step-dot-active {
-    @apply bg-foreground;
-    animation: pulse-dot 1.5s ease-in-out infinite;
+  .step-connector-done {
+    background-color: hsl(var(--step-line-done));
   }
 
-  .step-dot-complete {
-    background-color: hsl(var(--success));
+  .step-node {
+    @apply relative flex items-start gap-3 py-2 px-2 rounded-lg transition-colors duration-150 cursor-pointer;
   }
 
-  .step-dot-pending {
-    background-color: hsl(var(--border));
+  .step-node:hover {
+    background-color: hsl(var(--accent) / 0.5);
+  }
+
+  .step-icon {
+    @apply w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0;
+    transition: all 0.3s ease;
+  }
+
+  .step-icon-complete {
+    background-color: hsl(var(--success-soft));
+    color: hsl(var(--success));
+  }
+
+  .step-icon-active {
+    background-color: hsl(220 8% 22%);
+    color: hsl(var(--foreground));
+  }
+
+  .step-icon-pending {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Computer panel */
+  .computer-panel {
+    background-color: hsl(var(--computer-bg));
+    border-left: 1px solid hsl(var(--computer-border));
+  }
+
+  .computer-header {
+    background-color: hsl(var(--computer-header));
+    border-bottom: 1px solid hsl(var(--computer-border));
+  }
+
+  .code-block {
+    background-color: hsl(var(--code-bg));
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Chat */
+  .chat-bubble-ai {
+    background-color: hsl(var(--chat-bubble));
+    border-radius: 16px 16px 16px 4px;
+  }
+
+  .chat-bubble-user {
+    background-color: hsl(var(--chat-bubble-user));
+    border-radius: 16px 16px 4px 16px;
+  }
+
+  .suggested-followup {
+    background-color: hsl(var(--suggested-bg));
+    border: 1px solid hsl(var(--suggested-border));
+    @apply rounded-xl px-4 py-3 flex items-center justify-between gap-3 cursor-pointer transition-all duration-150;
+  }
+
+  .suggested-followup:hover {
+    background-color: hsl(var(--chip-bg-hover));
+    border-color: hsl(220 8% 28%);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
   }
 
   @keyframes pulse-dot {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
+  }
+
+  @keyframes log-appear {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .log-line {
+    animation: log-appear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 }

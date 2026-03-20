@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { TaskExecution } from "@/components/TaskExecution";
+import { ChatPanel } from "@/components/ChatPanel";
+import { ComputerPanel } from "@/components/ComputerPanel";
 
 const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeConversation, setActiveConversation] = useState("1");
+  const [computerVisible, setComputerVisible] = useState(true);
 
   return (
     <div className="h-screen flex overflow-hidden">
@@ -15,8 +17,15 @@ const Dashboard = () => {
         onSelect={setActiveConversation}
       />
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <TaskExecution />
+      <main className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0">
+          <ChatPanel />
+        </div>
+
+        <ComputerPanel
+          visible={computerVisible}
+          onClose={() => setComputerVisible(false)}
+        />
       </main>
     </div>
   );

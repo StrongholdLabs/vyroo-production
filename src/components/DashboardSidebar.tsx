@@ -1,54 +1,36 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Plus,
   Search,
-  MessageSquare,
   ChevronLeft,
   Settings,
-  MoreHorizontal,
+  Bot,
+  BookOpen,
+  FolderPlus,
+  Share2,
+  MessageSquare,
+  LayoutGrid,
+  Users,
 } from "lucide-react";
 
-interface Conversation {
+interface Task {
   id: string;
   title: string;
-  preview: string;
-  time: string;
-  unread?: boolean;
+  icon?: string;
 }
 
-const mockConversations: Conversation[] = [
-  {
-    id: "1",
-    title: "Build a portfolio website",
-    preview: "Creating a responsive portfolio with React...",
-    time: "2m ago",
-    unread: true,
-  },
-  {
-    id: "2",
-    title: "Analyze Q4 sales data",
-    preview: "Processing CSV data and generating charts...",
-    time: "1h ago",
-  },
-  {
-    id: "3",
-    title: "Design brand identity",
-    preview: "Exploring color palettes and typography...",
-    time: "3h ago",
-  },
-  {
-    id: "4",
-    title: "Create pitch deck",
-    preview: "12 slides with key metrics and projections...",
-    time: "Yesterday",
-  },
-  {
-    id: "5",
-    title: "Research competitor pricing",
-    preview: "Comparing 8 competitors across 3 markets...",
-    time: "2 days ago",
-  },
+const mockTasks: Task[] = [
+  { id: "1", title: "Top 5 DTC Skincare Brands and P...", icon: "📊" },
+  { id: "2", title: "Hottest 2026 DTC Products to Re...", icon: "🔥" },
+  { id: "3", title: "Hello", icon: "👋" },
+  { id: "4", title: "Designing a Website for Vyroo.ai I...", icon: "🎨" },
+  { id: "5", title: "Using Meta Ads to Attract More C...", icon: "📱" },
+  { id: "6", title: "Waar komen katten vandaan?", icon: "🐱" },
+  { id: "7", title: "Minimalist Online Store for Specia...", icon: "🛒" },
+  { id: "8", title: "Stock Analysis", icon: "📈" },
+  { id: "9", title: "Scheduling Tool with Event Creati...", icon: "📅" },
+  { id: "10", title: "How to Test a Product Before Selli...", icon: "🧪" },
+  { id: "11", title: "What Can I Do?", icon: "❓" },
 ];
 
 interface DashboardSidebarProps {
@@ -66,14 +48,15 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   return (
     <aside
-      className={`h-full flex flex-col border-r border-border bg-sidebar transition-all duration-300 ease-out ${
-        collapsed ? "w-0 overflow-hidden md:w-16" : "w-72"
+      className={`h-full flex flex-col border-r border-sidebar-border transition-all duration-300 ease-out ${
+        collapsed ? "w-0 overflow-hidden md:w-14" : "w-64"
       }`}
+      style={{ backgroundColor: "hsl(var(--sidebar-background))" }}
     >
-      {/* Top controls */}
-      <div className="flex items-center justify-between p-3 h-14">
+      {/* Top: logo + collapse */}
+      <div className="flex items-center justify-between px-3 h-12 flex-shrink-0">
         {!collapsed && (
-          <Link to="/" className="flex items-center gap-2 font-body font-semibold text-foreground text-sm">
+          <Link to="/" className="flex items-center gap-2 font-body font-semibold text-foreground text-sm tracking-tight">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-foreground">
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
               <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -84,7 +67,7 @@ export function DashboardSidebar({
         )}
         <button
           onClick={onToggle}
-          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-150"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
         >
           <ChevronLeft size={16} className={`transition-transform duration-300 ${collapsed ? "rotate-180" : ""}`} />
         </button>
@@ -92,89 +75,125 @@ export function DashboardSidebar({
 
       {!collapsed && (
         <>
-          {/* New task */}
-          <div className="px-3 pb-2">
-            <Link
-              to="/"
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium bg-popover border border-border rounded-lg hover:bg-secondary transition-colors duration-150 active:scale-[0.98]"
-            >
-              <Plus size={14} />
-              <span>New task</span>
-              <kbd className="ml-auto text-[10px] text-muted-foreground font-mono bg-secondary px-1.5 py-0.5 rounded">⌘K</kbd>
-            </Link>
+          {/* Navigation items */}
+          <div className="px-2 space-y-0.5">
+            <SidebarNavItem icon={<Plus size={16} />} label="New task" to="/" />
+            <SidebarNavItem icon={<Bot size={16} />} label="Agents" badge="New" />
+            <SidebarNavItem icon={<Search size={16} />} label="Search" />
+            <SidebarNavItem icon={<BookOpen size={16} />} label="Library" />
           </div>
 
-          {/* Search */}
-          <div className="px-3 pb-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground bg-secondary/50 rounded-lg">
-              <Search size={14} />
-              <span className="text-xs">Search tasks...</span>
+          {/* Projects section */}
+          <div className="px-3 mt-5 mb-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Projects</span>
+              <button className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
+                <Plus size={12} />
+              </button>
+            </div>
+          </div>
+          <div className="px-2 mb-2">
+            <button className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-sidebar-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors duration-150">
+              <FolderPlus size={14} className="text-muted-foreground" />
+              <span>New project</span>
+            </button>
+          </div>
+
+          {/* All tasks */}
+          <div className="px-3 mt-2 mb-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">All tasks</span>
+              <button className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
+                <Settings size={12} />
+              </button>
             </div>
           </div>
 
-          {/* Conversations */}
-          <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
-            {mockConversations.map((conv) => (
+          {/* Task list */}
+          <div className="flex-1 overflow-y-auto px-2 space-y-px">
+            {mockTasks.map((task) => (
               <button
-                key={conv.id}
-                onClick={() => onSelect(conv.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors duration-150 group ${
-                  activeId === conv.id
-                    ? "bg-accent"
-                    : "hover:bg-accent/50"
+                key={task.id}
+                onClick={() => onSelect(task.id)}
+                className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors duration-150 group text-sm ${
+                  activeId === task.id
+                    ? "bg-accent text-foreground"
+                    : "text-sidebar-foreground hover:bg-accent/50 hover:text-foreground"
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`text-sm truncate ${
-                      conv.unread ? "font-semibold text-foreground" : "text-sidebar-foreground"
-                    }`}
-                  >
-                    {conv.title}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground ml-2 flex-shrink-0">
-                    {conv.time}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{conv.preview}</p>
+                <span className="text-xs flex-shrink-0">{task.icon}</span>
+                <span className="truncate">{task.title}</span>
               </button>
             ))}
           </div>
 
-          {/* Bottom */}
-          <div className="p-3 border-t border-border">
-            <button className="flex items-center gap-2 w-full px-3 py-2 text-sm text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors duration-150">
-              <Settings size={14} />
-              <span>Settings</span>
-            </button>
+          {/* Bottom referral + icons */}
+          <div className="flex-shrink-0 border-t border-sidebar-border">
+            <div className="mx-3 my-2 px-3 py-2.5 rounded-lg flex items-center gap-2 cursor-pointer transition-colors duration-150"
+              style={{ backgroundColor: "hsl(var(--accent))" }}
+            >
+              <Share2 size={14} className="text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-foreground">Share Manus with a friend</p>
+                <p className="text-[10px] text-muted-foreground">Get 500 credits each</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-3 pb-2">
+              <div className="flex items-center gap-1">
+                <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
+                  <Users size={16} />
+                </button>
+                <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
+                  <LayoutGrid size={16} />
+                </button>
+                <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent">
+                  <MessageSquare size={16} />
+                </button>
+              </div>
+              <span className="text-[10px] text-muted-foreground">from <span className="font-medium">Ⓜ Meta</span></span>
+            </div>
           </div>
         </>
       )}
 
+      {/* Collapsed mini icons */}
       {collapsed && (
-        <div className="hidden md:flex flex-col items-center gap-2 pt-2">
-          <Link
-            to="/"
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          >
+        <div className="hidden md:flex flex-col items-center gap-1 pt-2 px-1">
+          <Link to="/" className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Plus size={18} />
           </Link>
-          <button className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+          <button className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            <Bot size={18} />
+          </button>
+          <button className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Search size={18} />
           </button>
-          {mockConversations.slice(0, 4).map((conv) => (
-            <button
-              key={conv.id}
-              onClick={() => onSelect(conv.id)}
-              className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-medium transition-colors ${
-                activeId === conv.id ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              {conv.title[0]}
-            </button>
-          ))}
+          <button className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            <BookOpen size={18} />
+          </button>
         </div>
       )}
     </aside>
   );
+}
+
+function SidebarNavItem({ icon, label, badge, to }: { icon: React.ReactNode; label: string; badge?: string; to?: string }) {
+  const content = (
+    <>
+      <span className="text-muted-foreground">{icon}</span>
+      <span>{label}</span>
+      {badge && (
+        <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-success/20 text-success">
+          {badge}
+        </span>
+      )}
+    </>
+  );
+
+  const className = "flex items-center gap-2 w-full px-2 py-1.5 text-sm text-sidebar-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors duration-150";
+
+  if (to) {
+    return <Link to={to} className={className}>{content}</Link>;
+  }
+  return <button className={className}>{content}</button>;
 }
