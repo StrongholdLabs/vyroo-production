@@ -10,13 +10,19 @@ import {
   Star,
   ArrowRight,
   Globe,
+  Eye,
+  Share2,
+  Download,
+  MoreHorizontal,
+  ChevronRight,
 } from "lucide-react";
-import type { Conversation } from "@/data/conversations";
+import type { Conversation, ChatMessage as ChatMsg } from "@/data/conversations";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ExpandableStep } from "@/components/ExpandableStep";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { InlineComputerCard } from "@/components/InlineComputerCard";
+import { DocumentPreview } from "@/components/DocumentPreview";
 
 interface ChatPanelProps {
   conversation: Conversation;
