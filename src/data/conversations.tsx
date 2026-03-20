@@ -359,6 +359,10 @@ export const conversations: Conversation[] = [
     icon: "📱",
     fileName: "meta_ads_strategy.md",
     editorLabel: "Editor",
+    fileTree: [
+      { name: "meta_ads_strategy.md", type: "file" },
+      { name: "audience_segments.json", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Researching Meta Ads best practices", detail: "Analyzing current ad strategies and platform documentation", status: "complete",
