@@ -251,6 +251,9 @@ export const conversations: Conversation[] = [
     icon: "👋",
     fileName: "chat_session.md",
     editorLabel: "Chat",
+    fileTree: [
+      { name: "chat_session.md", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Processing greeting", detail: "Understanding user intent", status: "complete",
