@@ -33,13 +33,13 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
         visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
       }`}
       style={{
-        backgroundColor: "hsl(var(--surface-elevated))",
-        borderColor: "hsl(var(--border))",
+        backgroundColor: "hsl(220 12% 18%)",
+        borderColor: "hsl(220 10% 28%)",
         transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
       {/* Subtle gradient accent line at top */}
-      <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, hsl(var(--success)), hsl(38 60% 45%), hsl(var(--success)))" }} />
+      <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, hsl(210 40% 50%), hsl(200 50% 60%), hsl(210 40% 50%))" }} />
 
       {/* Dismiss button */}
       <button
@@ -57,11 +57,11 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
           </p>
         </div>
         {/* Illustration */}
-        <div className="flex-shrink-0 w-16 h-16 rounded-lg flex items-center justify-center" style={{ backgroundColor: "hsl(30 6% 18%)" }}>
+        <div className="flex-shrink-0 w-16 h-16 rounded-lg flex items-center justify-center" style={{ backgroundColor: "hsl(210 30% 22%)" }}>
           <div className="relative">
-            <div className="w-8 h-10 rounded-sm border bg-accent/50 transform -rotate-6" style={{ borderColor: "hsl(var(--border))" }} />
-            <div className="w-8 h-10 rounded-sm border bg-accent/50 absolute top-0 left-2 transform rotate-6" style={{ borderColor: "hsl(var(--border))" }} />
-            <div className="w-8 h-10 rounded-sm border bg-accent/60 absolute top-0 left-1 transform rotate-0" style={{ borderColor: "hsl(30 5% 28%)" }} />
+            <div className="w-8 h-10 rounded-sm border bg-accent/50 transform -rotate-6" style={{ borderColor: "hsl(210 20% 35%)" }} />
+            <div className="w-8 h-10 rounded-sm border bg-accent/50 absolute top-0 left-2 transform rotate-6" style={{ borderColor: "hsl(210 20% 35%)" }} />
+            <div className="w-8 h-10 rounded-sm border bg-accent/60 absolute top-0 left-1 transform rotate-0" style={{ borderColor: "hsl(210 20% 40%)" }} />
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
         <button
           onClick={handleUpgrade}
           className="flex-1 py-2 text-sm text-foreground rounded-lg transition-colors active:scale-[0.98] flex items-center justify-center gap-2 font-medium"
-          style={{ backgroundColor: "hsl(38 50% 28%)" }}
+          style={{ backgroundColor: "hsl(210 40% 35%)", }}
         >
           Build with 1.6 Max
           <Sparkles size={14} className="text-foreground" />

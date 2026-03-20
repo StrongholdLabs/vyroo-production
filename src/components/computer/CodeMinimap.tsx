@@ -14,15 +14,15 @@ interface CodeMinimapProps {
 const MINIMAP_COLORS: Record<string, string> = {
   keyword: "hsl(280 60% 70%)",
   string: "hsl(100 50% 60%)",
-  comment: "hsl(30 6% 40%)",
+  comment: "hsl(220 10% 40%)",
   number: "hsl(30 80% 65%)",
   tag: "hsl(355 65% 65%)",
   attribute: "hsl(200 60% 65%)",
   function: "hsl(50 70% 65%)",
   variable: "hsl(200 50% 75%)",
   operator: "hsl(180 40% 60%)",
-  punctuation: "hsl(30 6% 45%)",
-  plain: "hsl(35 12% 70%)",
+  punctuation: "hsl(220 10% 45%)",
+  plain: "hsl(210 17% 70%)",
 };
 
 export function CodeMinimap({ codeLines, visibleLines, scrollTop, scrollHeight, clientHeight, onScroll }: CodeMinimapProps) {
@@ -62,7 +62,7 @@ export function CodeMinimap({ codeLines, visibleLines, scrollTop, scrollHeight, 
 
     // Untyped lines as dim dots
     for (let i = visibleLines; i < codeLines.length; i++) {
-      ctx.fillStyle = "hsl(30 6% 25%)";
+      ctx.fillStyle = "hsl(220 10% 25%)";
       ctx.globalAlpha = 0.3;
       ctx.fillRect(4, i * lineHeight, 20, lineHeight - 1);
     }
@@ -96,9 +96,9 @@ export function CodeMinimap({ codeLines, visibleLines, scrollTop, scrollHeight, 
         style={{
           top: `${viewportTop}px`,
           height: `${viewportHeight}px`,
-          backgroundColor: "hsl(35 12% 90% / 0.08)",
-          borderTop: "1px solid hsl(35 12% 90% / 0.15)",
-          borderBottom: "1px solid hsl(35 12% 90% / 0.15)",
+          backgroundColor: "hsl(210 17% 90% / 0.08)",
+          borderTop: "1px solid hsl(210 17% 90% / 0.15)",
+          borderBottom: "1px solid hsl(210 17% 90% / 0.15)",
         }}
       />
     </div>

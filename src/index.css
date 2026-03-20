@@ -6,66 +6,66 @@
 
 @layer base {
   :root {
-    /* Warm charcoal dark mode — Vyroo identity */
-    --background: 30 6% 12%;
-    --foreground: 35 12% 90%;
+    /* Dark mode Manus-style greys */
+    --background: 220 9% 12%;
+    --foreground: 210 17% 90%;
 
-    --card: 30 6% 14%;
-    --card-foreground: 35 12% 90%;
+    --card: 220 9% 14%;
+    --card-foreground: 210 17% 90%;
 
-    --popover: 30 6% 16%;
-    --popover-foreground: 35 12% 90%;
+    --popover: 220 9% 16%;
+    --popover-foreground: 210 17% 90%;
 
-    --primary: 35 12% 90%;
-    --primary-foreground: 30 6% 12%;
+    --primary: 210 17% 90%;
+    --primary-foreground: 220 9% 12%;
 
-    --secondary: 30 5% 18%;
-    --secondary-foreground: 35 10% 75%;
+    --secondary: 220 8% 18%;
+    --secondary-foreground: 210 14% 75%;
 
-    --muted: 30 5% 20%;
-    --muted-foreground: 30 6% 52%;
+    --muted: 220 8% 20%;
+    --muted-foreground: 215 10% 52%;
 
-    --accent: 30 5% 20%;
-    --accent-foreground: 35 12% 90%;
+    --accent: 220 8% 20%;
+    --accent-foreground: 210 17% 90%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 5% 20%;
-    --input: 30 5% 22%;
-    --ring: 35 12% 90%;
+    --border: 220 8% 20%;
+    --input: 220 8% 22%;
+    --ring: 210 17% 90%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 30 6% 10%;
-    --sidebar-foreground: 30 6% 65%;
-    --sidebar-primary: 35 12% 90%;
-    --sidebar-primary-foreground: 30 6% 12%;
-    --sidebar-accent: 30 5% 16%;
-    --sidebar-accent-foreground: 35 12% 90%;
-    --sidebar-border: 30 5% 17%;
-    --sidebar-ring: 35 12% 90%;
+    --sidebar-background: 220 9% 10%;
+    --sidebar-foreground: 215 10% 65%;
+    --sidebar-primary: 210 17% 90%;
+    --sidebar-primary-foreground: 220 9% 12%;
+    --sidebar-accent: 220 8% 16%;
+    --sidebar-accent-foreground: 210 17% 90%;
+    --sidebar-border: 220 8% 17%;
+    --sidebar-ring: 210 17% 90%;
 
     /* Custom tokens */
-    --surface-elevated: 30 6% 15%;
-    --surface-sunken: 30 6% 9%;
-    --text-tertiary: 30 5% 42%;
-    --chip-bg: 30 5% 18%;
-    --chip-bg-hover: 30 5% 22%;
-    --input-surface: 30 6% 16%;
-    --success: 38 75% 55%;
-    --success-soft: 38 30% 18%;
-    --computer-bg: 30 7% 11%;
-    --computer-header: 30 6% 14%;
-    --computer-border: 30 5% 18%;
-    --code-bg: 30 8% 9%;
-    --step-line: 30 5% 22%;
-    --step-line-done: 38 50% 35%;
-    --chat-bubble: 30 6% 16%;
-    --chat-bubble-user: 30 5% 20%;
-    --suggested-bg: 30 5% 14%;
-    --suggested-border: 30 5% 22%;
-    --rating-star: 38 80% 55%;
+    --surface-elevated: 220 9% 15%;
+    --surface-sunken: 220 9% 9%;
+    --text-tertiary: 215 8% 42%;
+    --chip-bg: 220 8% 18%;
+    --chip-bg-hover: 220 8% 22%;
+    --input-surface: 220 9% 16%;
+    --success: 142 60% 45%;
+    --success-soft: 142 30% 18%;
+    --computer-bg: 220 10% 11%;
+    --computer-header: 220 9% 14%;
+    --computer-border: 220 8% 18%;
+    --code-bg: 220 12% 9%;
+    --step-line: 220 8% 22%;
+    --step-line-done: 142 40% 30%;
+    --chat-bubble: 220 9% 16%;
+    --chat-bubble-user: 220 8% 20%;
+    --suggested-bg: 220 8% 14%;
+    --suggested-border: 220 8% 22%;
+    --rating-star: 45 80% 55%;
   }
 }
 
@@ -129,7 +129,7 @@
   }
 
   .input-main:focus-within {
-    box-shadow: 0 4px 12px 0 hsl(0 0% 0% / 0.3), 0 0 0 1px hsl(30 5% 28%);
+    box-shadow: 0 4px 12px 0 hsl(0 0% 0% / 0.3), 0 0 0 1px hsl(220 8% 28%);
   }
 
   /* Timeline step styles */
@@ -166,7 +166,7 @@
   }
 
   .step-icon-active {
-    background-color: hsl(30 5% 22%);
+    background-color: hsl(220 8% 22%);
     color: hsl(var(--foreground));
   }
 
@@ -210,7 +210,7 @@
 
   .suggested-followup:hover {
     background-color: hsl(var(--chip-bg-hover));
-    border-color: hsl(30 5% 28%);
+    border-color: hsl(220 8% 28%);
   }
 
   /* Scrollbar */

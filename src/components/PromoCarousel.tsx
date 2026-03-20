@@ -13,25 +13,25 @@ const slides: CarouselSlide[] = [
     title: "Customize your AI agent for your business",
     subtitle: "A distinct identity that grows with your business.",
     icons: ["🟢", "💬", "✈️", "💬", "🟣", "💚"],
-    bgGradient: "from-[hsl(30_6%_16%)] to-[hsl(30_6%_12%)]",
+    bgGradient: "from-[hsl(220_9%_16%)] to-[hsl(220_9%_12%)]",
   },
   {
     title: "Automate your workflow with integrations",
     subtitle: "Connect tools you already use, seamlessly.",
     icons: ["📧", "📅", "🐙", "📊", "🔗", "⚡"],
-    bgGradient: "from-[hsl(30_6%_16%)] to-[hsl(30_6%_12%)]",
+    bgGradient: "from-[hsl(220_9%_16%)] to-[hsl(220_9%_12%)]",
   },
   {
     title: "Research at lightning speed",
     subtitle: "Deep analysis across the web in minutes, not hours.",
     icons: ["🔍", "📰", "🌐", "📈", "🧠", "📝"],
-    bgGradient: "from-[hsl(30_6%_16%)] to-[hsl(30_6%_12%)]",
+    bgGradient: "from-[hsl(220_9%_16%)] to-[hsl(220_9%_12%)]",
   },
   {
     title: "Build and deploy with one prompt",
     subtitle: "From idea to live app — no setup required.",
     icons: ["🚀", "💻", "🎨", "⚙️", "🌍", "✨"],
-    bgGradient: "from-[hsl(30_6%_16%)] to-[hsl(30_6%_12%)]",
+    bgGradient: "from-[hsl(220_9%_16%)] to-[hsl(220_9%_12%)]",
   },
 ];
 

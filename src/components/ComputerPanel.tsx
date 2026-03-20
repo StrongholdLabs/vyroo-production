@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  X, Maximize2,
+  X, Monitor, Maximize2, Square, SkipBack, SkipForward,
   ChevronUp, ChevronRight, Check, Loader2, Code, Eye,
   FileText, Folder, FolderOpen, Terminal, Copy, CheckCheck, GitCompare,
-  Cpu, SkipBack, SkipForward,
 } from "lucide-react";
 import type { CodeLine, Step, FileNode } from "@/data/conversations";
 import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
@@ -163,37 +162,31 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const diffLines = generateDiff(codeLines);
 
   return (
-    <div className="computer-panel flex flex-col h-full w-full flex-shrink-0">
-      {/* Branded header */}
-      <div className="flex items-center justify-between px-4 h-11 flex-shrink-0" style={{ backgroundColor: "hsl(var(--computer-header))", borderBottom: "1px solid hsl(var(--computer-border))" }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: "hsl(var(--success-soft))" }}>
-            <Cpu size={13} className="text-success" />
-          </div>
-          <span className="text-sm font-medium text-foreground font-body tracking-tight">Vyroo Computer</span>
-          <div className="flex items-center gap-1 ml-1">
-            <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-success animate-pulse" : "bg-muted-foreground/30"}`} />
-            <span className="text-[10px] text-muted-foreground">{isTyping ? "Active" : "Idle"}</span>
-          </div>
+    <div className="computer-panel flex flex-col h-full w-full lg:w-[480px] xl:w-[540px] flex-shrink-0 max-lg:border-l-0">
+      {/* Header */}
+      <div className="computer-header flex items-center justify-between px-4 h-10 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <Monitor size={14} className="text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground font-body">Vyroo's Computer</span>
         </div>
-        <div className="flex items-center gap-0.5">
-          <button className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors rounded-md"><Maximize2 size={13} /></button>
-          <button onClick={onClose} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors rounded-md"><X size={13} /></button>
+        <div className="flex items-center gap-1">
+          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Square size={14} /></button>
+          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Maximize2 size={14} /></button>
+          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><X size={14} /></button>
         </div>
       </div>
 
-      {/* Vyroo-branded tab bar */}
-      <div className="flex items-center gap-1 px-3 py-1.5 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
+      {/* Tab bar */}
+      <div className="flex items-center gap-0 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}>
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-150 ${
+            className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2 ${
               activeTab === tab.key
-                ? "text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                ? "text-foreground border-foreground"
+                : "text-muted-foreground border-transparent hover:text-foreground"
             }`}
-            style={activeTab === tab.key ? { backgroundColor: "hsl(var(--surface-elevated))", boxShadow: "0 1px 3px hsl(0 0% 0% / 0.2)" } : undefined}
           >
             <tab.icon size={12} />
             {tab.label}
@@ -303,7 +296,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
       ) : activeTab === "terminal" ? (
         <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-sunken))" }}>
+        <div className="flex-1 flex flex-col items-center justify-center overflow-hidden" style={{ backgroundColor: "hsl(220 10% 8%)" }}>
           <div className="w-full max-w-md px-8 space-y-6 text-center">
             <div className="rounded-lg border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--card))" }}>
               <div className="h-6 border-b border-border flex items-center gap-1.5 px-3">
