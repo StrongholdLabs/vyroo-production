@@ -21,7 +21,7 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
 
   const handleUpgrade = () => {
     toast({
-      title: "Switching to Manus 1.6 Max",
+      title: "Switching to Vyroo 1.6 Max",
       description: "Your task will now run with enhanced performance and output quality.",
     });
     onUpgrade?.();
@@ -53,7 +53,7 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-semibold text-foreground mb-1">This task needs more firepower</h4>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Your task is likely too complex for Manus 1.6 Lite. Switch to Manus 1.6 Max for better performance and output.
+            Your task is likely too complex for Vyroo 1.6 Lite. Switch to Vyroo 1.6 Max for better performance and output.
           </p>
         </div>
         {/* Illustration */}

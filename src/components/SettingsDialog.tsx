@@ -27,7 +27,7 @@ const navItems = [
   { id: "settings", label: "Settings", icon: SettingsIcon },
   { id: "usage", label: "Usage", icon: BarChart3 },
   { id: "scheduled", label: "Scheduled tasks", icon: CalendarClock },
-  { id: "mail", label: "Mail Manus", icon: Mail },
+  { id: "mail", label: "Mail Vyroo", icon: Mail },
   { id: "data", label: "Data controls", icon: Shield },
   { id: "browser", label: "Cloud browser", icon: Monitor },
   { id: "personalization", label: "Personalization", icon: Sparkles },

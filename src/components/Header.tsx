@@ -17,7 +17,7 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground font-body">Manus 1.6 Lite</span>
+          <span className="text-sm text-muted-foreground font-body">Vyroo 1.6 Lite</span>
           <ChevronDown size={12} className="text-muted-foreground" />
         </div>
 

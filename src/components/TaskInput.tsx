@@ -156,7 +156,7 @@ export function TaskInput() {
             onClick={() => setShowIntegrations(!showIntegrations)}
           >
             <Link2 size={14} className="text-muted-foreground flex-shrink-0" />
-            <span className="text-sm text-muted-foreground flex-1">Connect your tools to Manus</span>
+            <span className="text-sm text-muted-foreground flex-1">Connect your tools to Vyroo</span>
             <div className="flex items-center gap-0.5">
               {connectedIcons.map((icon, i) => (
                 <span key={i} className="text-xs">{icon}</span>

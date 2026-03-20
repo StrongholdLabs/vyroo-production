@@ -6,7 +6,7 @@ export function ThinkingIndicator() {
       <div className="relative flex-shrink-0">
         {/* Logo with glow animation */}
         <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent thinking-logo-ring">
-          <img src={manusLogo} alt="Manus" className="w-full h-full object-cover" />
+          <img src={manusLogo} alt="Vyroo" className="w-full h-full object-cover" />
         </div>
       </div>
       <div className="flex items-center gap-1.5 pt-2">

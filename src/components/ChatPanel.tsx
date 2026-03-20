@@ -56,7 +56,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-12 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground font-body">Manus 1.6 Lite</span>
+          <span className="text-sm text-muted-foreground font-body">Vyroo 1.6 Lite</span>
           <ChevronDown size={12} className="text-muted-foreground" />
         </div>
         <div className="flex items-center gap-1">
@@ -151,7 +151,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         {/* Continue working status */}
         <div className="flex items-center gap-2">
           <Sparkles size={14} className="text-muted-foreground" />
-          <span className="text-sm text-muted-foreground font-medium">Manus will continue working after your reply</span>
+          <span className="text-sm text-muted-foreground font-medium">Vyroo will continue working after your reply</span>
         </div>
 
         {/* Thinking indicator */}
@@ -220,7 +220,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
             }}
-            placeholder="Send message to Manus"
+            placeholder="Send message to Vyroo"
             rows={1}
             className="w-full resize-none bg-transparent px-5 pt-4 pb-1 text-foreground placeholder:text-muted-foreground/40 text-sm leading-relaxed focus:outline-none font-body"
           />
