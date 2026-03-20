@@ -101,6 +101,12 @@ export const conversations: Conversation[] = [
           { time: "2:25", text: "Writing executive summary", type: "action" },
           { time: "2:55", text: "Report compiled: dtc_skincare_analysis_final.md", type: "result" },
         ],
+        subTasks: [
+          { text: "Update index.css with modern minimalist color theme and typo...", type: "edit" },
+          { text: "Generate three high-quality hero and accent images for the mo...", type: "image" },
+          { text: "Generate three high-quality hero and accent images for the mo...", type: "image" },
+          { text: "Generate three high-quality hero and accent images for the mo...", type: "image" },
+        ],
       },
     ],
     messages: [
