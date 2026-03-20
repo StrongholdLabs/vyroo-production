@@ -162,7 +162,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const diffLines = generateDiff(codeLines);
 
   return (
-    <div className="computer-panel flex flex-col h-full w-full lg:w-[480px] xl:w-[540px] flex-shrink-0 max-lg:border-l-0">
+    <div className="computer-panel flex flex-col h-full w-full flex-shrink-0">
       {/* Header */}
       <div className="computer-header flex items-center justify-between px-4 h-10 flex-shrink-0">
         <div className="flex items-center gap-2">
