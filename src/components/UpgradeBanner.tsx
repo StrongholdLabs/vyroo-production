@@ -39,7 +39,7 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
       }}
     >
       {/* Subtle gradient accent line at top */}
-      <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, hsl(210 40% 50%), hsl(200 50% 60%), hsl(210 40% 50%))" }} />
+      <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, hsl(var(--success)), hsl(38 60% 45%), hsl(var(--success)))" }} />
 
       {/* Dismiss button */}
       <button
