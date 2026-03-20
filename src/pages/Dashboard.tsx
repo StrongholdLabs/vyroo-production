@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ComputerPanel } from "@/components/ComputerPanel";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
