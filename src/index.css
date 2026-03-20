@@ -297,6 +297,10 @@
   .thinking-dot-2 { animation-delay: 0.16s; }
   .thinking-dot-3 { animation-delay: 0.32s; }
 
+  .thinking-logo-ring {
+    animation: thinking-glow 2s ease-in-out infinite;
+  }
+
   .thinking-text {
     animation: thinking-text-fade 2s ease-in-out infinite;
   }
