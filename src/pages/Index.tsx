@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
+import { PromoCarousel } from "@/components/PromoCarousel";
 
 const Index = () => {
   const [visible, setVisible] = useState(false);
@@ -24,7 +25,7 @@ const Index = () => {
         >
           <h1
             className="font-display text-4xl md:text-5xl lg:text-[3.5rem] text-foreground leading-[1.1] tracking-tight text-center"
-            style={{ textWrap: "balance" }}
+            style={{ textWrap: "balance" as any }}
           >
             What can I do for you?
           </h1>
@@ -38,6 +39,15 @@ const Index = () => {
             style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
             <ActionChips />
+          </div>
+
+          <div
+            className={`transition-all duration-700 delay-300 ${
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+            }`}
+            style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+          >
+            <PromoCarousel />
           </div>
         </div>
       </main>
