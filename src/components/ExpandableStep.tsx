@@ -10,6 +10,12 @@ interface ExpandableStepProps {
 
 export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
   const [expanded, setExpanded] = useState(isActive ?? false);
+  const [lightboxIndex, setLightboxIndex] = useState(-1);
+
+  // Collect all image sub-tasks for lightbox
+  const imageItems = (step.subTasks || [])
+    .filter((t) => t.type === "image" && t.imageUrl)
+    .map((t) => ({ url: t.imageUrl!, alt: t.text }));
 
   const isComplete = step.status === "complete";
   const isPending = step.status === "pending";
