@@ -24,9 +24,10 @@ const SYNC_STEPS: SyncStep[] = [
 interface ShopifyConnectModalProps {
   open: boolean;
   onClose: () => void;
+  onConnected?: (storeName: string) => void;
 }
 
-export function ShopifyConnectModal({ open, onClose }: ShopifyConnectModalProps) {
+export function ShopifyConnectModal({ open, onClose, onConnected }: ShopifyConnectModalProps) {
   const [selected, setSelected] = useState<"new" | "existing" | null>(null);
   const [storeUrl, setStoreUrl] = useState("");
   const [phase, setPhase] = useState<"select" | "syncing" | "done">("select");
