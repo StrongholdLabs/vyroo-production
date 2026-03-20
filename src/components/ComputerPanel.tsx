@@ -8,6 +8,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask, TimelineEntry } from "@/data/conversations";
 import vyrooIcon from "@/assets/vyroo-icon.png";
+import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
 import { TerminalTab } from "@/components/computer/TerminalTab";
 import { MarkdownRenderer } from "@/components/computer/MarkdownRenderer";
