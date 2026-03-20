@@ -166,7 +166,7 @@
   }
 
   .step-icon-active {
-    background-color: hsl(220 8% 22%);
+    background-color: hsl(30 5% 22%);
     color: hsl(var(--foreground));
   }
 
