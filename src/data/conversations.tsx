@@ -298,7 +298,7 @@ export const conversations: Conversation[] = [
     editorLabel: "Editor",
     steps: [
       {
-        id: 1, label: "Researching Meta Ads best practices", detail: "Analyzing current ad strategies", status: "complete",
+        id: 1, label: "Researching Meta Ads best practices", detail: "Analyzing current ad strategies and platform documentation", status: "complete",
         icon: <Search size={14} />,
         logs: [
           { time: "0:10", text: "Reviewing Meta Ads documentation", type: "action" },
@@ -306,17 +306,27 @@ export const conversations: Conversation[] = [
         ],
       },
       {
-        id: 2, label: "Building campaign framework", detail: "Creating audience targeting strategy", status: "complete",
+        id: 2, label: "Building campaign framework", detail: "Creating audience targeting strategy and budget allocation", status: "active",
         icon: <Globe size={14} />,
         logs: [
           { time: "1:00", text: "Defining lookalike audiences", type: "action" },
-          { time: "1:20", text: "Campaign structure ready", type: "result" },
+          { time: "1:12", text: "Calculating optimal budget splits...", type: "info" },
         ],
+      },
+      {
+        id: 3, label: "Creating ad copy variations", detail: "Generating A/B test copy and creative briefs", status: "pending",
+        icon: <FileText size={14} />,
+        logs: [],
+      },
+      {
+        id: 4, label: "Deliver final strategy document", detail: "Compiling all recommendations into actionable plan", status: "pending",
+        icon: <Sparkles size={14} />,
+        logs: [],
       },
     ],
     messages: [
       { id: "1", role: "user", content: "How can I use Meta Ads to attract more customers to my online store?" },
-      { id: "2", role: "assistant", content: "I've created a comprehensive Meta Ads strategy tailored for e-commerce, including campaign structure, audience targeting, and budget allocation recommendations." },
+      { id: "2", role: "assistant", content: "I'm building a comprehensive Meta Ads strategy for your e-commerce store. I've finished researching best practices and I'm now working on the campaign framework with audience targeting and budget allocation." },
     ],
     followUps: [
       { icon: <Search size={16} />, text: "What budget should I start with for Meta Ads?" },
@@ -328,6 +338,122 @@ export const conversations: Conversation[] = [
       { num: 4, content: "1. **Awareness** — Video ads targeting broad interests", color: "text-foreground" },
       { num: 5, content: "2. **Consideration** — Carousel ads with product catalog", color: "text-foreground" },
       { num: 6, content: "3. **Conversion** — Dynamic retargeting with discounts", color: "text-foreground" },
+    ],
+  },
+  {
+    id: "6",
+    title: "Waar komen katten vandaan?",
+    icon: "🐱",
+    fileName: "katten_onderzoek.md",
+    editorLabel: "Editor",
+    steps: [
+      {
+        id: 1, label: "Interpreting query language", detail: "Detected Dutch language, preparing bilingual response", status: "complete",
+        icon: <Sparkles size={14} />,
+        logs: [
+          { time: "0:01", text: "Language detected: Dutch (nl)", type: "info" },
+          { time: "0:03", text: "Preparing response in Dutch", type: "action" },
+        ],
+      },
+      {
+        id: 2, label: "Researching feline domestication", detail: "Gathering historical and scientific sources about cat origins", status: "active",
+        icon: <Search size={14} />,
+        logs: [
+          { time: "0:15", text: "Searching archaeological records of cat domestication", type: "action" },
+          { time: "0:28", text: "Found key study: Near Eastern wildcat (Felis silvestris lybica)", type: "result" },
+          { time: "0:35", text: "Cross-referencing with genetic lineage data...", type: "info" },
+        ],
+      },
+      {
+        id: 3, label: "Compiling historical timeline", detail: "Building a timeline from ancient Egypt to modern breeds", status: "pending",
+        icon: <Calendar size={14} />,
+        logs: [],
+      },
+    ],
+    messages: [
+      { id: "1", role: "user", content: "Waar komen katten vandaan?" },
+      { id: "2", role: "assistant", content: "Ik ben aan het onderzoeken waar katten oorspronkelijk vandaan komen. Ik heb al gevonden dat de huiskat afstamt van de Nabij-Oosterse wilde kat (Felis silvestris lybica) en ben nu de historische tijdlijn aan het samenstellen." },
+    ],
+    followUps: [
+      { icon: <Search size={16} />, text: "Welke kattenrassen zijn het oudst?" },
+      { icon: <Globe size={16} />, text: "Hoe zijn katten in Europa terechtgekomen?" },
+    ],
+    codeLines: [
+      { num: 1, content: "# Oorsprong van de Huiskat", color: "text-red-400" },
+      { num: 2, content: "" },
+      { num: 3, content: "## Domesticatie", color: "text-red-400" },
+      { num: 4, content: "De huiskat (Felis catus) stamt af van de wilde kat", color: "text-foreground" },
+      { num: 5, content: "Felis silvestris lybica uit het Nabije Oosten.", color: "text-foreground" },
+      { num: 6, content: "" },
+      { num: 7, content: "Eerste bewijs van domesticatie: ~9.500 jaar geleden", color: "text-foreground" },
+      { num: 8, content: "Locatie: Cyprus (archeologische vondst)", color: "text-foreground" },
+    ],
+  },
+  {
+    id: "7",
+    title: "Minimalist Online Store for Specia...",
+    icon: "🛒",
+    fileName: "store_design/App.tsx",
+    editorLabel: "Code Editor",
+    steps: [
+      {
+        id: 1, label: "Gathering store requirements", detail: "Understanding product catalog and brand identity", status: "complete",
+        icon: <ShoppingCart size={14} />,
+        logs: [
+          { time: "0:05", text: "Analyzing specialty coffee market aesthetic", type: "action" },
+          { time: "0:15", text: "Defined minimalist design system", type: "result" },
+        ],
+      },
+      {
+        id: 2, label: "Building product catalog", detail: "Creating product cards and category pages", status: "complete",
+        icon: <Code size={14} />,
+        logs: [
+          { time: "0:40", text: "Generating product grid component", type: "action" },
+          { time: "1:00", text: "Added cart functionality", type: "result" },
+        ],
+      },
+      {
+        id: 3, label: "Implementing checkout flow", detail: "Building cart review and payment integration", status: "active",
+        icon: <Sparkles size={14} />,
+        logs: [
+          { time: "1:20", text: "Building cart drawer with quantity controls", type: "action" },
+          { time: "1:35", text: "Working on checkout form validation...", type: "info" },
+        ],
+      },
+      {
+        id: 4, label: "Adding responsive design", detail: "Optimizing layouts for mobile and tablet", status: "pending",
+        icon: <Palette size={14} />,
+        logs: [],
+      },
+      {
+        id: 5, label: "Final review and polish", detail: "Testing all flows and adding micro-interactions", status: "pending",
+        icon: <FlaskConical size={14} />,
+        logs: [],
+      },
+    ],
+    messages: [
+      { id: "1", role: "user", content: "Build a minimalist online store for specialty coffee beans with a clean, modern design." },
+      { id: "2", role: "assistant", content: "I'm building your specialty coffee store. The product catalog is ready and I'm currently implementing the checkout flow with cart management. After that, I'll add responsive design and polish the micro-interactions." },
+    ],
+    followUps: [
+      { icon: <Code size={16} />, text: "Add a subscription option for recurring coffee deliveries" },
+      { icon: <Palette size={16} />, text: "Change the color scheme to earthy tones" },
+    ],
+    codeLines: [
+      { num: 1, content: "import React from 'react';", color: "text-foreground" },
+      { num: 2, content: "import { CartProvider } from './context/CartContext';", color: "text-foreground" },
+      { num: 3, content: "" },
+      { num: 4, content: "function App() {", color: "text-foreground" },
+      { num: 5, content: "  return (", color: "text-foreground" },
+      { num: 6, content: "    <CartProvider>", color: "text-red-400" },
+      { num: 7, content: "      <div className=\"min-h-screen bg-stone-50\">", color: "text-foreground" },
+      { num: 8, content: "        <Header />", color: "text-red-400" },
+      { num: 9, content: "        <ProductGrid />", color: "text-red-400" },
+      { num: 10, content: "        <CartDrawer />", color: "text-red-400" },
+      { num: 11, content: "      </div>", color: "text-foreground" },
+      { num: 12, content: "    </CartProvider>", color: "text-red-400" },
+      { num: 13, content: "  );", color: "text-foreground" },
+      { num: 14, content: "}", color: "text-foreground" },
     ],
   },
 ];

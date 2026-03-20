@@ -275,8 +275,8 @@
   }
 
   @keyframes thinking-glow {
-    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--success) / 0); }
-    50% { box-shadow: 0 0 8px 3px hsl(var(--success) / 0.25); }
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--foreground) / 0); }
+    50% { box-shadow: 0 0 8px 3px hsl(var(--foreground) / 0.15); }
   }
 
   @keyframes thinking-text-fade {
@@ -289,7 +289,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background-color: hsl(var(--success));
+    background-color: hsl(var(--foreground));
     animation: thinking-bounce 1.4s ease-in-out infinite;
   }
 
@@ -316,7 +316,7 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background-color: hsl(var(--success));
+    background-color: hsl(var(--foreground));
   }
 
   .thinking-text {

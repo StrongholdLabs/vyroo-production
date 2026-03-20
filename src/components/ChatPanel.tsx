@@ -148,8 +148,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
 
         {/* Continue working status */}
         <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-amber-400" />
-          <span className="text-sm text-amber-400 font-medium">Manus will continue working after your reply</span>
+          <Sparkles size={14} className="text-muted-foreground" />
+          <span className="text-sm text-muted-foreground font-medium">Manus will continue working after your reply</span>
         </div>
 
         {/* Thinking indicator */}
