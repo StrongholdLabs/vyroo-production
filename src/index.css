@@ -297,28 +297,6 @@
   .thinking-dot-2 { animation-delay: 0.16s; }
   .thinking-dot-3 { animation-delay: 0.32s; }
 
-  .thinking-logo-ring {
-    animation: thinking-glow 2s ease-in-out infinite;
-  }
-
-  .thinking-orbit {
-    position: absolute;
-    inset: -4px;
-    animation: thinking-orbit 2s linear infinite;
-    pointer-events: none;
-  }
-
-  .thinking-orbit-dot {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background-color: hsl(var(--foreground));
-  }
-
   .thinking-text {
     animation: thinking-text-fade 2s ease-in-out infinite;
   }
