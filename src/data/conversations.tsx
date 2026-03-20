@@ -374,6 +374,7 @@ export const conversations: Conversation[] = [
     id: "5",
     title: "Using Meta Ads to Attract More C...",
     icon: "📱",
+    type: "intelligence",
     fileName: "meta_ads_strategy.md",
     editorLabel: "Editor",
     fileTree: [
