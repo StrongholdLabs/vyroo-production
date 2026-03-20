@@ -283,6 +283,25 @@ export const conversations: Conversation[] = [
     icon: "🎨",
     fileName: "vyroo_website/index.html",
     editorLabel: "Code Editor",
+    isComplete: true,
+    fileTree: [
+      { name: "src", type: "folder", expanded: true, children: [
+        { name: "components", type: "folder", children: [
+          { name: "Header.tsx", type: "file" },
+          { name: "Hero.tsx", type: "file" },
+          { name: "Features.tsx", type: "file" },
+          { name: "Pricing.tsx", type: "file" },
+        ]},
+        { name: "App.tsx", type: "file" },
+        { name: "index.css", type: "file" },
+      ]},
+      { name: "public", type: "folder", children: [
+        { name: "favicon.svg", type: "file" },
+      ]},
+      { name: "index.html", type: "file" },
+      { name: "package.json", type: "file" },
+      { name: "vite.config.ts", type: "file" },
+    ],
     steps: [
       {
         id: 1, label: "Analyzing brand requirements", detail: "Understanding Vyroo.ai brand identity", status: "complete",
