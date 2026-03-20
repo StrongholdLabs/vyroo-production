@@ -42,6 +42,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [productUpdates, setProductUpdates] = useState(true);
   const [emailOnTask, setEmailOnTask] = useState(true);
   const [language, setLanguage] = useState("en");
+  const { theme, setTheme } = useTheme();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
