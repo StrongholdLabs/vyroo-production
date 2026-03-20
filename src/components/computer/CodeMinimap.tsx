@@ -62,7 +62,7 @@ export function CodeMinimap({ codeLines, visibleLines, scrollTop, scrollHeight, 
 
     // Untyped lines as dim dots
     for (let i = visibleLines; i < codeLines.length; i++) {
-      ctx.fillStyle = "hsl(220 10% 25%)";
+      ctx.fillStyle = "hsl(30 6% 25%)";
       ctx.globalAlpha = 0.3;
       ctx.fillRect(4, i * lineHeight, 20, lineHeight - 1);
     }
