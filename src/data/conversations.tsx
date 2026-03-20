@@ -7,6 +7,11 @@ export interface LogEntry {
   type: "info" | "action" | "result";
 }
 
+export interface SubTask {
+  text: string;
+  type?: "edit" | "image" | "terminal";
+}
+
 export interface Step {
   id: number;
   label: string;
@@ -14,6 +19,7 @@ export interface Step {
   status: "complete" | "active" | "pending";
   icon: React.ReactNode;
   logs: LogEntry[];
+  subTasks?: SubTask[];
 }
 
 export interface CodeLine {
