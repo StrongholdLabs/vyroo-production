@@ -28,6 +28,13 @@ export interface CodeLine {
   color?: string;
 }
 
+export interface FileNode {
+  name: string;
+  type: "file" | "folder";
+  children?: FileNode[];
+  expanded?: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
