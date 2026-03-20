@@ -135,13 +135,26 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
 
   const handleCodeScroll = useCallback(() => {
     if (codeRef.current) {
-      setScrollState({
-        scrollTop: codeRef.current.scrollTop,
-        scrollHeight: codeRef.current.scrollHeight,
-        clientHeight: codeRef.current.clientHeight,
-      });
+      const { scrollTop, scrollHeight, clientHeight } = codeRef.current;
+      setScrollState({ scrollTop, scrollHeight, clientHeight });
+      // Un-live if user scrolls up
+      if (scrollHeight - scrollTop - clientHeight > 50) {
+        setIsLive(false);
+      }
     }
   }, []);
+
+  const handleJumpToLive = useCallback(() => {
+    setIsLive(true);
+    if (codeRef.current) {
+      codeRef.current.scrollTop = codeRef.current.scrollHeight;
+    }
+  }, []);
+
+  const handleTabChange = useCallback((tab: "code" | "preview" | "terminal") => {
+    setPrevTab(activeTab);
+    setActiveTab(tab);
+  }, [activeTab]);
 
   const handleMinimapScroll = useCallback((ratio: number) => {
     if (codeRef.current) codeRef.current.scrollTop = ratio * codeRef.current.scrollHeight;
