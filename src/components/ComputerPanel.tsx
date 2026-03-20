@@ -3,8 +3,9 @@ import {
   X, Monitor, Maximize2, Square, SkipBack, SkipForward,
   ChevronUp, ChevronRight, Check, Loader2, Code, Eye,
   FileText, Folder, FolderOpen, Terminal, Copy, CheckCheck, GitCompare,
-  Search as SearchIcon, Globe,
+  Search as SearchIcon, Globe, Radio,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask } from "@/data/conversations";
 import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
@@ -78,7 +79,9 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const [stepsExpanded, setStepsExpanded] = useState(false);
   const [visibleChars, setVisibleChars] = useState(0);
   const [activeTab, setActiveTab] = useState<"code" | "preview" | "terminal">("code");
+  const [prevTab, setPrevTab] = useState<"code" | "preview" | "terminal">("code");
   const [showDiff, setShowDiff] = useState(false);
+  const [isLive, setIsLive] = useState(true);
   const [copied, setCopied] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
   const prevCodeRef = useRef(codeLines);
@@ -120,7 +123,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const isTyping = visibleChars < totalChars;
 
   useEffect(() => {
-    if (codeRef.current) {
+    if (codeRef.current && isLive) {
       codeRef.current.scrollTop = codeRef.current.scrollHeight;
       setScrollState({
         scrollTop: codeRef.current.scrollTop,
@@ -128,17 +131,30 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         clientHeight: codeRef.current.clientHeight,
       });
     }
-  }, [visibleChars]);
+  }, [visibleChars, isLive]);
 
   const handleCodeScroll = useCallback(() => {
     if (codeRef.current) {
-      setScrollState({
-        scrollTop: codeRef.current.scrollTop,
-        scrollHeight: codeRef.current.scrollHeight,
-        clientHeight: codeRef.current.clientHeight,
-      });
+      const { scrollTop, scrollHeight, clientHeight } = codeRef.current;
+      setScrollState({ scrollTop, scrollHeight, clientHeight });
+      // Un-live if user scrolls up
+      if (scrollHeight - scrollTop - clientHeight > 50) {
+        setIsLive(false);
+      }
     }
   }, []);
+
+  const handleJumpToLive = useCallback(() => {
+    setIsLive(true);
+    if (codeRef.current) {
+      codeRef.current.scrollTop = codeRef.current.scrollHeight;
+    }
+  }, []);
+
+  const handleTabChange = useCallback((tab: "code" | "preview" | "terminal") => {
+    setPrevTab(activeTab);
+    setActiveTab(tab);
+  }, [activeTab]);
 
   const handleMinimapScroll = useCallback((ratio: number) => {
     if (codeRef.current) codeRef.current.scrollTop = ratio * codeRef.current.scrollHeight;
@@ -203,7 +219,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         {tabs.map(tab => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => handleTabChange(tab.key)}
             className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2 ${
               activeTab === tab.key
                 ? "text-foreground border-foreground"
@@ -250,6 +266,15 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         </div>
       </div>
 
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="flex-1 flex flex-col overflow-hidden"
+        >
       {activeTab === "code" ? (
         isCode ? (
           /* Code editor view */
@@ -358,6 +383,8 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
         )
       ) : null}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Playback controls */}
       <div className="flex items-center justify-between px-4 py-2 border-t flex-shrink-0"
@@ -371,10 +398,20 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: "hsl(var(--step-line))" }}>
             <div className="h-full rounded-full bg-success transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex items-center gap-1">
-            <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-foreground animate-pulse" : "bg-success"}`} />
-            <span className="text-[10px] text-muted-foreground">{isTyping ? "writing" : "done"}</span>
-          </div>
+          {isTyping && !isLive ? (
+            <button
+              onClick={handleJumpToLive}
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors active:scale-95"
+            >
+              <Radio size={10} className="animate-pulse" />
+              <span>LIVE</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-destructive animate-pulse" : "bg-success"}`} />
+              <span className="text-[10px] text-muted-foreground">{isTyping ? "live" : "done"}</span>
+            </div>
+          )}
         </div>
       </div>
 
