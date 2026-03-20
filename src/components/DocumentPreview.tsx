@@ -387,10 +387,42 @@ export function DocumentPreview({ open, onClose, title, summary, tableData }: Do
         ))}
       </div>
 
-      {/* Document content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-8 py-10">
-          {pages[currentPage].content}
+      {/* Body with TOC sidebar + content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Table of Contents sidebar */}
+        {tocOpen && (
+          <div className="w-52 flex-shrink-0 border-r border-border overflow-y-auto py-4 px-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+            <div className="flex items-center gap-2 px-2 mb-3">
+              <List size={14} className="text-muted-foreground" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contents</span>
+            </div>
+            <nav className="space-y-0.5">
+              {pages.map((page, i) => (
+                <button
+                  key={page.id}
+                  onClick={() => setCurrentPage(i)}
+                  className={`w-full text-left px-3 py-2 rounded-md text-xs transition-colors ${
+                    currentPage === i
+                      ? "bg-accent text-foreground font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                  }`}
+                >
+                  <span className="text-[10px] text-muted-foreground mr-2">{i + 1}</span>
+                  {page.label}
+                </button>
+              ))}
+            </nav>
+            <div className="mt-6 px-2">
+              <p className="text-[10px] text-muted-foreground">← → to navigate pages</p>
+            </div>
+          </div>
+        )}
+
+        {/* Document content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-3xl mx-auto px-8 py-10">
+            {pages[currentPage].content}
+          </div>
         </div>
       </div>
 
