@@ -286,20 +286,12 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
             </div>
           </div>
         ) : (
-          /* Markdown document view */
-          <div className="flex-1 flex overflow-hidden">
-            {/* File tree */}
-            <div className="w-40 flex-shrink-0 border-r overflow-y-auto py-2" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
-              {(fileTree || defaultFileTree).map((node, i) => (
-                <FileTreeItem key={i} node={node} activeFile={shortFileName} />
-              ))}
-            </div>
-            <MarkdownRenderer
-              codeLines={codeLines}
-              visibleChars={visibleChars}
-              totalChars={totalChars}
-            />
-          </div>
+          /* Markdown document view — no file tree for cleaner reading */
+          <MarkdownRenderer
+            codeLines={codeLines}
+            visibleChars={visibleChars}
+            totalChars={totalChars}
+          />
         )
       ) : activeTab === "terminal" ? (
         <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
