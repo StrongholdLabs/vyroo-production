@@ -77,6 +77,7 @@ export const conversations: Conversation[] = [
     id: "1",
     title: "Top 5 DTC Skincare Brands and P...",
     icon: "📊",
+    type: "intelligence",
     fileName: "dtc_skincare_analysis_final.md",
     editorLabel: "Editor",
     isComplete: true,
