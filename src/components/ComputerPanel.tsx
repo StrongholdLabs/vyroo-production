@@ -158,12 +158,28 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const totalSteps = steps.length;
   const progress = totalChars > 0 ? Math.round((visibleChars / totalChars) * 100) : 100;
   const shortFileName = fileName.split("/").pop() || fileName;
+  const isResearch = !!computerView;
+  const viewType = computerView?.type || "editor";
 
-  const tabs = [
-    { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
-    { key: "preview" as const, icon: Eye, label: "Preview" },
-    { key: "terminal" as const, icon: Terminal, label: "Terminal" },
-  ];
+  // Determine status bar label based on view
+  const statusLabel = viewType === "browser" ? "Browser" : viewType === "search" ? "Search" : editorLabel;
+  const statusAction = viewType === "browser"
+    ? `Browsing ${computerView?.browserUrl || ""}`
+    : viewType === "search"
+    ? `Searching ${computerView?.searchQuery || ""}...`
+    : `${isTyping ? "Creating" : "Created"} file ${shortFileName}`;
+
+  const tabs = isResearch
+    ? [
+        { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
+        { key: "preview" as const, icon: Globe, label: "Browser" },
+        { key: "terminal" as const, icon: SearchIcon, label: "Search" },
+      ]
+    : [
+        { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
+        { key: "preview" as const, icon: Eye, label: "Preview" },
+        { key: "terminal" as const, icon: Terminal, label: "Terminal" },
+      ];
 
   const diffLines = generateDiff(codeLines);
 
