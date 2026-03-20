@@ -14,6 +14,9 @@ import {
 import type { Conversation } from "@/data/conversations";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
+import { ExpandableStep } from "@/components/ExpandableStep";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { InlineComputerCard } from "@/components/InlineComputerCard";
 
 interface ChatPanelProps {
   conversation: Conversation;
@@ -133,6 +136,22 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         ))}
 
+        {/* Expandable steps in chat */}
+        <div className="space-y-3">
+          {steps.map((step, i) => (
+            <ExpandableStep key={step.id} step={step} isActive={i === 0} />
+          ))}
+        </div>
+
+        {/* Upgrade banner */}
+        <UpgradeBanner />
+
+        {/* Continue working status */}
+        <div className="flex items-center gap-2">
+          <Sparkles size={14} className="text-amber-400" />
+          <span className="text-sm text-amber-400 font-medium">Manus will continue working after your reply</span>
+        </div>
+
         {/* Thinking indicator */}
         {isThinking && <ThinkingIndicator />}
 
@@ -152,18 +171,12 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
-        {/* Computer thumbnail when panel is closed */}
+        {/* Inline computer card when panel is closed */}
         {!computerVisible && onOpenComputer && (
-          <div className="flex justify-start">
-            <ComputerThumbnail
-              codeLines={conversation.codeLines}
-              fileName={conversation.fileName}
-              onClick={onOpenComputer}
-            />
-          </div>
+          <InlineComputerCard steps={steps} onOpenComputer={onOpenComputer} />
         )}
 
-        {/* Steps progress */}
+        {/* Steps progress bar */}
         <div className="sticky bottom-0 pt-4">
           <div className="rounded-xl border border-border px-4 py-3 flex items-center gap-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
             <Check size={18} className="text-success flex-shrink-0" />
