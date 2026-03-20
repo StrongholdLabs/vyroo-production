@@ -15,7 +15,7 @@ export function InlineComputerCard({ steps, onOpenComputer }: InlineComputerCard
 
   return (
     <div
-      className="rounded-xl border border-border overflow-hidden max-w-md"
+      className="rounded-xl border border-border overflow-hidden max-w-lg mx-auto"
       style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
     >
       {/* Compact header with inline preview thumbnail */}
