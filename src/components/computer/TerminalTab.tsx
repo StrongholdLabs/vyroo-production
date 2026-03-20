@@ -92,9 +92,9 @@ export function TerminalTab({ steps, isActive }: TerminalTabProps) {
   }, [visibleCount]);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: "hsl(220 12% 7%)" }}>
+    <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-sunken))" }}>
       {/* Terminal header bar */}
-      <div className="flex items-center gap-2 px-4 py-1.5 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(220 10% 10%)" }}>
+      <div className="flex items-center gap-2 px-4 py-1.5 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-bg))" }}>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "hsl(0 60% 50%)" }} />
           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "hsl(45 70% 50%)" }} />

@@ -138,15 +138,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       >
                         <div
                           className={`w-20 h-14 rounded-lg border-2 transition-colors duration-150 flex items-center justify-center ${
-                            mode.active ? "border-blue-500" : "border-border hover:border-muted-foreground/40"
+                            mode.active ? "border-[hsl(var(--success))]" : "border-border hover:border-muted-foreground/40"
                           }`}
-                          style={{ backgroundColor: mode.label === "Light" ? "hsl(220 9% 80%)" : "hsl(220 9% 14%)" }}
+                          style={{ backgroundColor: mode.label === "Light" ? "hsl(30 6% 80%)" : "hsl(var(--card))" }}
                         >
                           {/* Mini window mockup */}
-                          <div className="w-12 h-8 rounded-sm border border-current/10 overflow-hidden" style={{ backgroundColor: mode.label === "Light" ? "hsl(0 0% 95%)" : "hsl(220 9% 10%)" }}>
-                            <div className="h-1.5 border-b" style={{ borderColor: mode.label === "Light" ? "hsl(220 8% 85%)" : "hsl(220 8% 18%)", backgroundColor: mode.label === "Light" ? "hsl(0 0% 90%)" : "hsl(220 9% 14%)" }} />
+                          <div className="w-12 h-8 rounded-sm border border-current/10 overflow-hidden" style={{ backgroundColor: mode.label === "Light" ? "hsl(0 0% 95%)" : "hsl(var(--surface-sunken))" }}>
+                            <div className="h-1.5 border-b" style={{ borderColor: mode.label === "Light" ? "hsl(30 5% 85%)" : "hsl(var(--border))", backgroundColor: mode.label === "Light" ? "hsl(0 0% 90%)" : "hsl(var(--card))" }} />
                             <div className="flex h-full">
-                              <div className="w-3 border-r" style={{ borderColor: mode.label === "Light" ? "hsl(220 8% 85%)" : "hsl(220 8% 18%)" }} />
+                              <div className="w-3 border-r" style={{ borderColor: mode.label === "Light" ? "hsl(30 5% 85%)" : "hsl(var(--border))" }} />
                               <div className="flex-1" />
                             </div>
                           </div>

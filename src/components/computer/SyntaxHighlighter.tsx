@@ -170,7 +170,7 @@ function tokenizeAttributes(str: string): Token[] {
 const TOKEN_COLORS: Record<Token["type"], string> = {
   keyword: "text-[hsl(280_60%_70%)]",    // purple
   string: "text-[hsl(100_50%_60%)]",      // green
-  comment: "text-[hsl(220_10%_40%)]",     // dim grey
+  comment: "text-[hsl(30_6%_40%)]",       // warm dim grey
   number: "text-[hsl(30_80%_65%)]",       // orange
   tag: "text-[hsl(355_65%_65%)]",         // red
   attribute: "text-[hsl(200_60%_65%)]",   // light blue
