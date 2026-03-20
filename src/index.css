@@ -210,7 +210,7 @@
 
   .suggested-followup:hover {
     background-color: hsl(var(--chip-bg-hover));
-    border-color: hsl(220 8% 28%);
+    border-color: hsl(30 5% 28%);
   }
 
   /* Scrollbar */
