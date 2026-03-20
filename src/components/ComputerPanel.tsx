@@ -266,6 +266,15 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         </div>
       </div>
 
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="flex-1 flex flex-col overflow-hidden"
+        >
       {activeTab === "code" ? (
         isCode ? (
           /* Code editor view */
@@ -374,6 +383,8 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           <TerminalTab steps={steps} isActive={activeTab === "terminal"} />
         )
       ) : null}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Playback controls */}
       <div className="flex items-center justify-between px-4 py-2 border-t flex-shrink-0"
