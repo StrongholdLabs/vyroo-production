@@ -57,11 +57,11 @@ export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
           </p>
         </div>
         {/* Illustration */}
-        <div className="flex-shrink-0 w-16 h-16 rounded-lg flex items-center justify-center" style={{ backgroundColor: "hsl(210 30% 22%)" }}>
+        <div className="flex-shrink-0 w-16 h-16 rounded-lg flex items-center justify-center" style={{ backgroundColor: "hsl(30 6% 18%)" }}>
           <div className="relative">
-            <div className="w-8 h-10 rounded-sm border bg-accent/50 transform -rotate-6" style={{ borderColor: "hsl(210 20% 35%)" }} />
-            <div className="w-8 h-10 rounded-sm border bg-accent/50 absolute top-0 left-2 transform rotate-6" style={{ borderColor: "hsl(210 20% 35%)" }} />
-            <div className="w-8 h-10 rounded-sm border bg-accent/60 absolute top-0 left-1 transform rotate-0" style={{ borderColor: "hsl(210 20% 40%)" }} />
+            <div className="w-8 h-10 rounded-sm border bg-accent/50 transform -rotate-6" style={{ borderColor: "hsl(var(--border))" }} />
+            <div className="w-8 h-10 rounded-sm border bg-accent/50 absolute top-0 left-2 transform rotate-6" style={{ borderColor: "hsl(var(--border))" }} />
+            <div className="w-8 h-10 rounded-sm border bg-accent/60 absolute top-0 left-1 transform rotate-0" style={{ borderColor: "hsl(30 5% 28%)" }} />
           </div>
         </div>
       </div>
