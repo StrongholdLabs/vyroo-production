@@ -183,6 +183,7 @@ export const conversations: Conversation[] = [
     id: "2",
     title: "Hottest 2026 DTC Products to Re...",
     icon: "🔥",
+    type: "intelligence",
     fileName: "hot_dtc_products_2026.md",
     editorLabel: "Editor",
     isComplete: true,
