@@ -2,6 +2,7 @@ import { Search, Globe, FileText, Sparkles, Code, Palette, ShoppingCart, Trendin
 import React from "react";
 import type { BrowserTab, BrowserPageContent } from "@/components/computer/BrowserView";
 import type { SearchResult } from "@/components/computer/SearchView";
+import type { ResearchTask } from "@/components/computer/TaskProgressPanel";
 export type { ResearchTask } from "@/components/computer/TaskProgressPanel";
 
 export interface LogEntry {
