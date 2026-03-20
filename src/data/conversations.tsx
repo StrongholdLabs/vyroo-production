@@ -50,10 +50,17 @@ export interface SuggestedFollowUp {
   text: string;
 }
 
+export interface ProjectInfo {
+  name: string;
+  description: string;
+  status: "initialized" | "building" | "complete";
+}
+
 export interface Conversation {
   id: string;
   title: string;
   icon: string;
+  type: "intelligence" | "website";
   steps: Step[];
   messages: ChatMessage[];
   followUps: SuggestedFollowUp[];
@@ -62,6 +69,7 @@ export interface Conversation {
   editorLabel: string;
   fileTree?: FileNode[];
   isComplete?: boolean;
+  project?: ProjectInfo;
 }
 
 export const conversations: Conversation[] = [
