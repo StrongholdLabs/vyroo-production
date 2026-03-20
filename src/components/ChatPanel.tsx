@@ -137,6 +137,17 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
+        {/* Computer thumbnail when panel is closed */}
+        {!computerVisible && onOpenComputer && (
+          <div className="flex justify-start">
+            <ComputerThumbnail
+              codeLines={conversation.codeLines}
+              fileName={conversation.fileName}
+              onClick={onOpenComputer}
+            />
+          </div>
+        )}
+
         {/* Steps progress */}
         <div className="sticky bottom-0 pt-4">
           <div className="rounded-xl border border-border px-4 py-3 flex items-center gap-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
