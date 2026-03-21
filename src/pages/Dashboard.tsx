@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -23,8 +23,20 @@ const Dashboard = () => {
   const [mobileComputerOpen, setMobileComputerOpen] = useState(false);
   const isMobile = useIsMobile();
 
+  // Fetch all conversations to auto-select first when none specified
+  const { data: conversations } = useConversations();
+
   const { data: conversation, isLoading, isError } = useConversation(activeConversation);
   const sendMessage = useSendMessage();
+
+  // Auto-select the most recent conversation if none is active
+  useEffect(() => {
+    if (!activeConversation && conversations && conversations.length > 0) {
+      const firstId = (conversations as any[])[0].id;
+      setActiveConversation(firstId);
+      navigate(`/dashboard/${firstId}`, { replace: true });
+    }
+  }, [activeConversation, conversations, navigate]);
 
   // Real-time subscriptions for multi-tab sync
   useRealtimeMessages(activeConversation);
