@@ -65,11 +65,11 @@ const DEFAULT_USAGE: MonthlyUsage = {
 
 const FREE_LIMITS: PlanLimits = {
   plan: "free",
-  monthly_messages: 50,
+  monthly_messages: 750, // ~25/day × 30 days
   monthly_voice_minutes: 5,
   max_connectors: 2,
-  max_plugins: 1,
-  models_available: ["gpt-4o-mini", "gemini-1.5-flash"],
+  max_plugins: 3,
+  models_available: ["claude-haiku-3", "gpt-4o-mini", "gemini-2.0-flash"],
 };
 
 // ─── Fetch current user's subscription ───

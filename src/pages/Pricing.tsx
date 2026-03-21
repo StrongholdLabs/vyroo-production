@@ -33,11 +33,11 @@ const plans: PlanTier[] = [
     icon: <Sparkles size={20} />,
     cta: "Get Started",
     features: [
-      "50 AI messages per month",
-      "5 voice input minutes",
+      "25 messages per day",
+      "Budget models (Haiku, GPT-4o Mini, Gemini Flash)",
+      "3 community plugins",
       "2 connectors",
-      "1 plugin",
-      "GPT-4o Mini & Gemini Flash",
+      "32K context window",
       "Community support",
     ],
   },
@@ -45,39 +45,41 @@ const plans: PlanTier[] = [
     id: "pro",
     name: "Pro",
     description: "For power users who need more",
-    monthlyPrice: 29,
-    annualPrice: 23,
+    monthlyPrice: 20,
+    annualPrice: 17,
     icon: <Zap size={20} />,
     popular: true,
     cta: "Upgrade to Pro",
     features: [
-      "2,000 AI messages per month",
-      "60 voice input minutes",
+      "200 messages per day",
+      "All mid-tier models (Sonnet 4, GPT-4o, Gemini Pro)",
+      "20 premium model queries/day",
+      "Unlimited free plugins + 5 paid",
       "10 connectors",
-      "5 plugins",
-      "GPT-4o, Claude 3.5, Gemini Pro, Llama 70B",
+      "128K context window",
+      "1 vertical (e-commerce, healthcare, or finance)",
+      "Smart model routing",
       "Priority support",
-      "Advanced analytics",
-      "Custom skills",
     ],
   },
   {
     id: "team",
     name: "Team",
     description: "Collaborate with your entire team",
-    monthlyPrice: 79,
-    annualPrice: 63,
+    monthlyPrice: 35,
+    annualPrice: 30,
     icon: <Users size={20} />,
     cta: "Upgrade to Team",
     features: [
-      "10,000 AI messages per month",
-      "300 voice input minutes",
+      "500 messages per day per user",
+      "All models including Claude Opus",
+      "50 premium queries/day",
+      "Unlimited plugins",
       "50 connectors",
-      "20 plugins",
-      "All models including Claude Opus & Llama 405B",
-      "Team workspace",
+      "200K context window",
+      "All verticals included",
+      "Team workspace & analytics",
       "Admin dashboard",
-      "Priority support",
       "SSO & SAML",
     ],
   },
@@ -90,15 +92,14 @@ const plans: PlanTier[] = [
     icon: <Building2 size={20} />,
     cta: "Contact Sales",
     features: [
-      "Unlimited AI messages",
-      "Unlimited voice minutes",
+      "Custom message limits with SLA",
+      "Dedicated model routing",
       "Unlimited connectors & plugins",
-      "All models available",
+      "Private plugin marketplace",
+      "All verticals with compliance (HIPAA, SOC 2)",
       "Dedicated account manager",
       "Custom integrations",
-      "SLA guarantee",
       "On-premise deployment option",
-      "SOC 2 & HIPAA compliance",
       "Custom training & onboarding",
     ],
   },
@@ -240,10 +241,17 @@ export default function Pricing() {
                     ) : (
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-bold text-foreground">${price}</span>
-                        <span className="text-sm text-muted-foreground">/mo</span>
+                        <span className="text-sm text-muted-foreground">
+                          {plan.id === "team" ? "/seat/mo" : "/mo"}
+                        </span>
                       </div>
                     )}
-                    {isAnnual && !isCustom && price > 0 && (
+                    {plan.id === "team" && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Minimum 3 seats{isAnnual ? ` • $${price * 12}/seat/year` : ""}
+                      </p>
+                    )}
+                    {isAnnual && !isCustom && price > 0 && plan.id !== "team" && (
                       <p className="text-xs text-muted-foreground mt-1">
                         ${price * 12}/year, billed annually
                       </p>
