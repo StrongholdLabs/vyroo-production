@@ -75,7 +75,16 @@ export function Header() {
   }, []);
 
   const isDashboard = location.pathname.startsWith("/dashboard");
-  if (isDashboard) return null;
+
+  // On dashboard: only render the floating auth controls, not the full header
+  if (isDashboard) {
+    return !loading && user ? (
+      <div className="fixed top-3 right-4 z-50 flex items-center gap-2">
+        <NotificationBell />
+        <ProfileAvatar />
+      </div>
+    ) : null;
+  }
 
   return (
     <>
