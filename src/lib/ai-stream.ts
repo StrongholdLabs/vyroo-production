@@ -19,23 +19,20 @@ export interface StreamOptions {
 export async function streamChat(options: StreamOptions) {
   const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, signal } = options;
 
-  // Force refresh to get a valid token
-  const { data: { session: freshSession }, error: refreshError } = await supabase.auth.refreshSession();
-  const session = freshSession;
-  if (refreshError || !session) {
-    // Fallback to cached session
+  // Get a valid session — try refresh first, fall back to cached
+  let accessToken: string | undefined;
+  try {
+    const { data: { session: freshSession } } = await supabase.auth.refreshSession();
+    accessToken = freshSession?.access_token;
+  } catch {}
+
+  if (!accessToken) {
     const { data: { session: cachedSession } } = await supabase.auth.getSession();
-    if (!cachedSession) {
-      onError("Not authenticated");
-      return;
-    }
-    // Use cached session as fallback
-    Object.assign(session || {}, cachedSession);
+    accessToken = cachedSession?.access_token;
   }
 
-  const accessToken = session?.access_token;
   if (!accessToken) {
-    onError("No access token");
+    onError("Not authenticated — please sign in again");
     return;
   }
 
