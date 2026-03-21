@@ -264,10 +264,10 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         ))}
 
-        {/* Streaming steps — shown during agentic execution */}
-        {streamingSteps.length > 0 && (
+        {/* Steps — show streaming steps during execution, fallback to persisted steps */}
+        {(streamingSteps.length > 0 ? streamingSteps : steps).length > 0 && (
           <div className="space-y-1">
-            {streamingSteps.map((step) => (
+            {(streamingSteps.length > 0 ? streamingSteps : steps).map((step) => (
               <ExpandableStep
                 key={step.id}
                 step={step}
@@ -276,13 +276,6 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
             ))}
           </div>
         )}
-
-        {/* Expandable steps in chat */}
-        <div className="space-y-3">
-          {steps.map((step, i) => (
-            <ExpandableStep key={step.id} step={step} isActive={i === 0} />
-          ))}
-        </div>
 
         {/* Upgrade banner — disabled for now */}
 
