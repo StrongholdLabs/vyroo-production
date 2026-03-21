@@ -644,8 +644,9 @@ Deno.serve(async (req) => {
               // Fallback if RPC doesn't exist yet
             }
 
-            // Save steps to database for persistence
+            // Save steps to database — delete old ones first to avoid accumulation
             try {
+              await supabase.from("steps").delete().eq("conversation_id", conversationId);
               for (let i = 0; i < plan.length; i++) {
                 await supabase.from("steps").insert({
                   conversation_id: conversationId,
