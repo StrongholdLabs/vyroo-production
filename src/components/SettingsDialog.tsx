@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import {
-
   User,
   Settings as SettingsIcon,
   BarChart3,
@@ -13,8 +12,15 @@ import {
   Puzzle,
   Link2,
   ExternalLink,
-  ChevronDown } from
-"lucide-react";
+  ChevronDown,
+  Camera,
+  Key,
+  Globe,
+  Trash2,
+  Copy,
+  Check,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 
@@ -270,8 +276,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </div>
             }
 
+            {/* Account tab */}
+            {activeTab === "account" && <AccountTab />}
+
             {/* Placeholder for other tabs */}
-            {activeTab !== "settings" && activeTab !== "usage" &&
+            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "account" &&
             <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-3">
                   {(() => {
@@ -288,5 +297,148 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </div>
       </DialogContent>
     </Dialog>);
+}
 
+
+function AccountTab() {
+  const [copied, setCopied] = useState(false);
+  const [twoFactor, setTwoFactor] = useState(false);
+
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="px-6 py-5 space-y-6">
+      {/* Profile header */}
+      <div className="flex items-start gap-5">
+        <div className="relative group">
+          <div className="w-[72px] h-[72px] rounded-2xl bg-gradient-to-br from-amber-500 to-orange-700 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+            Ru
+          </div>
+          <button className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer">
+            <Camera size={18} className="text-white" />
+          </button>
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-success border-2 flex items-center justify-center" style={{ borderColor: "hsl(var(--card))" }}>
+            <Check size={10} className="text-white" />
+          </div>
+        </div>
+        <div className="flex-1 min-w-0 pt-1">
+          <div className="flex items-center gap-2.5 mb-1">
+            <h3 className="text-base font-semibold text-foreground">Roel Mangal</h3>
+            <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5 font-medium">Free</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground mb-2.5">roelmangal84@gmail.com</p>
+          <div className="flex items-center gap-2">
+            <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              Upgrade to Pro
+            </button>
+            <button className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border text-foreground hover:bg-accent transition-colors">
+              Edit profile
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border" />
+
+      {/* Personal info */}
+      <div>
+        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Personal information</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <FieldCard label="First name" value="Roel" />
+          <FieldCard label="Last name" value="Mangal" />
+          <FieldCard label="Email" value="roelmangal84@gmail.com" fullWidth />
+          <FieldCard label="Location" value="Netherlands" icon={<Globe size={13} className="text-muted-foreground" />} />
+          <FieldCard label="Timezone" value="CET (UTC+1)" />
+        </div>
+      </div>
+
+      <div className="border-t border-border" />
+
+      {/* Security */}
+      <div>
+        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Security</h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between rounded-lg border border-border p-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+                <Key size={14} className="text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Password</p>
+                <p className="text-[11px] text-muted-foreground">Last changed 3 months ago</p>
+              </div>
+            </div>
+            <button className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border text-foreground hover:bg-accent transition-colors">
+              Change
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border border-border p-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+                <Shield size={14} className="text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Two-factor authentication</p>
+                <p className="text-[11px] text-muted-foreground">{twoFactor ? "Enabled — authenticator app" : "Add an extra layer of security"}</p>
+              </div>
+            </div>
+            <Switch checked={twoFactor} onCheckedChange={setTwoFactor} />
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border" />
+
+      {/* API & User ID */}
+      <div>
+        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Developer</h3>
+        <div className="rounded-lg border border-border p-3 flex items-center justify-between" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+          <div>
+            <p className="text-[11px] text-muted-foreground mb-0.5">User ID</p>
+            <p className="text-xs text-foreground font-mono">usr_7f3a9b2e…d41c</p>
+          </div>
+          <button
+            onClick={() => handleCopy("usr_7f3a9b2e4c1d8f6a0e5b3d41c")}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
+          </button>
+        </div>
+      </div>
+
+      <div className="border-t border-border" />
+
+      {/* Danger zone */}
+      <div>
+        <h3 className="text-xs font-medium text-destructive uppercase tracking-wider mb-2">Danger zone</h3>
+        <div className="rounded-lg border border-destructive/20 p-3 flex items-center justify-between" style={{ backgroundColor: "hsl(var(--destructive) / 0.04)" }}>
+          <div>
+            <p className="text-sm font-medium text-foreground">Delete account</p>
+            <p className="text-[11px] text-muted-foreground">Permanently remove your account and all data</p>
+          </div>
+          <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors">
+            <Trash2 size={12} className="inline mr-1" />
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FieldCard({ label, value, icon, fullWidth }: { label: string; value: string; icon?: React.ReactNode; fullWidth?: boolean }) {
+  return (
+    <div className={`rounded-lg border border-border p-3 ${fullWidth ? "col-span-2" : ""}`} style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+      <p className="text-[11px] text-muted-foreground mb-1">{label}</p>
+      <div className="flex items-center gap-1.5">
+        {icon}
+        <p className="text-sm text-foreground truncate">{value}</p>
+      </div>
+    </div>
+  );
 }
