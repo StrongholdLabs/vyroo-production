@@ -52,9 +52,16 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, taskMode } = useAIChat({
+  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, taskMode, toolCalls, searchResults, browseData, isUsingTools } = useAIChat({
     conversationId: conversation.id,
   });
+
+  // Auto-open computer panel when tools are used
+  useEffect(() => {
+    if (isUsingTools && onOpenComputer) {
+      onOpenComputer();
+    }
+  }, [isUsingTools]);
 
   // Auto-scroll to bottom on initial load
   useEffect(() => {
@@ -284,6 +291,41 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           <Sparkles size={14} className="text-muted-foreground" />
           <span className="text-sm text-muted-foreground font-medium">Vyroo will continue working after your reply</span>
         </div>
+
+        {/* Tool execution logs */}
+        {toolCalls.length > 0 && (
+          <div className="space-y-2">
+            {toolCalls.map((tool, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span className={tool.status === "executing" ? "animate-spin" : ""}>
+                  {tool.status === "executing" ? "\u{1F504}" : "\u{2705}"}
+                </span>
+                <span className="font-medium text-foreground">{tool.name}</span>
+                <span className="text-xs">
+                  {tool.name === "web_search" ? `"${tool.args.query}"` :
+                   tool.name === "browse_url" ? tool.args.url :
+                   JSON.stringify(tool.args).substring(0, 50)}
+                </span>
+                {tool.duration && <span className="text-xs text-muted-foreground/60">{(tool.duration/1000).toFixed(1)}s</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Inline search results when Computer Panel is closed */}
+        {!computerVisible && searchResults.length > 0 && (
+          <div className="rounded-lg border border-border p-3 space-y-2" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Globe size={12} />
+              <span>Sources found</span>
+            </div>
+            {searchResults.flatMap(s => s.results).slice(0, 5).map((r, i) => (
+              <a key={i} href={r.url} target="_blank" rel="noopener noreferrer" className="block text-xs text-foreground hover:text-primary truncate">
+                {r.title}
+              </a>
+            ))}
+          </div>
+        )}
 
         {/* Streaming response */}
         {isStreaming && streamingContent && (

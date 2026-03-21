@@ -31,6 +31,25 @@ export interface StreamingReport {
   rows: string[][];
 }
 
+export interface ToolCall {
+  name: string;
+  args: Record<string, any>;
+  result?: any;
+  duration?: number;
+  status: "executing" | "complete";
+}
+
+export interface SearchData {
+  query: string;
+  results: Array<{ title: string; url: string; snippet?: string }>;
+}
+
+export interface BrowseData {
+  url: string;
+  title: string;
+  content: string;
+}
+
 export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
@@ -39,6 +58,10 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [steps, setSteps] = useState<StreamingStep[]>([]);
   const [report, setReport] = useState<StreamingReport | null>(null);
   const [taskMode, setTaskMode] = useState<"direct" | "agentic" | null>(null);
+  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchData[]>([]);
+  const [browseData, setBrowseData] = useState<BrowseData[]>([]);
+  const [isUsingTools, setIsUsingTools] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
   const { provider, model } = useModelSettings();
@@ -54,6 +77,10 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
       setSteps([]);
       setReport(null);
       setTaskMode(null);
+      setToolCalls([]);
+      setSearchResults([]);
+      setBrowseData([]);
+      setIsUsingTools(false);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -99,6 +126,24 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         onMode: (mode) => {
           setTaskMode(mode);
         },
+        onTool: (tool) => {
+          setIsUsingTools(true);
+          setToolCalls(prev => {
+            const existing = prev.findIndex(t => t.name === tool.name && t.status === "executing");
+            if (existing >= 0 && tool.status === "complete") {
+              const updated = [...prev];
+              updated[existing] = tool;
+              return updated;
+            }
+            return [...prev, tool];
+          });
+        },
+        onSearch: (data) => {
+          setSearchResults(prev => [...prev, data]);
+        },
+        onBrowse: (data) => {
+          setBrowseData(prev => [...prev, data]);
+        },
         onError: (err) => {
           setError(err);
           setIsStreaming(false);
@@ -141,5 +186,9 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
     steps,
     report,
     taskMode,
+    toolCalls,
+    searchResults,
+    browseData,
+    isUsingTools,
   };
 }

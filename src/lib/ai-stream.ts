@@ -13,11 +13,14 @@ export interface StreamOptions {
   onStep?: (step: { id: number; label: string; detail: string; status: "active" | "complete" | "pending"; logs: Array<{ time: string; text: string; type: "info" | "action" | "result" }> }) => void;
   onReport?: (report: { title: string; summary: string; headers: string[]; rows: string[][] }) => void;
   onMode?: (mode: "direct" | "agentic") => void;
+  onTool?: (tool: { name: string; args: Record<string, any>; result?: any; duration?: number; status: "executing" | "complete" }) => void;
+  onSearch?: (data: { query: string; results: Array<{ title: string; url: string; snippet?: string }> }) => void;
+  onBrowse?: (data: { url: string; title: string; content: string }) => void;
   signal?: AbortSignal;
 }
 
 export async function streamChat(options: StreamOptions) {
-  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, signal } = options;
+  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, onTool, onSearch, onBrowse, signal } = options;
 
   console.log("[ai-stream] streamChat called for:", message);
 
@@ -109,6 +112,12 @@ export async function streamChat(options: StreamOptions) {
               onReport?.(parsed);
             } else if (eventType === "mode" && parsed) {
               onMode?.(parsed.mode);
+            } else if (eventType === "tool" && parsed) {
+              onTool?.(parsed);
+            } else if (eventType === "search" && parsed) {
+              onSearch?.(parsed);
+            } else if (eventType === "browse" && parsed) {
+              onBrowse?.(parsed);
             } else if (eventType === "error") {
               onError(parsed.error || "Unknown error");
               return;
