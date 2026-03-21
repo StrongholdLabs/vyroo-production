@@ -17,6 +17,19 @@ import {
   Trash2,
   Pencil,
   X,
+  Store,
+  Star,
+  Download,
+  BadgeCheck,
+  Upload,
+  Webhook,
+  Github,
+  Copy,
+  Check as CheckIcon,
+  ShoppingBag,
+  MessageSquare,
+  CreditCard,
+  Zap,
 } from "lucide-react";
 import type { AgentCategory } from "@/types/agents";
 import type { Workflow } from "@/types/workflows";
@@ -31,6 +44,21 @@ import {
   cronToHuman,
   cronPresets,
 } from "@/hooks/useScheduledAgents";
+import {
+  usePublishedAgents,
+  useInstallAgent,
+  type PublishedAgent,
+  type MarketplaceFilters,
+} from "@/hooks/useMarketplace";
+import {
+  useWebhookTriggers,
+  useCreateWebhook,
+  useUpdateWebhook,
+  useDeleteWebhook,
+  webhookEventTypes,
+  type WebhookTrigger,
+  type WebhookSource,
+} from "@/hooks/useWebhookTriggers";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { cn } from "@/lib/utils";
 
@@ -394,7 +422,7 @@ function NewScheduleForm({
 
 // ─── Page-level tab type ───
 
-type PageTab = "agents" | "workflows" | "schedules";
+type PageTab = "agents" | "workflows" | "schedules" | "triggers" | "marketplace";
 
 // ─── Filter tab definitions ───
 
@@ -446,6 +474,465 @@ function SkeletonCard() {
   );
 }
 
+// ─── Source icon helper ───
+
+const sourceIcons: Record<WebhookSource, typeof Github> = {
+  github: Github,
+  shopify: ShoppingBag,
+  slack: MessageSquare,
+  stripe: CreditCard,
+  custom: Zap,
+};
+
+const sourceColors: Record<WebhookSource, string> = {
+  github: "bg-gray-500/10 border-gray-500/20 text-gray-400",
+  shopify: "bg-green-500/10 border-green-500/20 text-green-400",
+  slack: "bg-purple-500/10 border-purple-500/20 text-purple-400",
+  stripe: "bg-blue-500/10 border-blue-500/20 text-blue-400",
+  custom: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+};
+
+// ─── Webhook trigger card ───
+
+function WebhookTriggerCard({
+  trigger,
+  copied,
+  onCopy,
+  onToggle,
+  onDelete,
+}: {
+  trigger: WebhookTrigger;
+  copied: boolean;
+  onCopy: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  const SourceIcon = sourceIcons[trigger.source] || Zap;
+  const isAgent = !!trigger.agent_template_id;
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur p-5 transition-all duration-200 hover:border-border">
+      <div className="flex items-start gap-3 mb-3">
+        <div
+          className={cn(
+            "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border",
+            sourceColors[trigger.source],
+          )}
+        >
+          <SourceIcon size={20} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-foreground truncate">{trigger.name}</h3>
+          <span className="text-[11px] text-muted-foreground capitalize">
+            {trigger.source} &middot; {isAgent ? "Agent" : "Workflow"}
+          </span>
+        </div>
+
+        {/* Active toggle */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          className={cn(
+            "relative w-9 h-5 rounded-full transition-colors flex-shrink-0",
+            trigger.is_active ? "bg-[hsl(var(--success))]" : "bg-muted",
+          )}
+        >
+          <span
+            className={cn(
+              "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm",
+              trigger.is_active && "translate-x-4",
+            )}
+          />
+        </button>
+      </div>
+
+      {/* Event type */}
+      <div className="flex items-center gap-1.5 mb-2">
+        <Webhook size={12} className="text-muted-foreground" />
+        <span className="text-xs text-muted-foreground font-mono">
+          {trigger.event_type}
+        </span>
+      </div>
+
+      {/* Webhook URL (copyable) */}
+      <div className="flex items-center gap-1 mb-3">
+        <div className="flex-1 min-w-0 px-2 py-1.5 rounded-md bg-muted/50 border border-border">
+          <p className="text-[10px] text-muted-foreground font-mono truncate">
+            {trigger.webhook_url}
+          </p>
+        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCopy();
+          }}
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors flex-shrink-0"
+          title="Copy webhook URL"
+        >
+          {copied ? <CheckIcon size={13} className="text-[hsl(var(--success))]" /> : <Copy size={13} />}
+        </button>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center gap-4 mb-4 text-[11px] text-muted-foreground">
+        {trigger.last_triggered_at && (
+          <span className="flex items-center gap-1">
+            <Clock size={11} />
+            Last: {new Date(trigger.last_triggered_at).toLocaleDateString()}
+          </span>
+        )}
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-medium tabular-nums">
+          {trigger.trigger_count} triggers
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/30 transition-all"
+        >
+          <Trash2 size={12} />
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── New Trigger Form ───
+
+function NewTriggerForm({
+  agents,
+  workflows,
+  onSubmit,
+  onCancel,
+}: {
+  agents: { id: string; name: string }[];
+  workflows: { id: string; name: string }[];
+  onSubmit: (data: {
+    name: string;
+    source: WebhookSource;
+    event_type: string;
+    agent_template_id?: string;
+    workflow_id?: string;
+  }) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [source, setSource] = useState<WebhookSource>("github");
+  const [eventType, setEventType] = useState("");
+  const [targetType, setTargetType] = useState<"agent" | "workflow">("agent");
+  const [targetId, setTargetId] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !eventType || !targetId) return;
+
+    onSubmit({
+      name: name.trim(),
+      source,
+      event_type: eventType,
+      agent_template_id: targetType === "agent" ? targetId : undefined,
+      workflow_id: targetType === "workflow" ? targetId : undefined,
+    });
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-xl border border-primary/30 bg-card/80 backdrop-blur p-5 space-y-4"
+    >
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-semibold text-foreground">New Webhook Trigger</h3>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Name */}
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">Name</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g., PR Code Review"
+          className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
+        />
+      </div>
+
+      {/* Source selector */}
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">Source</label>
+        <div className="flex flex-wrap gap-1.5">
+          {(["github", "shopify", "slack", "stripe", "custom"] as WebhookSource[]).map((s) => {
+            const Icon = sourceIcons[s];
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  setSource(s);
+                  setEventType("");
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize",
+                  source === s
+                    ? "bg-primary/15 text-primary border-primary/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent border-border",
+                )}
+              >
+                <Icon size={13} />
+                {s}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Event type */}
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">Event Type</label>
+        <select
+          value={eventType}
+          onChange={(e) => setEventType(e.target.value)}
+          className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
+        >
+          <option value="">Choose event...</option>
+          {webhookEventTypes[source].map((evt) => (
+            <option key={evt} value={evt}>
+              {evt}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Target type */}
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">Run</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setTargetType("agent");
+              setTargetId("");
+            }}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all",
+              targetType === "agent"
+                ? "bg-primary/15 text-primary border-primary/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent border-border",
+            )}
+          >
+            <Bot size={13} />
+            Agent
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTargetType("workflow");
+              setTargetId("");
+            }}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all",
+              targetType === "workflow"
+                ? "bg-primary/15 text-primary border-primary/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent border-border",
+            )}
+          >
+            <GitBranch size={13} />
+            Workflow
+          </button>
+        </div>
+      </div>
+
+      {/* Target select */}
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">
+          {targetType === "agent" ? "Select Agent" : "Select Workflow"}
+        </label>
+        <select
+          value={targetId}
+          onChange={(e) => setTargetId(e.target.value)}
+          className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
+        >
+          <option value="">Choose...</option>
+          {targetType === "agent"
+            ? agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))
+            : workflows.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+        </select>
+      </div>
+
+      {/* Submit */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="submit"
+          disabled={!name.trim() || !eventType || !targetId}
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none transition-all"
+        >
+          <Plus size={13} />
+          Create Trigger
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent border border-border transition-all"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// ─── Marketplace card ───
+
+const marketplaceCategoryChips = [
+  { key: "all", label: "All" },
+  { key: "research", label: "Research" },
+  { key: "coding", label: "Coding" },
+  { key: "data", label: "Data" },
+  { key: "content", label: "Content" },
+  { key: "browsing", label: "Browsing" },
+];
+
+function formatPrice(price: number): string {
+  if (price === 0) return "Free";
+  return `$${price.toFixed(2)}/mo`;
+}
+
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return String(n);
+}
+
+function MarketplaceAgentCard({
+  agent,
+  onInstall,
+  isInstalling,
+}: {
+  agent: PublishedAgent;
+  onInstall: () => void;
+  isInstalling: boolean;
+}) {
+  return (
+    <div className="group relative rounded-xl border border-border/50 hover:border-primary/30 transition-all duration-200 hover:shadow-lg hover:shadow-black/20 bg-card/50 backdrop-blur">
+      {/* Featured / Verified badges */}
+      <div className="absolute top-3 right-3 flex items-center gap-1.5">
+        {agent.is_featured && (
+          <span className="flex items-center gap-1">
+            <Sparkles size={11} className="text-amber-400" />
+            <span className="text-[10px] font-medium text-amber-400 uppercase tracking-wider">
+              Featured
+            </span>
+          </span>
+        )}
+        {agent.is_verified && (
+          <BadgeCheck size={14} className="text-blue-400" />
+        )}
+      </div>
+
+      <div className="p-5">
+        {/* Icon + Name + Creator */}
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
+            <Bot size={20} className="text-primary" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-foreground truncate">{agent.name}</h3>
+            <span className="text-[11px] text-muted-foreground">
+              by {agent.creator_name ?? "Unknown"}
+            </span>
+          </div>
+        </div>
+
+        {/* Price badge */}
+        <div className="flex items-center gap-2 mb-3">
+          <span
+            className={cn(
+              "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider",
+              agent.price_monthly === 0
+                ? "bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]"
+                : "bg-primary/10 text-primary",
+            )}
+          >
+            {formatPrice(agent.price_monthly)}
+          </span>
+          {agent.category && (
+            <span className="text-[10px] text-muted-foreground bg-accent/50 px-2 py-0.5 rounded-md">
+              {agent.category}
+            </span>
+          )}
+        </div>
+
+        {/* Description */}
+        <p className="text-xs text-muted-foreground leading-relaxed mb-3 line-clamp-2">
+          {agent.description}
+        </p>
+
+        {/* Tags */}
+        {agent.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {agent.tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="text-[10px] text-muted-foreground bg-accent/50 px-2 py-0.5 rounded-md"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Stats row */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Star size={11} className="text-amber-400 fill-amber-400" />
+            <span className="tabular-nums">{agent.rating.toFixed(1)}</span>
+            <span className="text-muted-foreground/60">({agent.review_count})</span>
+          </span>
+          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+            <Download size={11} />
+            <span className="tabular-nums">{formatCount(agent.install_count)}</span>
+          </span>
+        </div>
+
+        {/* Install button */}
+        <button
+          onClick={onInstall}
+          disabled={isInstalling}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none"
+        >
+          {isInstalling ? (
+            <Loader2 size={13} className="animate-spin" />
+          ) : (
+            <Download size={13} />
+          )}
+          {isInstalling ? "Installing..." : "Install"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ───
 
 export default function Agents() {
@@ -454,6 +941,10 @@ export default function Agents() {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [pageTab, setPageTab] = useState<PageTab>("agents");
   const [showNewSchedule, setShowNewSchedule] = useState(false);
+  const [showNewTrigger, setShowNewTrigger] = useState(false);
+  const [copiedWebhookId, setCopiedWebhookId] = useState<string | null>(null);
+  const [marketplaceCategory, setMarketplaceCategory] = useState("all");
+  const [marketplaceFilters, setMarketplaceFilters] = useState<MarketplaceFilters>({});
 
   // Data fetching
   const { data: allTemplates, isLoading } = useAgentTemplates();
@@ -463,6 +954,25 @@ export default function Agents() {
   const createSchedule = useCreateSchedule();
   const updateSchedule = useUpdateSchedule();
   const deleteSchedule = useDeleteSchedule();
+
+  // Webhook triggers data
+  const { data: webhookTriggers = [], isLoading: isLoadingTriggers } = useWebhookTriggers();
+  const createWebhook = useCreateWebhook();
+  const updateWebhook = useUpdateWebhook();
+  const deleteWebhook = useDeleteWebhook();
+
+  // Marketplace data
+  const mpFilters = useMemo<MarketplaceFilters>(() => ({
+    search: pageTab === "marketplace" ? search : undefined,
+    category: marketplaceCategory !== "all" ? marketplaceCategory : undefined,
+    ...marketplaceFilters,
+  }), [search, marketplaceCategory, marketplaceFilters, pageTab]);
+  const { data: publishedAgents = [], isLoading: isLoadingMarketplace } = usePublishedAgents(mpFilters);
+  const installAgent = useInstallAgent();
+  const featuredPublished = useMemo(
+    () => publishedAgents.filter((a) => a.is_featured),
+    [publishedAgents],
+  );
 
   // Filter and search
   const filteredTemplates = useMemo(() => {
@@ -580,6 +1090,34 @@ export default function Agents() {
                 Schedules
               </span>
             </button>
+            <button
+              onClick={() => setPageTab("triggers")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                pageTab === "triggers"
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <Webhook size={15} />
+                Triggers
+              </span>
+            </button>
+            <button
+              onClick={() => setPageTab("marketplace")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                pageTab === "marketplace"
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <Store size={15} />
+                Marketplace
+              </span>
+            </button>
           </div>
 
           {/* Search bar */}
@@ -595,7 +1133,9 @@ export default function Agents() {
                   ? "Search schedules..."
                   : pageTab === "workflows"
                     ? "Search workflows..."
-                    : "Search agents..."
+                    : pageTab === "triggers"
+                      ? "Search triggers..."
+                      : "Search agents..."
               }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -882,6 +1422,262 @@ export default function Agents() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Triggers tab content */}
+      {pageTab === "triggers" && (
+        <div className="max-w-6xl mx-auto px-6 py-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Webhook Triggers
+            </h2>
+            <button
+              onClick={() => setShowNewTrigger(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-all"
+            >
+              <Plus size={13} />
+              New Trigger
+            </button>
+          </div>
+
+          {/* New trigger form */}
+          {showNewTrigger && (
+            <div className="mb-6">
+              <NewTriggerForm
+                agents={(allTemplates ?? []).map((t) => ({ id: t.id, name: t.name }))}
+                workflows={workflows.map((w) => ({ id: w.id, name: w.name }))}
+                onSubmit={(data) => {
+                  createWebhook.mutate(data);
+                  setShowNewTrigger(false);
+                }}
+                onCancel={() => setShowNewTrigger(false)}
+              />
+            </div>
+          )}
+
+          {/* Loading */}
+          {isLoadingTriggers && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          )}
+
+          {/* Trigger cards */}
+          {!isLoadingTriggers && webhookTriggers.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {webhookTriggers
+                .filter((t) => {
+                  if (!search.trim()) return true;
+                  const q = search.toLowerCase();
+                  return (
+                    t.name.toLowerCase().includes(q) ||
+                    t.source.toLowerCase().includes(q) ||
+                    t.event_type.toLowerCase().includes(q)
+                  );
+                })
+                .map((trigger) => (
+                  <WebhookTriggerCard
+                    key={trigger.id}
+                    trigger={trigger}
+                    copied={copiedWebhookId === trigger.id}
+                    onCopy={() => {
+                      navigator.clipboard.writeText(trigger.webhook_url);
+                      setCopiedWebhookId(trigger.id);
+                      setTimeout(() => setCopiedWebhookId(null), 2000);
+                    }}
+                    onToggle={() =>
+                      updateWebhook.mutate({
+                        id: trigger.id,
+                        is_active: !trigger.is_active,
+                      })
+                    }
+                    onDelete={() => deleteWebhook.mutate(trigger.id)}
+                  />
+                ))}
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!isLoadingTriggers && webhookTriggers.length === 0 && !showNewTrigger && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Webhook size={40} className="text-muted-foreground/40 mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">
+                No webhook triggers yet. Create one to run agents on external events.
+              </p>
+              <button
+                onClick={() => setShowNewTrigger(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-all"
+              >
+                <Plus size={13} />
+                Create your first trigger
+              </button>
+            </div>
+          )}
+
+          {/* Stats bar */}
+          {!isLoadingTriggers && webhookTriggers.length > 0 && (
+            <div className="border-t border-border mt-8">
+              <div className="max-w-6xl mx-auto py-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  <span className="tabular-nums text-foreground">{webhookTriggers.length}</span>
+                  {" triggers"}
+                  {" \u00B7 "}
+                  <span className="tabular-nums text-foreground">
+                    {webhookTriggers.filter((t) => t.is_active).length}
+                  </span>
+                  {" active"}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Marketplace tab content */}
+      {pageTab === "marketplace" && (
+        <>
+          {/* Category filter chips */}
+          <div
+            className="border-b border-border sticky top-0 z-10"
+            style={{ backgroundColor: "hsl(var(--background))" }}
+          >
+            <div className="max-w-6xl mx-auto px-6">
+              <div className="flex items-center gap-1 overflow-x-auto py-2 scrollbar-hide">
+                {marketplaceCategoryChips.map((chip) => (
+                  <button
+                    key={chip.key}
+                    onClick={() => setMarketplaceCategory(chip.key)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all border",
+                      marketplaceCategory === chip.key
+                        ? "bg-primary/15 text-primary border-primary/30"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent border-transparent",
+                    )}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+                <div className="w-px h-5 bg-border mx-1" />
+                <button
+                  onClick={() =>
+                    setMarketplaceFilters((f) => ({
+                      ...f,
+                      priceType: f.priceType === "free" ? "all" : "free",
+                    }))
+                  }
+                  className={cn(
+                    "px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all border",
+                    marketplaceFilters.priceType === "free"
+                      ? "bg-[hsl(var(--success))]/15 text-[hsl(var(--success))] border-[hsl(var(--success))]/30"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent border-transparent",
+                  )}
+                >
+                  Free Only
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-6xl mx-auto px-6 py-6">
+            {/* Loading */}
+            {isLoadingMarketplace && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            )}
+
+            {/* Featured agents section */}
+            {!isLoadingMarketplace && featuredPublished.length > 0 && marketplaceCategory === "all" && !search.trim() && (
+              <section className="mb-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles size={14} className="text-amber-400" />
+                  <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Featured Agents
+                  </h2>
+                </div>
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                  {featuredPublished.map((agent) => (
+                    <div key={agent.id} className="w-[340px] flex-shrink-0">
+                      <MarketplaceAgentCard
+                        agent={agent}
+                        onInstall={() => installAgent.mutate(agent.id)}
+                        isInstalling={installAgent.isPending}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Publish Your Agent CTA */}
+            {!isLoadingMarketplace && (
+              <div className="mb-6 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-1">
+                    Publish Your Agent
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Share your custom agents with the community and earn revenue
+                  </p>
+                </div>
+                <button className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all">
+                  <Upload size={13} />
+                  Publish Agent
+                </button>
+              </div>
+            )}
+
+            {/* All marketplace agents grid */}
+            {!isLoadingMarketplace && publishedAgents.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    All Marketplace Agents
+                  </h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {publishedAgents.map((agent) => (
+                    <MarketplaceAgentCard
+                      key={agent.id}
+                      agent={agent}
+                      onInstall={() => installAgent.mutate(agent.id)}
+                      isInstalling={installAgent.isPending}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Empty state */}
+            {!isLoadingMarketplace && publishedAgents.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <Store size={40} className="text-muted-foreground/40 mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  {search.trim()
+                    ? "No marketplace agents match your search"
+                    : "No agents available in this category"}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Stats bar */}
+          {!isLoadingMarketplace && (
+            <div className="border-t border-border">
+              <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  <span className="tabular-nums text-foreground">{publishedAgents.length}</span>
+                  {" marketplace agents"}
+                </span>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

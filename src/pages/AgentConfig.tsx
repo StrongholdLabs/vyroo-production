@@ -3,9 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Bot, Play, Star, Download, Zap,
   Search, Code, BarChart2, Globe, PenTool,
-  Loader2,
+  Loader2, BarChart3, Settings2,
 } from "lucide-react";
 import { AgentConfigPanel } from "@/components/agents/AgentConfigPanel";
+import { AgentAnalytics } from "@/components/agents/AgentAnalytics";
+import { cn } from "@/lib/utils";
 import type { AgentRunConfig, AgentTemplate, AgentCategory } from "@/types/agents";
 
 const categoryIcons: Record<AgentCategory, React.ReactNode> = {
@@ -93,6 +95,7 @@ const AgentConfigPage = () => {
   });
   const [goal, setGoal] = useState("");
   const [isLaunching, setIsLaunching] = useState(false);
+  const [activeTab, setActiveTab] = useState<"configure" | "analytics">("configure");
 
   const handleLaunch = useCallback(() => {
     if (!goal.trim()) return;
@@ -152,61 +155,103 @@ const AgentConfigPage = () => {
             </div>
           </div>
 
-          {/* Goal input */}
-          <div>
-            <label className="text-sm font-medium text-foreground mb-2 block">
-              What should this agent do?
-            </label>
-            <textarea
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              placeholder={
-                template.category === "research"
-                  ? "e.g., Research the AI SaaS competitive landscape and create an analysis report..."
-                  : template.category === "coding"
-                  ? "e.g., Build a REST API for user authentication with JWT tokens..."
-                  : template.category === "data"
-                  ? "e.g., Analyze this sales CSV and create a dashboard with trends..."
-                  : template.category === "browsing"
-                  ? "e.g., Navigate to competitor websites and extract their pricing pages..."
-                  : "e.g., Write a series of blog posts about AI automation trends..."
-              }
-              rows={4}
-              className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-            />
+          {/* Tab switcher */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setActiveTab("configure")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                activeTab === "configure"
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <Settings2 size={15} />
+                Configure
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("analytics")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                activeTab === "analytics"
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <BarChart3 size={15} />
+                Analytics
+              </span>
+            </button>
           </div>
 
-          {/* Config panel */}
-          <div className="rounded-xl border border-border bg-card/50 p-4">
-            <h2 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
-              <Zap size={14} className="text-primary" />
-              Configuration
-            </h2>
-            <AgentConfigPanel
-              template={template}
-              config={config}
-              onConfigChange={setConfig}
-            />
-          </div>
+          {/* Configure tab */}
+          {activeTab === "configure" && (
+            <>
+              {/* Goal input */}
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">
+                  What should this agent do?
+                </label>
+                <textarea
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  placeholder={
+                    template.category === "research"
+                      ? "e.g., Research the AI SaaS competitive landscape and create an analysis report..."
+                      : template.category === "coding"
+                      ? "e.g., Build a REST API for user authentication with JWT tokens..."
+                      : template.category === "data"
+                      ? "e.g., Analyze this sales CSV and create a dashboard with trends..."
+                      : template.category === "browsing"
+                      ? "e.g., Navigate to competitor websites and extract their pricing pages..."
+                      : "e.g., Write a series of blog posts about AI automation trends..."
+                  }
+                  rows={4}
+                  className="w-full px-4 py-3 rounded-xl bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                />
+              </div>
 
-          {/* Launch button */}
-          <button
-            onClick={handleLaunch}
-            disabled={!goal.trim() || isLaunching}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLaunching ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                Launching Agent...
-              </>
-            ) : (
-              <>
-                <Play size={16} />
-                Launch Agent
-              </>
-            )}
-          </button>
+              {/* Config panel */}
+              <div className="rounded-xl border border-border bg-card/50 p-4">
+                <h2 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+                  <Zap size={14} className="text-primary" />
+                  Configuration
+                </h2>
+                <AgentConfigPanel
+                  template={template}
+                  config={config}
+                  onConfigChange={setConfig}
+                />
+              </div>
+
+              {/* Launch button */}
+              <button
+                onClick={handleLaunch}
+                disabled={!goal.trim() || isLaunching}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLaunching ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Launching Agent...
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} />
+                    Launch Agent
+                  </>
+                )}
+              </button>
+            </>
+          )}
+
+          {/* Analytics tab */}
+          {activeTab === "analytics" && (
+            <AgentAnalytics agentId={templateId} />
+          )}
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ import {
   Plug,
   Zap,
   Store,
+  ShieldCheck,
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { useConversations, useDeleteConversation } from "@/hooks/useConversations";
@@ -87,6 +88,8 @@ export function DashboardSidebar({
             <SidebarNavItem icon={<Store size={16} />} label="Plugins" to="/plugins" badge="New" />
             <SidebarNavItem icon={<Search size={16} />} label="Search" />
             <SidebarNavItem icon={<BookOpen size={16} />} label="Library" />
+            <SidebarNavItem icon={<Settings size={16} />} label="Settings" to="/settings" />
+            <SidebarNavItem icon={<ShieldCheck size={16} />} label="Admin" to="/admin" />
           </div>
 
           {/* Projects section */}

@@ -5,9 +5,11 @@ import { AnimatePresence } from "motion/react";
 import { useAgentTemplates } from "@/hooks/useAgentTemplates";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useWorkflow, useSaveWorkflow } from "@/hooks/useWorkflows";
+import { useRealtimeWorkflow, useWorkflowPresence } from "@/hooks/useRealtimeWorkflow";
 import { WorkflowCanvas } from "@/components/agents/workflow/WorkflowCanvas";
 import { WorkflowToolbar } from "@/components/agents/workflow/WorkflowToolbar";
 import { WorkflowSidebar } from "@/components/agents/workflow/WorkflowSidebar";
+import { CollaboratorAvatars } from "@/components/agents/workflow/CollaboratorAvatars";
 import type { Workflow, WorkflowNode, WorkflowEdge } from "@/types/workflows";
 
 // ─── Default new workflow ───
@@ -54,6 +56,28 @@ const WorkflowEditor = () => {
   // Auto-save debounce ref
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef<string>("");
+
+  // Realtime collaboration
+  const handleRemoteUpdate = useCallback(
+    (update: { name?: string; nodes?: WorkflowNode[]; edges?: WorkflowEdge[] }) => {
+      setWorkflow((prev) => ({
+        ...prev,
+        ...(update.name !== undefined ? { name: update.name } : {}),
+        ...(update.nodes !== undefined ? { nodes: update.nodes } : {}),
+        ...(update.edges !== undefined ? { edges: update.edges } : {}),
+        updated_at: new Date().toISOString(),
+      }));
+    },
+    [],
+  );
+
+  const { broadcastUpdate } = useRealtimeWorkflow(
+    isNewWorkflow ? undefined : workflowId,
+    handleRemoteUpdate,
+  );
+  const { users: collaborators } = useWorkflowPresence(
+    isNewWorkflow ? undefined : workflowId,
+  );
 
   // Load workflow from Supabase when data arrives
   useEffect(() => {
@@ -142,7 +166,8 @@ const WorkflowEditor = () => {
 
   const handleNameChange = useCallback((name: string) => {
     setWorkflow((prev) => ({ ...prev, name, updated_at: new Date().toISOString() }));
-  }, []);
+    broadcastUpdate({ name });
+  }, [broadcastUpdate]);
 
   // ─── Node operations ───
 
@@ -154,12 +179,12 @@ const WorkflowEditor = () => {
   }, [showSidebar, isMobile]);
 
   const handleNodeMove = useCallback((nodeId: string, position: { x: number; y: number }) => {
-    setWorkflow((prev) => ({
-      ...prev,
-      nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, position } : n)),
-      updated_at: new Date().toISOString(),
-    }));
-  }, []);
+    setWorkflow((prev) => {
+      const nodes = prev.nodes.map((n) => (n.id === nodeId ? { ...n, position } : n));
+      broadcastUpdate({ nodes });
+      return { ...prev, nodes, updated_at: new Date().toISOString() };
+    });
+  }, [broadcastUpdate]);
 
   const handleAddAgent = useCallback((templateId: string) => {
     const newNode: WorkflowNode = {
@@ -172,24 +197,24 @@ const WorkflowEditor = () => {
       config: {},
       status: "idle",
     };
-    setWorkflow((prev) => ({
-      ...prev,
-      nodes: [...prev.nodes, newNode],
-      updated_at: new Date().toISOString(),
-    }));
-  }, [workflow.nodes.length]);
+    setWorkflow((prev) => {
+      const nodes = [...prev.nodes, newNode];
+      broadcastUpdate({ nodes });
+      return { ...prev, nodes, updated_at: new Date().toISOString() };
+    });
+  }, [workflow.nodes.length, broadcastUpdate]);
 
   const handleDeleteNode = useCallback((nodeId: string) => {
-    setWorkflow((prev) => ({
-      ...prev,
-      nodes: prev.nodes.filter((n) => n.id !== nodeId),
-      edges: prev.edges.filter((e) => e.source_node_id !== nodeId && e.target_node_id !== nodeId),
-      updated_at: new Date().toISOString(),
-    }));
+    setWorkflow((prev) => {
+      const nodes = prev.nodes.filter((n) => n.id !== nodeId);
+      const edges = prev.edges.filter((e) => e.source_node_id !== nodeId && e.target_node_id !== nodeId);
+      broadcastUpdate({ nodes, edges });
+      return { ...prev, nodes, edges, updated_at: new Date().toISOString() };
+    });
     if (selectedNodeId === nodeId) {
       setSelectedNodeId(null);
     }
-  }, [selectedNodeId]);
+  }, [selectedNodeId, broadcastUpdate]);
 
   const handleDuplicateNode = useCallback((nodeId: string) => {
     const original = workflow.nodes.find((n) => n.id === nodeId);
@@ -201,12 +226,12 @@ const WorkflowEditor = () => {
       status: "idle",
       run_id: undefined,
     };
-    setWorkflow((prev) => ({
-      ...prev,
-      nodes: [...prev.nodes, newNode],
-      updated_at: new Date().toISOString(),
-    }));
-  }, [workflow.nodes]);
+    setWorkflow((prev) => {
+      const nodes = [...prev.nodes, newNode];
+      broadcastUpdate({ nodes });
+      return { ...prev, nodes, updated_at: new Date().toISOString() };
+    });
+  }, [workflow.nodes, broadcastUpdate]);
 
   const handleNodeConfigure = useCallback((nodeId: string) => {
     setSelectedNodeId(nodeId);
@@ -214,12 +239,12 @@ const WorkflowEditor = () => {
   }, [showSidebar]);
 
   const handleNodeConfigChange = useCallback((nodeId: string, config: WorkflowNode["config"]) => {
-    setWorkflow((prev) => ({
-      ...prev,
-      nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, config } : n)),
-      updated_at: new Date().toISOString(),
-    }));
-  }, []);
+    setWorkflow((prev) => {
+      const nodes = prev.nodes.map((n) => (n.id === nodeId ? { ...n, config } : n));
+      broadcastUpdate({ nodes });
+      return { ...prev, nodes, updated_at: new Date().toISOString() };
+    });
+  }, [broadcastUpdate]);
 
   // ─── Edge operations ───
 
@@ -236,12 +261,12 @@ const WorkflowEditor = () => {
       target_node_id: targetNodeId,
       condition: "on_success",
     };
-    setWorkflow((prev) => ({
-      ...prev,
-      edges: [...prev.edges, newEdge],
-      updated_at: new Date().toISOString(),
-    }));
-  }, [workflow.edges]);
+    setWorkflow((prev) => {
+      const edges = [...prev.edges, newEdge];
+      broadcastUpdate({ edges });
+      return { ...prev, edges, updated_at: new Date().toISOString() };
+    });
+  }, [workflow.edges, broadcastUpdate]);
 
   // ─── Zoom ───
 
@@ -359,22 +384,26 @@ const WorkflowEditor = () => {
           <ArrowLeft size={16} />
         </button>
 
-        {/* Save status indicator */}
-        {saveNotice && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto mr-2">
-            {saveNotice === "saving" ? (
-              <>
-                <Loader2 size={12} className="animate-spin" />
-                <span>Saving...</span>
-              </>
-            ) : (
-              <>
-                <Check size={12} className="text-[hsl(var(--success))]" />
-                <span className="text-[hsl(var(--success))]">Saved</span>
-              </>
-            )}
-          </div>
-        )}
+        {/* Collaborators + Save status */}
+        <div className="flex items-center gap-3 ml-auto">
+          <CollaboratorAvatars users={collaborators} />
+
+          {saveNotice && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2">
+              {saveNotice === "saving" ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={12} className="text-[hsl(var(--success))]" />
+                  <span className="text-[hsl(var(--success))]">Saved</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <WorkflowToolbar

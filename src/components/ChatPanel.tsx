@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Check,
   ChevronDown,
@@ -16,6 +16,7 @@ import {
   MoreHorizontal,
   ChevronRight,
   Square,
+  AudioLines,
 } from "lucide-react";
 import type { Conversation, ChatMessage as ChatMsg } from "@/data/conversations";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
@@ -27,6 +28,7 @@ import { DocumentPreview } from "@/components/DocumentPreview";
 import { ProjectInitCard } from "@/components/ProjectInitCard";
 import { ModelSwitcher } from "@/components/ModelSwitcher";
 import { VoiceMicButton } from "@/components/VoiceMicButton";
+import { VoiceAgentOverlay } from "@/components/VoiceAgentOverlay";
 import { FollowUpPanel } from "@/components/FollowUpPanel";
 import { useAIChat } from "@/hooks/useAIChat";
 
@@ -41,6 +43,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const [message, setMessage] = useState("");
   const [reportMenuOpen, setReportMenuOpen] = useState<string | null>(null);
   const [previewMsg, setPreviewMsg] = useState<ChatMsg | null>(null);
+  const [voiceAgentOpen, setVoiceAgentOpen] = useState(false);
+  const [voiceAiResponse, setVoiceAiResponse] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps } = useAIChat({
@@ -71,6 +75,13 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           <ModelSwitcher />
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => setVoiceAgentOpen(true)}
+            className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
+            title="Voice Agent"
+          >
+            <AudioLines size={16} />
+          </button>
           {[Sparkles, ArrowUp, Globe, FileText].map((Icon, i) => (
             <button key={i} className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors">
               <Icon size={16} />
@@ -391,6 +402,16 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           tableData={previewMsg.tableData}
         />
       )}
+      {/* Voice Agent Overlay */}
+      <VoiceAgentOverlay
+        open={voiceAgentOpen}
+        onClose={() => setVoiceAgentOpen(false)}
+        onTranscript={(text) => {
+          onSendMessage?.(text);
+          sendAI(text);
+        }}
+        aiResponse={voiceAiResponse}
+      />
     </div>
   );
 }

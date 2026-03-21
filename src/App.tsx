@@ -23,6 +23,8 @@ const AgentConfig = lazy(() => import("./pages/AgentConfig.tsx"));
 const AgentRun = lazy(() => import("./pages/AgentRun.tsx"));
 const WorkflowEditor = lazy(() => import("./pages/WorkflowEditor.tsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
+const Settings = lazy(() => import("./pages/Settings.tsx"));
+const Admin = lazy(() => import("./pages/Admin.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -106,6 +108,22 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <WorkflowEditor />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <Admin />
                   </ProtectedRoute>
                 }
               />
