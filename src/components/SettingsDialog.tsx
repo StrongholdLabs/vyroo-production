@@ -297,6 +297,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </div>
       </DialogContent>
     </Dialog>);
+}
 
 
 function AccountTab() {
