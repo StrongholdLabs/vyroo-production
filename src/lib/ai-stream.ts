@@ -19,19 +19,30 @@ export interface StreamOptions {
 export async function streamChat(options: StreamOptions) {
   const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, signal } = options;
 
-  // Get a valid session — try refresh first, fall back to cached
+  console.log("[ai-stream] streamChat called for:", message);
+
+  // Get a valid session — try cached first (faster), refresh only if needed
   let accessToken: string | undefined;
   try {
-    const { data: { session: freshSession } } = await supabase.auth.refreshSession();
-    accessToken = freshSession?.access_token;
-  } catch {}
-
-  if (!accessToken) {
     const { data: { session: cachedSession } } = await supabase.auth.getSession();
     accessToken = cachedSession?.access_token;
+    console.log("[ai-stream] cached session:", !!cachedSession, "token:", accessToken?.length);
+  } catch (e) {
+    console.error("[ai-stream] getSession error:", e);
   }
 
   if (!accessToken) {
+    try {
+      const { data: { session: freshSession } } = await supabase.auth.refreshSession();
+      accessToken = freshSession?.access_token;
+      console.log("[ai-stream] refreshed session:", !!freshSession, "token:", accessToken?.length);
+    } catch (e) {
+      console.error("[ai-stream] refreshSession error:", e);
+    }
+  }
+
+  if (!accessToken) {
+    console.error("[ai-stream] No access token available");
     onError("Not authenticated — please sign in again");
     return;
   }
