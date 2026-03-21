@@ -74,6 +74,8 @@ export default defineConfig(({ mode }) => ({
           "vendor-motion": ["motion"],
           "vendor-supabase": ["@supabase/supabase-js"],
           "vendor-icons": ["lucide-react"],
+          "vendor-three": ["three"],
+          "vendor-gsap": ["gsap"],
         },
       },
     },

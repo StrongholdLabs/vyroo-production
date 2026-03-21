@@ -4,7 +4,6 @@ import { Header } from "@/components/Header";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
 import AnimatedCardStack from "@/components/ui/animated-card-stack";
-import { AsciiBackground } from "@/components/ui/ascii-background";
 import { useAuth } from "@/contexts/AuthContext";
 import type { VerticalType } from "@/lib/plugins/types";
 
@@ -79,17 +78,11 @@ const Index = () => {
   const slogan = verticalSlogans[workspace] || verticalSlogans.general;
 
   return (
-    <div className="relative min-h-screen bg-black overflow-y-auto">
-      {/* ─── Animated background ──────────────────────────────────── */}
-      <AsciiBackground className="fixed inset-0 z-0" />
-
-      {/* ─── Header ──────────────────────────────────────────────── */}
-      <div className="relative z-10">
-        <Header />
-      </div>
+    <div className="min-h-screen bg-background overflow-y-auto">
+      <Header />
 
       {/* ─── Centered Composer ──────────────────────────────────── */}
-      <main className="relative z-10 flex flex-col items-center px-4 pt-32 md:pt-40">
+      <main className="flex flex-col items-center px-4 pt-32 md:pt-40">
         <div
           className={`flex flex-col items-center gap-5 w-full max-w-2xl transition-all duration-700 ${
             visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
@@ -103,12 +96,12 @@ const Index = () => {
             }`}
           >
             <h1
-              className="font-display text-3xl md:text-4xl lg:text-5xl text-white leading-[1.15] tracking-tight"
+              className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight"
               style={{ textWrap: "balance" as any }}
             >
               {slogan.headline}
             </h1>
-            <p className="mt-3 text-gray-400 text-sm md:text-base max-w-lg mx-auto">
+            <p className="mt-3 text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
               {slogan.sub}
             </p>
           </div>
@@ -141,13 +134,13 @@ const Index = () => {
       </main>
 
       {/* ─── Footer ──────────────────────────────────────────────── */}
-      <div className="relative z-10 pt-16 pb-6 px-4 text-center">
-        <div className="flex items-center justify-center gap-3 text-[11px] text-gray-600">
-          <Link to="/terms" className="hover:text-gray-400 transition-colors">Terms</Link>
+      <div className="pt-16 pb-6 px-4 text-center">
+        <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground/40">
+          <Link to="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
           <span>&middot;</span>
-          <Link to="/privacy" className="hover:text-gray-400 transition-colors">Privacy</Link>
+          <Link to="/privacy" className="hover:text-muted-foreground transition-colors">Privacy</Link>
           <span>&middot;</span>
-          <Link to="/cookies" className="hover:text-gray-400 transition-colors">Cookies</Link>
+          <Link to="/cookies" className="hover:text-muted-foreground transition-colors">Cookies</Link>
         </div>
       </div>
     </div>

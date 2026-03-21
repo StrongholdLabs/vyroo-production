@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
-import { AsciiBackground } from "@/components/ui/ascii-background";
+import NeonCrystalCity from "@/components/ui/neon-crystal-city";
 import vyrooLogo from "@/assets/vyroo-icon.png";
 
 export default function Login() {
@@ -40,7 +40,7 @@ export default function Login() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-black px-4">
-      <AsciiBackground className="fixed inset-0 z-0" />
+      <NeonCrystalCity cameraSpeed={2} maxSteps={60} opacity={0.25} />
       <div className="relative z-10 w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
