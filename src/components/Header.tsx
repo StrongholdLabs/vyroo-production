@@ -78,6 +78,7 @@ export function Header() {
   if (isDashboard) return null;
 
   return (
+    <>
     <header
       className={cn(
         "fixed top-6 left-1/2 -translate-x-1/2 z-50",
@@ -123,33 +124,26 @@ export function Header() {
           />
         </nav>
 
-        {/* Desktop auth */}
-        <div className="hidden sm:flex items-center gap-3">
-          {!loading && !user ? (
-            <>
+        {/* Desktop auth — only sign in/up inside pill */}
+        {!loading && !user && (
+          <div className="hidden sm:flex items-center gap-3">
+            <Link
+              to="/login"
+              className="px-4 py-2 text-sm border border-[#333] bg-[rgba(31,31,31,0.62)] text-gray-300 rounded-full hover:border-white/50 hover:text-white transition-colors duration-200"
+            >
+              Sign in
+            </Link>
+            <div className="relative group">
+              <div className="absolute inset-0 -m-2 rounded-full bg-gray-100 opacity-40 blur-lg pointer-events-none transition-all duration-300 ease-out group-hover:opacity-60 group-hover:blur-xl group-hover:-m-3" />
               <Link
-                to="/login"
-                className="px-4 py-2 text-sm border border-[#333] bg-[rgba(31,31,31,0.62)] text-gray-300 rounded-full hover:border-white/50 hover:text-white transition-colors duration-200"
+                to="/signup"
+                className="relative z-10 px-4 py-2 text-sm font-semibold text-black bg-gradient-to-br from-gray-100 to-gray-300 rounded-full hover:from-gray-200 hover:to-gray-400 transition-all duration-200"
               >
-                Sign in
+                Sign up
               </Link>
-              <div className="relative group">
-                <div className="absolute inset-0 -m-2 rounded-full bg-gray-100 opacity-40 blur-lg pointer-events-none transition-all duration-300 ease-out group-hover:opacity-60 group-hover:blur-xl group-hover:-m-3" />
-                <Link
-                  to="/signup"
-                  className="relative z-10 px-4 py-2 text-sm font-semibold text-black bg-gradient-to-br from-gray-100 to-gray-300 rounded-full hover:from-gray-200 hover:to-gray-400 transition-all duration-200"
-                >
-                  Sign up
-                </Link>
-              </div>
-            </>
-          ) : !loading && user ? (
-            <div className="flex items-center gap-2">
-              <NotificationBell />
-              <ProfileAvatar />
             </div>
-          ) : null}
-        </div>
+          </div>
+        )}
 
         {/* Mobile hamburger */}
         <button
@@ -196,6 +190,15 @@ export function Header() {
         )}
       </div>
     </header>
+
+      {/* Authenticated user controls — outside the pill */}
+      {!loading && user && (
+        <div className="fixed top-7 right-6 z-50 flex items-center gap-2">
+          <NotificationBell />
+          <ProfileAvatar />
+        </div>
+      )}
+    </>
   );
 }
 
