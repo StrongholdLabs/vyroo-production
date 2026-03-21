@@ -17,6 +17,7 @@ import {
   Trash2,
   Plug,
   Zap,
+  Store,
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { useConversations, useDeleteConversation } from "@/hooks/useConversations";
@@ -83,6 +84,7 @@ export function DashboardSidebar({
             <SidebarNavItem icon={<Bot size={16} />} label="Agents" badge="New" />
             <SidebarNavItem icon={<Zap size={16} />} label="Skills" to="/skills" />
             <SidebarNavItem icon={<Plug size={16} />} label="Connectors" to="/connectors" />
+            <SidebarNavItem icon={<Store size={16} />} label="Plugins" to="/plugins" badge="New" />
             <SidebarNavItem icon={<Search size={16} />} label="Search" />
             <SidebarNavItem icon={<BookOpen size={16} />} label="Library" />
           </div>

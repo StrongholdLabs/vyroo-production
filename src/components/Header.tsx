@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { WorkspaceSelector } from "@/components/WorkspaceSelector";
 import { useAuth } from "@/contexts/AuthContext";
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI;
@@ -25,9 +26,10 @@ export function Header() {
           <span>Vyroo</span>
         </Link>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground font-body">Vyroo 1.6 Lite</span>
-          <ChevronDown size={12} className="text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          <WorkspaceSelector />
+          <span className="text-xs text-muted-foreground/50">|</span>
+          <span className="text-sm text-muted-foreground font-body">v1.6 Lite</span>
         </div>
 
         <div className="flex items-center gap-2">

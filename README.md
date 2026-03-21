@@ -27,11 +27,13 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 
 ## Features
 
-- Multi-provider AI chat with streaming
+- Multi-provider AI chat with streaming (Claude, GPT, Gemini, Llama)
+- Plugin architecture with vertical marketplace (E-Commerce, Healthcare, Finance, etc.)
 - Conversation persistence with auto-titling
-- Follow-up suggestions
-- Voice input
+- Follow-up suggestions with category icons
+- Voice input via Web Speech API
 - Skills system (toggleable AI capabilities)
 - Connectors (Google, Slack, Notion, GitHub, Shopify)
-- Cross-tab real-time sync
-- Electron desktop app
+- Cross-tab real-time sync via BroadcastChannel
+- Electron desktop app (macOS, Windows, Linux)
+- E-Commerce plugin with Shopify integration, signal detection, and AI tools

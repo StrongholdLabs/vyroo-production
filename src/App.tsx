@@ -12,6 +12,7 @@ import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
 import Connectors from "./pages/Connectors.tsx";
 import Skills from "./pages/Skills.tsx";
+import Plugins from "./pages/Plugins.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Connectors />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/plugins"
+                element={
+                  <ProtectedRoute>
+                    <Plugins />
                   </ProtectedRoute>
                 }
               />
