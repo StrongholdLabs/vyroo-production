@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { CookieConsent } from "@/components/CookieConsent";
 import { lazy, Suspense } from "react";
 
 // Lazy-load all pages for optimal code splitting
@@ -25,6 +26,9 @@ const WorkflowEditor = lazy(() => import("./pages/WorkflowEditor.tsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
+const Terms = lazy(() => import("./pages/Terms.tsx"));
+const Privacy = lazy(() => import("./pages/Privacy.tsx"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -128,6 +132,9 @@ const App = () => (
                 }
               />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/cookies" element={<CookiePolicy />} />
               <Route
                 path="/onboarding"
                 element={
@@ -139,6 +146,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
+            <CookieConsent />
           </Router>
         </TooltipProvider>
       </ThemeProvider>

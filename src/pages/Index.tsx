@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { LandingSidebar } from "@/components/LandingSidebar";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
 import { useAuth } from "@/contexts/AuthContext";
@@ -102,76 +103,67 @@ const Index = () => {
   const isGeneral = workspace === "general";
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
+    <div className="h-screen flex bg-background overflow-hidden">
+      {/* ─── Sidebar ─────────────────────────────────────────────────── */}
+      <LandingSidebar />
 
-      {/* ─── Centered Composer ──────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 pb-24">
-        <div
-          className={`flex flex-col items-center gap-5 w-full max-w-2xl transition-all duration-700 ${
-            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
-          style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
-        >
-          {/* Dynamic headline — changes with workspace */}
+      {/* ─── Main area ───────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header />
+
+        {/* ─── Centered Composer ────────────────────────────────────── */}
+        <main className="flex-1 flex flex-col items-center justify-center px-4 pb-24">
           <div
-            className={`text-center transition-all duration-300 ${
-              transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
-            }`}
-          >
-            <h1
-              className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight"
-              style={{ textWrap: "balance" as any }}
-            >
-              {slogan.headline}
-            </h1>
-            <p className="mt-3 text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
-              {slogan.sub}
-            </p>
-          </div>
-
-          {/* Composer */}
-          <div className="w-full">
-            <TaskInput />
-          </div>
-
-          {/* Action chips */}
-          <div
-            className={`transition-all duration-700 delay-200 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+            className={`flex flex-col items-center gap-5 w-full max-w-2xl transition-all duration-700 ${
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
             style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
-            <ActionChips />
+            {/* Dynamic headline — changes with workspace */}
+            <div
+              className={`text-center transition-all duration-300 ${
+                transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+              }`}
+            >
+              <h1
+                className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight"
+                style={{ textWrap: "balance" as any }}
+              >
+                {slogan.headline}
+              </h1>
+              <p className="mt-3 text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
+                {slogan.sub}
+              </p>
+            </div>
+
+            {/* Composer */}
+            <div className="w-full">
+              <TaskInput />
+            </div>
+
+            {/* Action chips */}
+            <div
+              className={`transition-all duration-700 delay-200 ${
+                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+              }`}
+              style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+            >
+              <ActionChips />
+            </div>
+          </div>
+        </main>
+
+        {/* ─── Footer ─────────────────────────────────────────────────── */}
+        <div className="py-3 px-4 text-center">
+          <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground/40">
+            <Link to="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
+            <span>&middot;</span>
+            <Link to="/privacy" className="hover:text-muted-foreground transition-colors">Privacy</Link>
+            <span>&middot;</span>
+            <Link to="/cookies" className="hover:text-muted-foreground transition-colors">Cookies</Link>
           </div>
         </div>
-
-        {/* ─── Bottom subtle auth links ──────────────────────────────── */}
-        <div
-          className={`mt-12 flex items-center gap-4 text-sm text-muted-foreground transition-all duration-700 delay-400 ${
-            visible ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <Link to="/login" className="hover:text-foreground transition-colors">
-            Sign in
-          </Link>
-          <span className="text-border">|</span>
-          <Link to="/signup" className="hover:text-foreground transition-colors">
-            Create account
-          </Link>
-          <span className="text-border">|</span>
-          <Link to="/pricing" className="hover:text-foreground transition-colors">
-            Pricing
-          </Link>
-        </div>
-      </main>
-
-      {/* ─── Minimal footer ──────────────────────────────────────────── */}
-      <footer className="py-4 px-4 text-center">
-        <p className="text-xs text-muted-foreground/40">
-          Vyroo — Everything you need, nothing you don't.
-        </p>
-      </footer>
+      </div>
     </div>
   );
 };
