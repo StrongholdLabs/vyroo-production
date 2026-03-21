@@ -38,9 +38,11 @@ interface ChatPanelProps {
   computerVisible?: boolean;
   onOpenComputer?: () => void;
   onSendMessage?: (msg: string) => void;
+  initialMessage?: string | null;
+  onInitialMessageSent?: () => void;
 }
 
-export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage }: ChatPanelProps) {
+export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage, initialMessage, onInitialMessageSent }: ChatPanelProps) {
   const [message, setMessage] = useState("");
   const [reportMenuOpen, setReportMenuOpen] = useState<string | null>(null);
   const [previewMsg, setPreviewMsg] = useState<ChatMsg | null>(null);
@@ -51,6 +53,17 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps } = useAIChat({
     conversationId: conversation.id,
   });
+
+  // Auto-send initial message from TaskInput
+  const initialSentRef = useRef(false);
+  useEffect(() => {
+    if (initialMessage && !initialSentRef.current && !isStreaming) {
+      initialSentRef.current = true;
+      onSendMessage?.(initialMessage);
+      sendAI(initialMessage);
+      onInitialMessageSent?.();
+    }
+  }, [initialMessage]);
 
   const { steps, messages, followUps: staticFollowUps } = conversation;
   // Use AI-generated follow-ups if available, otherwise fall back to conversation's static ones

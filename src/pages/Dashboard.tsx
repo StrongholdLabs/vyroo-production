@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ChatPanel } from "@/components/ChatPanel";
@@ -18,12 +18,15 @@ import { Menu, Loader2, Monitor } from "lucide-react";
 const Dashboard = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeConversation, setActiveConversation] = useState(conversationId || "");
   const [computerVisible, setComputerVisible] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileComputerOpen, setMobileComputerOpen] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const initialMessageHandled = useRef(false);
 
   // Fetch all conversations to auto-select first when none specified
   const { data: conversations } = useConversations();
@@ -39,6 +42,17 @@ const Dashboard = () => {
       navigate(`/dashboard/${firstId}`, { replace: true });
     }
   }, [activeConversation, conversations, navigate]);
+
+  // Pick up initial message from TaskInput navigation
+  useEffect(() => {
+    const state = location.state as { initialMessage?: string } | null;
+    if (state?.initialMessage && !initialMessageHandled.current) {
+      initialMessageHandled.current = true;
+      setPendingMessage(state.initialMessage);
+      // Clear state so refresh doesn't re-send
+      window.history.replaceState({}, "");
+    }
+  }, [location.state]);
 
   // Real-time subscriptions for multi-tab sync
   useRealtimeMessages(activeConversation);
@@ -167,6 +181,8 @@ const Dashboard = () => {
                   computerVisible={computerVisible}
                   onOpenComputer={handleOpenComputer}
                   onSendMessage={handleSendMessage}
+                  initialMessage={pendingMessage}
+                  onInitialMessageSent={() => setPendingMessage(null)}
                 />
               </div>
             </ResizablePanel>
