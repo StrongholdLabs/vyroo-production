@@ -8,7 +8,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask, TimelineEntry } from "@/data/conversations";
 import vyrooIcon from "@/assets/vyroo-icon.png";
-import { TokenizedLine, getTypingDelay } from "@/components/computer/SyntaxHighlighter";
+import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
 import { TerminalTab } from "@/components/computer/TerminalTab";
 import { MarkdownRenderer } from "@/components/computer/MarkdownRenderer";
@@ -85,7 +85,6 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const [showDiff, setShowDiff] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
   const prevCodeRef = useRef(codeLines);
   const [scrollState, setScrollState] = useState({ scrollTop: 0, scrollHeight: 0, clientHeight: 0 });
@@ -104,25 +103,11 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
 
   useEffect(() => {
     if (visibleChars >= totalChars) return;
-    // Determine current character for variable-speed typing
-    let charsSoFar = 0;
-    let currentChar = "";
-    let remainingChars = "";
-    for (let i = 0; i < codeLines.length; i++) {
-      const lineContent = codeLines[i].content || "";
-      const lineLen = lineContent.length + 1; // +1 for newline
-      if (charsSoFar + lineLen > visibleChars) {
-        const posInLine = visibleChars - charsSoFar;
-        currentChar = posInLine < lineContent.length ? lineContent[posInLine] : "\n";
-        remainingChars = lineContent.slice(posInLine + 1);
-        break;
-      }
-      charsSoFar += lineLen;
-    }
-    const delay = getTypingDelay(currentChar, remainingChars);
-    const timer = setTimeout(() => setVisibleChars(v => Math.min(v + 1, totalChars)), delay);
+    const chunkSize = 1 + Math.floor(Math.random() * 3);
+    const delay = 8 + Math.random() * 25;
+    const timer = setTimeout(() => setVisibleChars(v => Math.min(v + chunkSize, totalChars)), delay);
     return () => clearTimeout(timer);
-  }, [visibleChars, totalChars, codeLines]);
+  }, [visibleChars, totalChars]);
 
   // Visible lines for code view
   const { visibleLines, partialContent } = (() => {
@@ -181,32 +166,6 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
     }
   }, [handleTabChange]);
 
-  // Keyboard shortcuts: Cmd/Ctrl+1-4 for tabs, Escape exits fullscreen
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key === "1") {
-        e.preventDefault();
-        handleTabChange("code");
-      } else if (mod && e.key === "2") {
-        e.preventDefault();
-        handleTabChange("preview");
-      } else if (mod && e.key === "3") {
-        e.preventDefault();
-        handleTabChange("terminal");
-      } else if (mod && e.key === "4") {
-        e.preventDefault();
-        handleTabChange("timeline");
-      } else if (e.key === "Escape" && isFullscreen) {
-        setIsFullscreen(false);
-      }
-    };
-    if (visible) {
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [visible, isFullscreen, handleTabChange]);
-
   const handleMinimapScroll = useCallback((ratio: number) => {
     if (codeRef.current) codeRef.current.scrollTop = ratio * codeRef.current.scrollHeight;
   }, []);
@@ -252,11 +211,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const diffLines = generateDiff(codeLines);
 
   return (
-    <div className={`computer-panel flex flex-col flex-shrink-0 ${
-      isFullscreen
-        ? "fixed inset-0 z-50 bg-background w-screen h-screen"
-        : "h-full w-full"
-    }`}>
+    <div className="computer-panel flex flex-col h-full w-full flex-shrink-0">
       {/* Header */}
       <div className="computer-header flex items-center justify-between px-4 h-10 flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -265,13 +220,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         </div>
         <div className="flex items-center gap-1">
           <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Square size={14} /></button>
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"
-            title={isFullscreen ? "Exit fullscreen (Esc)" : "Fullscreen"}
-          >
-            <Maximize2 size={14} />
-          </button>
+          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Maximize2 size={14} /></button>
           <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><X size={14} /></button>
         </div>
       </div>
@@ -375,28 +324,6 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
                     <DiffView diffLines={diffLines} visibleCount={visibleLines} />
                   ) : (
                     <div className="p-4 text-[13px] leading-[1.7] font-mono">
-                      <style dangerouslySetInnerHTML={{ __html: `
-                        @keyframes cursor-blink {
-                          0%, 50% { opacity: 1; }
-                          51%, 100% { opacity: 0; }
-                        }
-                        .typing-cursor {
-                          display: inline-block;
-                          width: 2px;
-                          height: 1em;
-                          background: hsl(210 60% 70%);
-                          margin-left: 1px;
-                          vertical-align: text-bottom;
-                          animation: cursor-blink 1s step-end infinite;
-                          box-shadow: 0 0 4px hsl(210 60% 70% / 0.5);
-                        }
-                        .typing-line-active {
-                          background: hsl(210 60% 50% / 0.05);
-                          border-radius: 2px;
-                          margin: 0 -4px;
-                          padding: 0 4px;
-                        }
-                      ` }} />
                       {codeLines.slice(0, visibleLines).map((line, i) => (
                         <div key={`${line.num}-${i}`} className="flex typing-line">
                           <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{line.num}</span>
@@ -406,11 +333,11 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
                         </div>
                       ))}
                       {isTyping && visibleLines < codeLines.length && (
-                        <div className="flex typing-line typing-line-active">
+                        <div className="flex typing-line">
                           <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{codeLines[visibleLines].num}</span>
                           <span className="break-all">
                             <TokenizedLine content={partialContent || "\u00A0"} />
-                            <span className="typing-cursor" />
+                            <span className="inline-block w-[2px] h-3.5 bg-foreground/70 animate-pulse ml-[1px] align-text-bottom" />
                           </span>
                         </div>
                       )}

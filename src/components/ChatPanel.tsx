@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Check,
   ChevronDown,
@@ -6,7 +6,7 @@ import {
   Sparkles,
   ArrowUp,
   Plus,
-
+  Mic,
   Star,
   ArrowRight,
   Globe,
@@ -15,8 +15,6 @@ import {
   Download,
   MoreHorizontal,
   ChevronRight,
-  Square,
-  AudioLines,
 } from "lucide-react";
 import type { Conversation, ChatMessage as ChatMsg } from "@/data/conversations";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
@@ -26,11 +24,6 @@ import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { InlineComputerCard } from "@/components/InlineComputerCard";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { ProjectInitCard } from "@/components/ProjectInitCard";
-import { ModelSwitcher } from "@/components/ModelSwitcher";
-import { VoiceMicButton } from "@/components/VoiceMicButton";
-import { VoiceAgentOverlay } from "@/components/VoiceAgentOverlay";
-import { FollowUpPanel } from "@/components/FollowUpPanel";
-import { useAIChat } from "@/hooks/useAIChat";
 
 interface ChatPanelProps {
   conversation: Conversation;
@@ -41,47 +34,42 @@ interface ChatPanelProps {
 
 export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage }: ChatPanelProps) {
   const [message, setMessage] = useState("");
+  const [isThinking, setIsThinking] = useState(false);
   const [reportMenuOpen, setReportMenuOpen] = useState<string | null>(null);
   const [previewMsg, setPreviewMsg] = useState<ChatMsg | null>(null);
-  const [voiceAgentOpen, setVoiceAgentOpen] = useState(false);
-  const [voiceAiResponse, setVoiceAiResponse] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps } = useAIChat({
-    conversationId: conversation.id,
-  });
-
-  const { steps, messages, followUps: staticFollowUps } = conversation;
-  // Use AI-generated follow-ups if available, otherwise fall back to conversation's static ones
-  const dynamicFollowUps = aiFollowUps.length > 0 ? aiFollowUps : [];
+  const { steps, messages, followUps } = conversation;
   const isComplete = conversation.isComplete ?? false;
   const isWebsite = conversation.type === "website";
   const totalSteps = steps.length;
   const completedSteps = steps.filter((s) => s.status === "complete").length;
-  const isThinking = isStreaming;
 
+  // Simulate thinking on send
   const handleSend = () => {
     if (!message.trim()) return;
     onSendMessage?.(message);
-    sendAI(message);
     setMessage("");
+    setIsThinking(true);
+    setTimeout(() => setIsThinking(false), 3000);
   };
+
+  // Show thinking briefly on conversation switch
+  useEffect(() => {
+    setIsThinking(true);
+    const t = setTimeout(() => setIsThinking(false), 2000);
+    return () => clearTimeout(t);
+  }, [conversation.id]);
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-12 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-3">
-          <ModelSwitcher />
+          <span className="text-sm text-muted-foreground font-body">Vyroo 1.6 Lite</span>
+          <ChevronDown size={12} className="text-muted-foreground" />
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setVoiceAgentOpen(true)}
-            className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
-            title="Voice Agent"
-          >
-            <AudioLines size={16} />
-          </button>
           {[Sparkles, ArrowUp, Globe, FileText].map((Icon, i) => (
             <button key={i} className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors">
               <Icon size={16} />
@@ -247,42 +235,15 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           <span className="text-sm text-muted-foreground font-medium">Vyroo will continue working after your reply</span>
         </div>
 
-        {/* Streaming response */}
-        {isStreaming && streamingContent && (
-          <div className="space-y-2">
-            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{streamingContent}<span className="inline-block w-0.5 h-4 bg-foreground animate-pulse ml-0.5 align-text-bottom" /></p>
-          </div>
-        )}
-
-        {/* AI error */}
-        {aiError && (
-          <div className="px-3 py-2 rounded-lg border border-destructive/30 bg-destructive/10 text-sm text-destructive">
-            {aiError}
-          </div>
-        )}
-
         {/* Thinking indicator */}
-        {isThinking && !streamingContent && <ThinkingIndicator />}
+        {isThinking && <ThinkingIndicator />}
 
-        {/* AI-generated follow-ups */}
-        <FollowUpPanel
-          followUps={dynamicFollowUps}
-          visible={!isThinking && dynamicFollowUps.length > 0}
-          onSelect={(text) => {
-            onSendMessage?.(text);
-            sendAI(text);
-          }}
-        />
-
-        {/* Static follow-ups (from conversation data, fallback) */}
-        {staticFollowUps.length > 0 && dynamicFollowUps.length === 0 && !isThinking && (
+        {/* Follow-ups */}
+        {followUps.length > 0 && !isThinking && (
           <div className="space-y-2 pt-2">
             <span className="text-xs text-muted-foreground font-medium">Suggested follow-ups</span>
-            {staticFollowUps.map((item, i) => (
-              <button key={i} className="suggested-followup w-full text-left" onClick={() => {
-                onSendMessage?.(item.text);
-                sendAI(item.text);
-              }}>
+            {followUps.map((item, i) => (
+              <button key={i} className="suggested-followup w-full text-left">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <span className="text-muted-foreground flex-shrink-0">{item.icon}</span>
                   <span className="text-sm text-foreground truncate">{item.text}</span>
@@ -370,23 +331,16 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
               </button>
             </div>
             <div className="flex items-center gap-1">
-              <VoiceMicButton onTranscript={(text) => setMessage((prev) => prev + text)} />
-              {isStreaming ? (
-                <button
-                  onClick={abort}
-                  className="p-2.5 rounded-xl bg-destructive text-destructive-foreground hover:opacity-90 transition-all duration-150 active:scale-95"
-                >
-                  <Square size={16} />
-                </button>
-              ) : (
-                <button
-                  onClick={handleSend}
-                  disabled={!message.trim()}
-                  className="p-2.5 rounded-xl bg-foreground text-primary-foreground disabled:opacity-20 hover:opacity-90 transition-all duration-150 active:scale-95"
-                >
-                  <ArrowUp size={16} />
-                </button>
-              )}
+              <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent active:scale-95">
+                <Mic size={18} />
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={!message.trim()}
+                className="p-2.5 rounded-xl bg-foreground text-primary-foreground disabled:opacity-20 hover:opacity-90 transition-all duration-150 active:scale-95"
+              >
+                <ArrowUp size={16} />
+              </button>
             </div>
           </div>
         </div>
@@ -402,16 +356,6 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           tableData={previewMsg.tableData}
         />
       )}
-      {/* Voice Agent Overlay */}
-      <VoiceAgentOverlay
-        open={voiceAgentOpen}
-        onClose={() => setVoiceAgentOpen(false)}
-        onTranscript={(text) => {
-          onSendMessage?.(text);
-          sendAI(text);
-        }}
-        aiResponse={voiceAiResponse}
-      />
     </div>
   );
 }

@@ -89,11 +89,6 @@ export function CodeMinimap({ codeLines, visibleLines, scrollTop, scrollHeight, 
       style={{ backgroundColor: "hsl(var(--code-bg))" }}
       onClick={handleClick}
     >
-      {/* Top gradient fade */}
-      <div
-        className="absolute top-0 left-0 right-0 h-6 z-10 pointer-events-none"
-        style={{ background: "linear-gradient(to bottom, hsl(var(--code-bg)), transparent)" }}
-      />
       <canvas ref={canvasRef} className="block" />
       {/* Viewport indicator */}
       <div
@@ -101,16 +96,10 @@ export function CodeMinimap({ codeLines, visibleLines, scrollTop, scrollHeight, 
         style={{
           top: `${viewportTop}px`,
           height: `${viewportHeight}px`,
-          backgroundColor: "hsl(210 60% 70% / 0.12)",
-          borderTop: "1px solid hsl(210 60% 70% / 0.25)",
-          borderBottom: "1px solid hsl(210 60% 70% / 0.25)",
-          boxShadow: "inset 0 0 6px hsl(210 60% 70% / 0.08)",
+          backgroundColor: "hsl(210 17% 90% / 0.08)",
+          borderTop: "1px solid hsl(210 17% 90% / 0.15)",
+          borderBottom: "1px solid hsl(210 17% 90% / 0.15)",
         }}
-      />
-      {/* Bottom gradient fade */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-6 z-10 pointer-events-none"
-        style={{ background: "linear-gradient(to top, hsl(var(--code-bg)), transparent)" }}
       />
     </div>
   );

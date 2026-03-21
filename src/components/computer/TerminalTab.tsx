@@ -69,14 +69,9 @@ const TYPE_COLORS: Record<TerminalLine["type"], string> = {
 
 export function TerminalTab({ steps, isActive }: TerminalTabProps) {
   const [visibleCount, setVisibleCount] = useState(0);
-  const [commandHistory, setCommandHistory] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [inputValue, setInputValue] = useState("");
   const termRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const allLines = generateTerminalLines(steps);
   const prevStepsRef = useRef(steps);
-  const MAX_HISTORY = 50;
 
   useEffect(() => {
     if (prevStepsRef.current !== steps) {
@@ -96,64 +91,8 @@ export function TerminalTab({ steps, isActive }: TerminalTabProps) {
     if (termRef.current) termRef.current.scrollTop = termRef.current.scrollHeight;
   }, [visibleCount]);
 
-  // Extract commands from visible lines to populate history
-  useEffect(() => {
-    const commands = allLines
-      .slice(0, visibleCount)
-      .filter(l => l.type === "command" && l.text.startsWith("$"))
-      .map(l => l.text.replace(/^\$\s*/, "").replace(/█$/, "").trim())
-      .filter(Boolean);
-    if (commands.length > 0) {
-      setCommandHistory(prev => {
-        const merged = [...new Set([...prev, ...commands])];
-        return merged.slice(-MAX_HISTORY);
-      });
-    }
-  }, [visibleCount, allLines]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      if (commandHistory.length === 0) return;
-      const newIndex = historyIndex < commandHistory.length - 1 ? historyIndex + 1 : historyIndex;
-      setHistoryIndex(newIndex);
-      setInputValue(commandHistory[commandHistory.length - 1 - newIndex] || "");
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      if (historyIndex <= 0) {
-        setHistoryIndex(-1);
-        setInputValue("");
-      } else {
-        const newIndex = historyIndex - 1;
-        setHistoryIndex(newIndex);
-        setInputValue(commandHistory[commandHistory.length - 1 - newIndex] || "");
-      }
-    } else if (e.key === "Enter" && inputValue.trim()) {
-      setCommandHistory(prev => [...prev.slice(-(MAX_HISTORY - 1)), inputValue.trim()]);
-      setInputValue("");
-      setHistoryIndex(-1);
-    }
-  };
-
-  const isFinished = visibleCount >= allLines.length;
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: "hsl(var(--code-bg))" }}>
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes terminal-blink {
-          0%, 50% { opacity: 1; }
-          51%, 100% { opacity: 0; }
-        }
-        .terminal-cursor {
-          display: inline-block;
-          width: 7px;
-          height: 14px;
-          background: hsl(50 70% 65% / 0.8);
-          animation: terminal-blink 1s step-end infinite;
-          vertical-align: text-bottom;
-          margin-left: 1px;
-        }
-      ` }} />
       {/* Terminal header bar */}
       <div className="flex items-center gap-2 px-4 py-1.5 border-b flex-shrink-0" style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}>
         <div className="flex items-center gap-1.5">
@@ -164,33 +103,14 @@ export function TerminalTab({ steps, isActive }: TerminalTabProps) {
         <span className="text-[10px] text-muted-foreground ml-2 font-mono">vyroo — bash — 80×24</span>
       </div>
 
-      <div
-        ref={termRef}
-        className="flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed"
-        onClick={() => inputRef.current?.focus()}
-      >
+      <div ref={termRef} className="flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed">
         {allLines.slice(0, visibleCount).map((line, i) => (
           <div key={i} className={`${TYPE_COLORS[line.type]} ${line.text === "" ? "h-3" : ""}`}>
             {line.text}
           </div>
         ))}
-        {!isFinished && (
-          <span className="terminal-cursor" />
-        )}
-        {isFinished && (
-          <div className="flex items-center">
-            <span className="text-[hsl(50_70%_65%)]">$ </span>
-            <input
-              ref={inputRef}
-              value={inputValue}
-              onChange={e => { setInputValue(e.target.value); setHistoryIndex(-1); }}
-              onKeyDown={handleKeyDown}
-              className="bg-transparent border-none outline-none text-[hsl(50_70%_65%)] flex-1 font-mono text-xs caret-transparent"
-              spellCheck={false}
-              autoComplete="off"
-            />
-            <span className="terminal-cursor" />
-          </div>
+        {visibleCount < allLines.length && (
+          <span className="inline-block w-2 h-3.5 bg-foreground/70 animate-pulse" />
         )}
       </div>
     </div>
