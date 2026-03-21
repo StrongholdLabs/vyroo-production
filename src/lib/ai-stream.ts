@@ -16,9 +16,23 @@ export interface StreamOptions {
 export async function streamChat(options: StreamOptions) {
   const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, signal } = options;
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    onError("Not authenticated");
+  // Force refresh to get a valid token
+  const { data: { session: freshSession }, error: refreshError } = await supabase.auth.refreshSession();
+  const session = freshSession;
+  if (refreshError || !session) {
+    // Fallback to cached session
+    const { data: { session: cachedSession } } = await supabase.auth.getSession();
+    if (!cachedSession) {
+      onError("Not authenticated");
+      return;
+    }
+    // Use cached session as fallback
+    Object.assign(session || {}, cachedSession);
+  }
+
+  const accessToken = session?.access_token;
+  if (!accessToken) {
+    onError("No access token");
     return;
   }
 
@@ -26,12 +40,14 @@ export async function streamChat(options: StreamOptions) {
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const url = `${supabaseUrl}/functions/v1/chat`;
 
+  console.log("[ai-stream] Calling chat with token length:", accessToken.length, "apikey length:", supabaseAnonKey?.length);
+
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.access_token}`,
+        "Authorization": `Bearer ${accessToken}`,
         "apikey": supabaseAnonKey,
         "x-client-info": "vyroo-web",
       },
