@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
 import AnimatedCardStack from "@/components/ui/animated-card-stack";
+import { SpecialText } from "@/components/ui/special-text";
 import { useAuth } from "@/contexts/AuthContext";
 import type { VerticalType } from "@/lib/plugins/types";
 
@@ -107,7 +108,14 @@ const Index = () => {
               className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight"
               style={{ textWrap: "balance" as any }}
             >
-              {slogan.headline}
+              <SpecialText
+                key={workspace}
+                speed={25}
+                delay={0.3}
+                className="text-3xl md:text-4xl lg:text-5xl text-foreground tracking-tight"
+              >
+                {slogan.headline}
+              </SpecialText>
             </h1>
             <p className="mt-3 text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
               {slogan.sub}
