@@ -31,16 +31,22 @@ export async function streamChat(options: StreamOptions) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-        apikey: supabaseAnonKey,
+        "Authorization": `Bearer ${session.access_token}`,
+        "apikey": supabaseAnonKey,
+        "x-client-info": "vyroo-web",
       },
       body: JSON.stringify({ conversationId, message, provider, model }),
       signal,
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({ error: "Stream request failed" }));
-      onError(err.error || `HTTP ${response.status}`);
+      let errorMsg = `HTTP ${response.status}`;
+      try {
+        const err = await response.json();
+        errorMsg = err.error || err.message || errorMsg;
+      } catch {}
+      console.error("[ai-stream] Chat error:", response.status, errorMsg);
+      onError(errorMsg);
       return;
     }
 
@@ -87,6 +93,7 @@ export async function streamChat(options: StreamOptions) {
     onDone();
   } catch (error) {
     if (signal?.aborted) return;
+    console.error("[ai-stream] Fetch error:", error);
     onError(String(error));
   }
 }
