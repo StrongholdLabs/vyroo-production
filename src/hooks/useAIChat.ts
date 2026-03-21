@@ -81,11 +81,8 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
             };
             if (existing >= 0) {
               const updated = [...prev];
-              updated[existing] = {
-                ...updated[existing],
-                ...step,
-                logs: [...(updated[existing].logs || []), ...(step.logs || [])],
-              };
+              // Replace step entirely — don't merge logs (causes duplication)
+              updated[existing] = step;
               return updated;
             }
             return [...prev, step];
