@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
 import AnimatedCardStack from "@/components/ui/animated-card-stack";
+import { HeroWave } from "@/components/ui/hero-wave";
 import { useAuth } from "@/contexts/AuthContext";
 import type { VerticalType } from "@/lib/plugins/types";
 
@@ -50,7 +51,6 @@ const Index = () => {
   const [transitioning, setTransitioning] = useState(false);
   const { loading } = useAuth();
 
-  // Listen for workspace changes from WorkspaceSelector
   const handleWorkspaceChange = useCallback((e: Event) => {
     const detail = (e as CustomEvent).detail;
     if (detail?.workspace) {
@@ -65,7 +65,6 @@ const Index = () => {
   useEffect(() => {
     const stored = localStorage.getItem("vyroo-workspace");
     if (stored) setWorkspace(stored as VerticalType);
-
     window.addEventListener("workspace-changed", handleWorkspaceChange);
     return () => window.removeEventListener("workspace-changed", handleWorkspaceChange);
   }, [handleWorkspaceChange]);
@@ -83,57 +82,59 @@ const Index = () => {
     <div className="min-h-screen bg-background overflow-y-auto">
       <Header />
 
-      {/* ─── Centered Composer ──────────────────────────────────────── */}
-      <main className="flex flex-col items-center px-4 pt-28 md:pt-36">
-        <div
-          className={`flex flex-col items-center gap-5 w-full max-w-2xl transition-all duration-700 ${
-            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-          }`}
-          style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
-        >
-          {/* Dynamic headline */}
+      {/* ─── Hero with animated wave background ───────────────────── */}
+      <HeroWave className="min-h-[80vh]">
+        <main className="flex flex-col items-center px-4 pt-28 md:pt-36">
           <div
-            className={`text-center transition-all duration-300 ${
-              transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
-            }`}
-          >
-            <h1
-              className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight"
-              style={{ textWrap: "balance" as any }}
-            >
-              {slogan.headline}
-            </h1>
-            <p className="mt-3 text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
-              {slogan.sub}
-            </p>
-          </div>
-
-          {/* Composer */}
-          <div className="w-full">
-            <TaskInput />
-          </div>
-
-          {/* Action chips */}
-          <div
-            className={`transition-all duration-700 delay-200 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+            className={`flex flex-col items-center gap-5 w-full max-w-2xl transition-all duration-700 ${
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
             }`}
             style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
-            <ActionChips />
-          </div>
-        </div>
+            {/* Dynamic headline */}
+            <div
+              className={`text-center transition-all duration-300 ${
+                transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+              }`}
+            >
+              <h1
+                className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight"
+                style={{ textWrap: "balance" as any }}
+              >
+                {slogan.headline}
+              </h1>
+              <p className="mt-3 text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
+                {slogan.sub}
+              </p>
+            </div>
 
-        {/* ─── Animated Feature Cards ────────────────────────────────── */}
-        <div
-          className={`w-full mt-12 transition-all duration-1000 delay-500 ${
-            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
-          }`}
-          style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
-        >
-          <AnimatedCardStack />
-        </div>
-      </main>
+            {/* Composer */}
+            <div className="w-full">
+              <TaskInput />
+            </div>
+
+            {/* Action chips */}
+            <div
+              className={`transition-all duration-700 delay-200 ${
+                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+              }`}
+              style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+            >
+              <ActionChips />
+            </div>
+          </div>
+        </main>
+      </HeroWave>
+
+      {/* ─── Animated Feature Cards ────────────────────────────────── */}
+      <div
+        className={`w-full mt-8 transition-all duration-1000 delay-500 ${
+          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+        }`}
+        style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+      >
+        <AnimatedCardStack />
+      </div>
 
       {/* ─── Footer ──────────────────────────────────────────────────── */}
       <div className="pt-16 pb-6 px-4 text-center">
