@@ -270,8 +270,115 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </div>
             )}
 
+            {/* Account tab */}
+            {activeTab === "account" && (
+              <div className="px-6 py-5 space-y-6">
+                {/* Profile header */}
+                <div className="flex items-center gap-4">
+                  <div className="relative group">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-white text-xl font-semibold ring-2 ring-border">
+                      Ru
+                    </div>
+                    <button className="absolute inset-0 rounded-full bg-foreground/0 group-hover:bg-foreground/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200">
+                      <User size={18} className="text-white" />
+                    </button>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-semibold text-foreground font-body">Ru Mangal</h3>
+                    <p className="text-xs text-muted-foreground">roelmangal84@gmail.com</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-accent text-muted-foreground border border-border">
+                        Free plan
+                      </span>
+                      <button className="text-[10px] font-medium text-foreground px-2 py-0.5 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                        Upgrade
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Personal info */}
+                <div>
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Personal information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">First name</label>
+                      <input
+                        type="text"
+                        defaultValue="Ru"
+                        className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                        style={{ backgroundColor: "hsl(var(--input-surface))" }}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Last name</label>
+                      <input
+                        type="text"
+                        defaultValue="Mangal"
+                        className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                        style={{ backgroundColor: "hsl(var(--input-surface))" }}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="text-xs text-muted-foreground mb-1 block">Email address</label>
+                      <input
+                        type="email"
+                        defaultValue="roelmangal84@gmail.com"
+                        className="w-full bg-transparent border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                        style={{ backgroundColor: "hsl(var(--input-surface))" }}
+                        disabled
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Security */}
+                <div>
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Security</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Password</p>
+                        <p className="text-xs text-muted-foreground">Last changed 30 days ago</p>
+                      </div>
+                      <button className="px-3 py-1.5 text-xs font-medium border border-border rounded-lg text-foreground hover:bg-accent transition-colors">
+                        Change
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Two-factor authentication</p>
+                        <p className="text-xs text-muted-foreground">Add an extra layer of security</p>
+                      </div>
+                      <Switch checked={false} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                {/* Danger zone */}
+                <div>
+                  <h3 className="text-xs font-medium text-destructive/80 uppercase tracking-wider mb-3">Danger zone</h3>
+                  <div className="flex items-center justify-between rounded-lg border border-destructive/20 p-3" style={{ backgroundColor: "hsl(var(--destructive) / 0.05)" }}>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Delete account</p>
+                      <p className="text-xs text-muted-foreground">Permanently remove your account and all data</p>
+                    </div>
+                    <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Placeholder for other tabs */}
-            {activeTab !== "settings" && activeTab !== "usage" && (
+            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "account" && (
               <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-3">
                   {(() => {
