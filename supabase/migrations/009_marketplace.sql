@@ -2,7 +2,7 @@
 create table if not exists published_agents (
   id uuid primary key default gen_random_uuid(),
   creator_id uuid not null references auth.users(id) on delete cascade,
-  template_id uuid references agent_templates(id) on delete set null,
+  template_id text references agent_templates(id) on delete set null,
   name text not null,
   description text,
   long_description text,
