@@ -35,6 +35,9 @@ self.addEventListener("fetch", (event) => {
   // Skip cross-origin requests (Supabase, analytics, etc.)
   if (url.origin !== self.location.origin) return;
 
+  // Skip auth-related paths — never cache OAuth redirects
+  if (url.pathname.startsWith("/login") || url.pathname.startsWith("/signup") || url.hash.includes("access_token") || url.search.includes("code=")) return;
+
   // Network-first for navigation requests and API calls
   if (request.mode === "navigate" || url.pathname.startsWith("/api")) {
     event.respondWith(
@@ -47,16 +50,17 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() =>
-          caches.match(request).then(
-            (cached) =>
-              cached ||
-              new Response(
+        .catch(() => {
+          return caches.match(request).then(
+            (cached) => {
+              if (cached) return cached;
+              return new Response(
                 '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Vyroo — Offline</title><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f172a;color:#e2e8f0}div{text-align:center}h1{font-size:1.5rem;margin-bottom:.5rem}p{color:#94a3b8;font-size:.875rem}</style></head><body><div><h1>You are offline</h1><p>Check your connection and try again.</p></div></body></html>',
                 { status: 200, headers: { "Content-Type": "text/html" } }
-              )
-          )
-        )
+              );
+            }
+          );
+        })
     );
     return;
   }
