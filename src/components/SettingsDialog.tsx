@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import {
   X,
   User,
@@ -26,6 +28,7 @@ import {
   Eye,
   TrendingUp,
   Brain,
+  LogOut,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
@@ -72,6 +75,13 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { data: enabledSkills } = useUserSkills();
   const toggleSkill = useToggleSkill();
   const enabledSkillSet = new Set(enabledSkills ?? []);
+  const { user } = useAuth();
+
+  const handleSignOut = async () => {
+    onOpenChange(false);
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,10 +117,20 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               ))}
             </div>
 
-            <div className="px-2 pt-2 border-t border-border mt-2">
-              <button className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors">
+            <div className="px-2 pt-2 border-t border-border mt-2 space-y-0.5">
+              <button
+                onClick={() => window.open("https://vyroo.ai/features", "_blank")}
+                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+              >
                 <ExternalLink size={15} />
                 <span>Get help</span>
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <LogOut size={15} />
+                <span>Sign out</span>
               </button>
             </div>
           </div>
@@ -381,8 +401,71 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </div>
             )}
 
+            {/* Account tab */}
+            {activeTab === "account" && (
+              <div className="px-6 py-5 space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full overflow-hidden bg-accent flex items-center justify-center flex-shrink-0">
+                    {user?.user_metadata?.avatar_url || user?.user_metadata?.picture ? (
+                      <img
+                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <User size={24} className="text-muted-foreground" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {user?.user_metadata?.full_name || user?.user_metadata?.name || "User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{user?.email || ""}</p>
+                    <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                      ID: {user?.id?.slice(0, 8)}...
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                <div className="space-y-3">
+                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Account details</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Email</span>
+                      <span className="text-foreground">{user?.email || "—"}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Provider</span>
+                      <span className="text-foreground capitalize">{user?.app_metadata?.provider || "email"}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Created</span>
+                      <span className="text-foreground">{user?.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Last sign in</span>
+                      <span className="text-foreground">{user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : "—"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-border" />
+
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border border-destructive/30 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <LogOut size={14} />
+                  <span>Sign out</span>
+                </button>
+              </div>
+            )}
+
             {/* Placeholder for other tabs */}
-            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "api-keys" && activeTab !== "connectors" && activeTab !== "skills" && activeTab !== "memory" && (
+            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "api-keys" && activeTab !== "connectors" && activeTab !== "skills" && activeTab !== "memory" && activeTab !== "account" && (
               <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-3">
                   {(() => {
