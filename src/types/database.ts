@@ -222,7 +222,100 @@ export interface Database {
         };
       };
     };
-    Views: Record<string, never>;
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          plan: "free" | "pro" | "team" | "enterprise";
+          status: "active" | "trialing" | "past_due" | "canceled" | "incomplete";
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          plan?: "free" | "pro" | "team" | "enterprise";
+          status?: "active" | "trialing" | "past_due" | "canceled" | "incomplete";
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+        };
+        Update: {
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          plan?: "free" | "pro" | "team" | "enterprise";
+          status?: "active" | "trialing" | "past_due" | "canceled" | "incomplete";
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          updated_at?: string;
+        };
+      };
+      usage_records: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: "ai_message" | "voice_input" | "connector_call" | "plugin_action";
+          model: string | null;
+          tokens_used: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: "ai_message" | "voice_input" | "connector_call" | "plugin_action";
+          model?: string | null;
+          tokens_used?: number;
+        };
+        Update: {
+          type?: "ai_message" | "voice_input" | "connector_call" | "plugin_action";
+          model?: string | null;
+          tokens_used?: number;
+        };
+      };
+      plan_limits: {
+        Row: {
+          plan: string;
+          monthly_messages: number;
+          monthly_voice_minutes: number;
+          max_connectors: number;
+          max_plugins: number;
+          models_available: string[];
+        };
+        Insert: {
+          plan: string;
+          monthly_messages: number;
+          monthly_voice_minutes: number;
+          max_connectors: number;
+          max_plugins: number;
+          models_available: string[];
+        };
+        Update: {
+          monthly_messages?: number;
+          monthly_voice_minutes?: number;
+          max_connectors?: number;
+          max_plugins?: number;
+          models_available?: string[];
+        };
+      };
+    };
+    Views: {
+      monthly_usage: {
+        Row: {
+          user_id: string;
+          messages_used: number;
+          voice_minutes_used: number;
+          total_tokens: number;
+        };
+      };
+    };
     Functions: Record<string, never>;
     Enums: Record<string, never>;
   };

@@ -14,6 +14,8 @@ import Signup from "./pages/Signup.tsx";
 import Connectors from "./pages/Connectors.tsx";
 import Skills from "./pages/Skills.tsx";
 import Plugins from "./pages/Plugins.tsx";
+import Pricing from "./pages/Pricing.tsx";
+import Onboarding from "./pages/Onboarding.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -64,6 +66,15 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Plugins />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route
+                path="/onboarding"
+                element={
+                  <ProtectedRoute>
+                    <Onboarding />
                   </ProtectedRoute>
                 }
               />
