@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveProvider, getFallbackChain } from "../_shared/provider-registry.ts";
 import { selectOptimalModel } from "../_shared/smart-router.ts";
 import { checkUsageGate } from "../_shared/usage-gate.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limiter.ts";
 import { streamAnthropic } from "../_shared/providers/anthropic.ts";
 import { streamOpenAI } from "../_shared/providers/openai.ts";
 import { streamGemini } from "../_shared/providers/gemini.ts";
@@ -55,6 +56,21 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Rate limiting: check per-minute message rate before processing ---
+    const rateLimit = await checkRateLimit(supabase, "chat");
+    if (!rateLimit.allowed) {
+      const rlResponse = rateLimitResponse(rateLimit);
+      // Add CORS headers to the 429 response
+      const headers = new Headers(rlResponse.headers);
+      for (const [k, v] of Object.entries(corsHeaders)) {
+        headers.set(k, v);
+      }
+      return new Response(rlResponse.body, {
+        status: 429,
+        headers,
       });
     }
 
