@@ -624,9 +624,21 @@ Deno.serve(async (req) => {
           // Classify whether this needs the full agentic flow or a direct answer
           const taskMode = await classifyTask(actualProviderId, apiKey!, message);
 
+          // Emit task mode so frontend knows whether to show steps UI
+          controller.enqueue(
+            encoder.encode(`event: mode\ndata: ${JSON.stringify({ mode: taskMode })}\n\n`)
+          );
+
           let plan: Array<{label: string; detail: string}> = [];
           let startTime = Date.now();
           const completedSteps = new Set<number>();
+
+          if (taskMode === "direct") {
+            // Clear any old steps from previous agentic runs
+            try {
+              await supabase.from("steps").delete().eq("conversation_id", conversationId);
+            } catch {}
+          }
 
           if (taskMode === "agentic") {
             // Generate task plan for agentic step visualization

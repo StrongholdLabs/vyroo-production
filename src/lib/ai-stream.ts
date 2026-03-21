@@ -12,11 +12,12 @@ export interface StreamOptions {
   onFollowUps?: (followUps: { text: string; category: string }[]) => void;
   onStep?: (step: { id: number; label: string; detail: string; status: "active" | "complete" | "pending"; logs: Array<{ time: string; text: string; type: "info" | "action" | "result" }> }) => void;
   onReport?: (report: { title: string; summary: string; headers: string[]; rows: string[][] }) => void;
+  onMode?: (mode: "direct" | "agentic") => void;
   signal?: AbortSignal;
 }
 
 export async function streamChat(options: StreamOptions) {
-  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, signal } = options;
+  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, signal } = options;
 
   // Force refresh to get a valid token
   const { data: { session: freshSession }, error: refreshError } = await supabase.auth.refreshSession();
@@ -98,6 +99,8 @@ export async function streamChat(options: StreamOptions) {
               onStep?.(parsed);
             } else if (eventType === "report" && parsed) {
               onReport?.(parsed);
+            } else if (eventType === "mode" && parsed) {
+              onMode?.(parsed.mode);
             } else if (eventType === "error") {
               onError(parsed.error || "Unknown error");
               return;

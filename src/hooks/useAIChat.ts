@@ -38,6 +38,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const [steps, setSteps] = useState<StreamingStep[]>([]);
   const [report, setReport] = useState<StreamingReport | null>(null);
+  const [taskMode, setTaskMode] = useState<"direct" | "agentic" | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
   const { provider, model } = useModelSettings();
@@ -50,6 +51,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
       setFollowUps([]); // Clear previous follow-ups
       setSteps([]);
       setReport(null);
+      setTaskMode(null);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -91,6 +93,9 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         onReport: (reportData) => {
           setReport(reportData);
         },
+        onMode: (mode) => {
+          setTaskMode(mode);
+        },
         onError: (err) => {
           setError(err);
           setIsStreaming(false);
@@ -126,5 +131,6 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
     followUps,
     steps,
     report,
+    taskMode,
   };
 }

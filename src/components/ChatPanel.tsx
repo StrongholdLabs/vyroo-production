@@ -52,7 +52,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport } = useAIChat({
+  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, taskMode } = useAIChat({
     conversationId: conversation.id,
   });
 
@@ -264,8 +264,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         ))}
 
-        {/* Steps — show streaming steps during execution, fallback to persisted steps */}
-        {(streamingSteps.length > 0 ? streamingSteps : steps).length > 0 && (
+        {/* Steps — show streaming steps during execution, fallback to persisted steps (hide in direct mode) */}
+        {taskMode !== "direct" && (streamingSteps.length > 0 ? streamingSteps : steps).length > 0 && (
           <div className="space-y-1">
             {(streamingSteps.length > 0 ? streamingSteps : steps).map((step) => (
               <ExpandableStep
@@ -385,8 +385,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
-        {/* Inline computer card when panel is closed */}
-        {!computerVisible && onOpenComputer && (
+        {/* Inline computer card when panel is closed (hide in direct mode) */}
+        {taskMode !== "direct" && !computerVisible && onOpenComputer && (
           <InlineComputerCard steps={streamingSteps.length > 0 ? streamingSteps : steps} onOpenComputer={onOpenComputer} />
         )}
 
