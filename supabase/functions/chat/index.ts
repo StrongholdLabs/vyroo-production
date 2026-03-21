@@ -6,7 +6,8 @@ import { resolveProvider, getFallbackChain } from "../_shared/provider-registry.
 import { selectOptimalModel } from "../_shared/smart-router.ts";
 import { checkUsageGate } from "../_shared/usage-gate.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limiter.ts";
-import { streamAnthropic } from "../_shared/providers/anthropic.ts";
+import { streamAnthropic, callAnthropicWithTools } from "../_shared/providers/anthropic.ts";
+import { getToolDefinitions, executeTool } from "../_shared/agent-tools.ts";
 import { streamOpenAI } from "../_shared/providers/openai.ts";
 import { streamGemini } from "../_shared/providers/gemini.ts";
 import { streamTogether } from "../_shared/providers/together.ts";
@@ -17,7 +18,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `You are Vyroo, an advanced AI assistant. You help users with research, analysis, coding, design, and any task they need. Be helpful, concise, and thorough. When working on tasks, break them into clear steps and provide actionable results.`;
+const SYSTEM_PROMPT = `You are Vyroo, an advanced AI assistant with access to tools. You can search the web, browse URLs, generate code, and analyze data.
+
+When answering questions about current events, trends, statistics, or anything requiring up-to-date information, USE the web_search tool first. Then browse relevant URLs to gather detailed information.
+
+Always cite sources with URLs when you use web search results. Format citations as markdown links.
+
+For simple questions (greetings, math, general knowledge), respond directly without tools.`;
 
 const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 short follow-up questions or actions the user might want to take next. Return ONLY a JSON array of strings, no explanation. Each suggestion should be concise (under 60 characters). Example: ["How do I deploy this?","Can you add error handling?","Explain the architecture"]`;
 
@@ -606,7 +613,7 @@ Deno.serve(async (req) => {
       // Memory retrieval is non-critical — proceed without it
     }
 
-    // Create the provider stream (each adapter returns SSE-formatted ReadableStream)
+    // Create the provider stream for direct mode (each adapter returns SSE-formatted ReadableStream)
     const providerStream = streamFn(apiKey, messages, selectedModel, enrichedSystemPrompt);
 
     // Wrap the provider stream to capture the full response and save it
@@ -659,69 +666,216 @@ Deno.serve(async (req) => {
             }
           }
 
-          const reader = providerStream.getReader();
+          if (taskMode === "agentic" && actualProviderId === "anthropic") {
+            // ===== ReAct Tool Loop (Anthropic only) =====
+            try {
+              // Build Anthropic-format tool definitions from agent-tools registry
+              const toolDefs = getToolDefinitions();
+              const anthropicTools = toolDefs.map(t => {
+                const properties: Record<string, { type: string; description: string }> = {};
+                const required: string[] = [];
+                for (const [pName, pDef] of Object.entries(t.parameters)) {
+                  properties[pName] = { type: pDef.type, description: pDef.description };
+                  if (pDef.required) required.push(pName);
+                }
+                return {
+                  name: t.id,
+                  description: t.description,
+                  input_schema: {
+                    type: "object" as const,
+                    properties,
+                    required,
+                  },
+                };
+              });
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+              // Build conversation history for the tool loop
+              const loopMessages: Array<{ role: string; content: any }> = messages.map(m => ({
+                role: m.role,
+                content: m.content,
+              }));
 
-            // Decode the chunk to capture tokens for DB storage
-            const chunk = new TextDecoder().decode(value);
+              let toolIterations = 0;
+              const MAX_TOOL_ITERATIONS = 5;
+              let finalTextContent = "";
 
-            // Extract token text from SSE format for accumulation
-            const lines = chunk.split("\n");
-            for (const line of lines) {
-              if (line.startsWith("data: ") && !line.includes('"error"')) {
-                try {
-                  const parsed = JSON.parse(line.slice(6));
-                  if (parsed.token) {
-                    fullResponse += parsed.token;
+              while (toolIterations < MAX_TOOL_ITERATIONS) {
+                toolIterations++;
+
+                const result = await callAnthropicWithTools(
+                  apiKey!, loopMessages, selectedModel, anthropicTools, enrichedSystemPrompt
+                );
+
+                if (result.toolCalls.length === 0) {
+                  // No tools needed — we have the final response
+                  finalTextContent = result.textContent;
+                  break;
+                }
+
+                // Execute each tool call
+                for (const toolCall of result.toolCalls) {
+                  const toolStartMs = Date.now();
+
+                  // Emit tool executing event
+                  controller.enqueue(encoder.encode(`event: tool\ndata: ${JSON.stringify({
+                    name: toolCall.name,
+                    args: toolCall.input,
+                    status: "executing",
+                  })}\n\n`));
+
+                  // Execute the tool
+                  const toolResult = await executeTool(toolCall.name, toolCall.input);
+                  const durationMs = Date.now() - toolStartMs;
+
+                  // Emit tool result event
+                  controller.enqueue(encoder.encode(`event: tool\ndata: ${JSON.stringify({
+                    name: toolCall.name,
+                    args: toolCall.input,
+                    result: toolResult,
+                    duration: durationMs,
+                    status: "complete",
+                  })}\n\n`));
+
+                  // Emit specialized events for Computer Panel
+                  if (toolCall.name === "web_search") {
+                    controller.enqueue(encoder.encode(`event: search\ndata: ${JSON.stringify({
+                      query: toolCall.input.query,
+                      results: (toolResult as any).results || [],
+                    })}\n\n`));
+                  } else if (toolCall.name === "browse_url") {
+                    controller.enqueue(encoder.encode(`event: browse\ndata: ${JSON.stringify({
+                      url: toolCall.input.url,
+                      title: (toolResult as any).title || "",
+                      content: ((toolResult as any).content || "").substring(0, 2000),
+                    })}\n\n`));
                   }
-                } catch {
-                  // Skip
+
+                  // Add assistant response with tool_use to conversation
+                  loopMessages.push({
+                    role: "assistant",
+                    content: [
+                      ...(result.textContent ? [{ type: "text", text: result.textContent }] : []),
+                      { type: "tool_use", id: toolCall.id, name: toolCall.name, input: toolCall.input },
+                    ],
+                  });
+                  // Add tool result
+                  loopMessages.push({
+                    role: "user",
+                    content: [{ type: "tool_result", tool_use_id: toolCall.id, content: JSON.stringify(toolResult) }],
+                  });
+
+                  // Update step progress
+                  if (plan.length > 0) {
+                    const stepIdx = Math.min(toolIterations - 1, plan.length - 1);
+                    if (!completedSteps.has(stepIdx)) {
+                      completedSteps.add(stepIdx);
+                      const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+                      const mins = Math.floor(Number(elapsed) / 60);
+                      const secs = Number(elapsed) % 60;
+                      const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
+                      controller.enqueue(encoder.encode(`event: step\ndata: ${JSON.stringify({
+                        id: stepIdx + 1,
+                        label: plan[stepIdx].label,
+                        detail: `Used ${toolCall.name}: ${JSON.stringify(toolCall.input).substring(0, 100)}`,
+                        status: "complete",
+                        logs: [{ time: timeStr, text: `${toolCall.name} completed`, type: "result" }],
+                      })}\n\n`));
+
+                      // Activate next step if exists
+                      if (stepIdx + 1 < plan.length) {
+                        controller.enqueue(encoder.encode(`event: step\ndata: ${JSON.stringify({
+                          id: stepIdx + 2,
+                          label: plan[stepIdx + 1].label,
+                          detail: plan[stepIdx + 1].detail,
+                          status: "active",
+                          logs: [{ time: timeStr, text: "Starting...", type: "info" }],
+                        })}\n\n`));
+                      }
+                    }
+                  }
                 }
               }
+
+              // Stream the final text response as token events
+              if (finalTextContent) {
+                const chunkSize = 20;
+                for (let i = 0; i < finalTextContent.length; i += chunkSize) {
+                  const chunk = finalTextContent.substring(i, i + chunkSize);
+                  controller.enqueue(encoder.encode(`event: token\ndata: ${JSON.stringify({ token: chunk })}\n\n`));
+                  fullResponse += chunk;
+                }
+              }
+            } catch (toolLoopError) {
+              // Tool loop failed — fall back to normal streaming
+              console.error("ReAct tool loop error, falling back to streaming:", toolLoopError);
+              const reader = providerStream.getReader();
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = new TextDecoder().decode(value);
+                const lines = chunk.split("\n");
+                for (const line of lines) {
+                  if (line.startsWith("data: ") && !line.includes('"error"')) {
+                    try {
+                      const parsed = JSON.parse(line.slice(6));
+                      if (parsed.token) fullResponse += parsed.token;
+                    } catch { /* skip */ }
+                  }
+                }
+                controller.enqueue(value);
+              }
             }
+          } else {
+            // ===== Direct mode OR non-Anthropic agentic: use standard streaming =====
+            const reader = providerStream.getReader();
 
-            // Forward the chunk as-is to the client
-            controller.enqueue(value);
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-            // Update step progress based on response length (only in agentic mode)
-            if (taskMode === "agentic" && plan.length > 0) {
-              const progress = fullResponse.length;
-              const thresholds = plan.map((_, i) => Math.floor((i + 1) * (1500 / plan.length)));
-              for (let i = 0; i < plan.length; i++) {
-                if (progress > thresholds[i] && !completedSteps.has(i)) {
-                  completedSteps.add(i);
-                  const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-                  const mins = Math.floor(Number(elapsed) / 60);
-                  const secs = Number(elapsed) % 60;
-                  const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
+              const chunk = new TextDecoder().decode(value);
+              const lines = chunk.split("\n");
+              for (const line of lines) {
+                if (line.startsWith("data: ") && !line.includes('"error"')) {
+                  try {
+                    const parsed = JSON.parse(line.slice(6));
+                    if (parsed.token) fullResponse += parsed.token;
+                  } catch { /* skip */ }
+                }
+              }
+              controller.enqueue(value);
 
-                  // Complete this step
-                  controller.enqueue(
-                    encoder.encode(`event: step\ndata: ${JSON.stringify({
-                      id: i + 1,
-                      label: plan[i].label,
-                      detail: plan[i].detail,
-                      status: "complete",
-                      logs: [
-                        { time: timeStr, text: plan[i].detail, type: "result" },
-                      ],
-                    })}\n\n`)
-                  );
-
-                  // Activate next step if exists
-                  if (i + 1 < plan.length) {
+              // Update step progress based on response length (only in agentic mode)
+              if (taskMode === "agentic" && plan.length > 0) {
+                const progress = fullResponse.length;
+                const thresholds = plan.map((_, i) => Math.floor((i + 1) * (1500 / plan.length)));
+                for (let i = 0; i < plan.length; i++) {
+                  if (progress > thresholds[i] && !completedSteps.has(i)) {
+                    completedSteps.add(i);
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+                    const mins = Math.floor(Number(elapsed) / 60);
+                    const secs = Number(elapsed) % 60;
+                    const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
                     controller.enqueue(
                       encoder.encode(`event: step\ndata: ${JSON.stringify({
-                        id: i + 2,
-                        label: plan[i + 1].label,
-                        detail: plan[i + 1].detail,
-                        status: "active",
-                        logs: [{ time: timeStr, text: "Starting...", type: "info" }],
+                        id: i + 1,
+                        label: plan[i].label,
+                        detail: plan[i].detail,
+                        status: "complete",
+                        logs: [{ time: timeStr, text: plan[i].detail, type: "result" }],
                       })}\n\n`)
                     );
+                    if (i + 1 < plan.length) {
+                      controller.enqueue(
+                        encoder.encode(`event: step\ndata: ${JSON.stringify({
+                          id: i + 2,
+                          label: plan[i + 1].label,
+                          detail: plan[i + 1].detail,
+                          status: "active",
+                          logs: [{ time: timeStr, text: "Starting...", type: "info" }],
+                        })}\n\n`)
+                      );
+                    }
                   }
                 }
               }

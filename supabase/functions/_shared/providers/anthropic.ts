@@ -6,6 +6,62 @@ export interface ChatMsg {
 }
 
 /**
+ * Non-streaming call to Anthropic Messages API with tool use support.
+ * Used in the ReAct loop where we need to inspect tool_use blocks before continuing.
+ */
+export async function callAnthropicWithTools(
+  apiKey: string,
+  messages: Array<{ role: string; content: any }>,
+  model: string,
+  tools: Array<{ name: string; description: string; input_schema: object }>,
+  systemPrompt?: string
+): Promise<{
+  textContent: string;
+  toolCalls: Array<{ id: string; name: string; input: Record<string, any> }>;
+  stopReason: string;
+}> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 4096,
+      system: systemPrompt || "",
+      messages,
+      tools,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Anthropic API error: ${res.status} ${err}`);
+  }
+
+  const data = await res.json();
+
+  let textContent = "";
+  const toolCalls: Array<{ id: string; name: string; input: Record<string, any> }> = [];
+
+  for (const block of data.content || []) {
+    if (block.type === "text") {
+      textContent += block.text;
+    } else if (block.type === "tool_use") {
+      toolCalls.push({
+        id: block.id,
+        name: block.name,
+        input: block.input,
+      });
+    }
+  }
+
+  return { textContent, toolCalls, stopReason: data.stop_reason };
+}
+
+/**
  * Stream a response from Anthropic's Messages API.
  * Returns a ReadableStream that emits SSE-formatted token events.
  */
