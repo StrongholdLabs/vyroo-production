@@ -22,7 +22,8 @@ import type { Conversation, ChatMessage as ChatMsg } from "@/data/conversations"
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ExpandableStep } from "@/components/ExpandableStep";
-import { UpgradeBanner } from "@/components/UpgradeBanner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { InlineComputerCard } from "@/components/InlineComputerCard";
 import { DocumentPreview } from "@/components/DocumentPreview";
 import { ProjectInitCard } from "@/components/ProjectInitCard";
@@ -49,10 +50,25 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const [voiceAgentOpen, setVoiceAgentOpen] = useState(false);
   const [voiceAiResponse, setVoiceAiResponse] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps } = useAIChat({
     conversationId: conversation.id,
   });
+
+  // Auto-scroll to bottom on initial load
+  useEffect(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
+    }, 100);
+  }, [conversation.id]);
+
+  // Auto-scroll during streaming
+  useEffect(() => {
+    if (isStreaming && streamingContent) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [isStreaming, streamingContent]);
 
   // Auto-send initial message from TaskInput
   const initialSentRef = useRef(false);
@@ -106,7 +122,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-6">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto py-6">
         <div className={`mx-auto px-4 md:px-8 space-y-6 transition-all duration-300 ${computerVisible ? "max-w-none lg:px-12" : "max-w-3xl"}`}>
         {messages.map((msg) => (
           <div key={msg.id}>
@@ -118,7 +134,9 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-sm text-foreground leading-relaxed">{msg.content}</p>
+                <div className="text-sm text-foreground leading-relaxed prose prose-sm dark:prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-code:text-foreground prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-secondary prose-pre:border prose-pre:border-border max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                </div>
 
                 {msg.hasReport && msg.tableData && (
                   <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
@@ -253,8 +271,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           ))}
         </div>
 
-        {/* Upgrade banner */}
-        <UpgradeBanner />
+        {/* Upgrade banner — disabled for now */}
 
         {/* Continue working status */}
         <div className="flex items-center gap-2">
@@ -265,7 +282,10 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         {/* Streaming response */}
         {isStreaming && streamingContent && (
           <div className="space-y-2">
-            <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{streamingContent}<span className="inline-block w-0.5 h-4 bg-foreground animate-pulse ml-0.5 align-text-bottom" /></p>
+            <div className="text-sm text-foreground leading-relaxed prose prose-sm dark:prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-code:text-foreground prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-secondary prose-pre:border prose-pre:border-border max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
+              <span className="inline-block w-0.5 h-4 bg-foreground animate-pulse ml-0.5 align-text-bottom" />
+            </div>
           </div>
         )}
 
