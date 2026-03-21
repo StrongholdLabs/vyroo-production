@@ -40,7 +40,7 @@ export default function Login() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-black px-4">
-      <NeonCrystalCity cameraSpeed={2} maxSteps={60} opacity={0.25} />
+      <NeonCrystalCity cameraSpeed={2} maxSteps={60} opacity={0.15} />
       <div className="relative z-10 w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
