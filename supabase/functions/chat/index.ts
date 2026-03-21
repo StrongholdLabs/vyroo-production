@@ -288,9 +288,34 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fallback to platform API keys from environment
+    if (!apiKey) {
+      const ENV_KEY_MAP: Record<string, string> = {
+        anthropic: "ANTHROPIC_API_KEY",
+        openai: "OPENAI_API_KEY",
+        gemini: "GOOGLE_API_KEY",
+        together: "TOGETHER_API_KEY",
+      };
+
+      // Try the resolved provider first
+      apiKey = Deno.env.get(ENV_KEY_MAP[actualProviderId] || "") || null;
+
+      // Try fallback providers
+      if (!apiKey) {
+        for (const fallbackProvider of ["anthropic", "openai", "gemini", "together"]) {
+          const envKey = Deno.env.get(ENV_KEY_MAP[fallbackProvider] || "");
+          if (envKey) {
+            apiKey = envKey;
+            actualProviderId = fallbackProvider;
+            break;
+          }
+        }
+      }
+    }
+
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: `No API key configured for ${dbProvider}. Add one in Settings > API Keys.` }),
+        JSON.stringify({ error: `No API key configured. Contact support.` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
