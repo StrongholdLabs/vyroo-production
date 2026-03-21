@@ -276,8 +276,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </div>
             }
 
+            {/* Account tab */}
+            {activeTab === "account" && <AccountTab />}
+
             {/* Placeholder for other tabs */}
-            {activeTab !== "settings" && activeTab !== "usage" &&
+            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "account" &&
             <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-3">
                   {(() => {
