@@ -81,7 +81,7 @@ const positionStyles = [
 ]
 
 const exitAnimation = {
-  y: 340,
+  y: 260,
   scale: 1,
   zIndex: 10,
 }
@@ -97,27 +97,27 @@ function CardContent({ contentType }: { contentType: number }) {
   const Icon = data.icon
 
   return (
-    <div className="flex h-full w-full flex-col gap-3">
-      <div className={`relative flex h-[180px] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br ${data.gradient}`}>
+    <div className="flex h-full w-full flex-col gap-2">
+      <div className={`relative flex h-[130px] w-full items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br ${data.gradient}`}>
         <img
           src={data.image}
           alt={data.title}
-          className="h-full w-full select-none object-cover opacity-80 mix-blend-luminosity"
+          className="h-full w-full select-none object-cover opacity-60 mix-blend-luminosity"
         />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="rounded-2xl bg-background/80 p-4 backdrop-blur-sm">
-            <Icon size={32} className="text-foreground" />
+          <div className="rounded-xl bg-background/70 p-3 backdrop-blur-sm">
+            <Icon size={24} className="text-foreground/80" />
           </div>
         </div>
       </div>
-      <div className="flex w-full items-center justify-between gap-2 px-3 pb-4">
+      <div className="flex w-full items-center justify-between gap-2 px-2 pb-2">
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-semibold text-foreground">{data.title}</span>
-          <span className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">{data.description}</span>
+          <span className="truncate text-xs font-semibold text-foreground">{data.title}</span>
+          <span className="line-clamp-1 text-[11px] text-muted-foreground/70">{data.description}</span>
         </div>
-        <button className="flex h-9 shrink-0 cursor-pointer select-none items-center gap-0.5 rounded-full bg-foreground pl-3.5 pr-2.5 text-xs font-medium text-background transition-opacity hover:opacity-90">
+        <button className="flex h-7 shrink-0 cursor-pointer select-none items-center gap-0.5 rounded-full bg-foreground/80 pl-3 pr-2 text-[11px] font-medium text-background transition-opacity hover:opacity-90">
           {data.cta}
-          <ArrowRight size={14} />
+          <ArrowRight size={12} />
         </button>
       </div>
     </div>
@@ -155,7 +155,7 @@ function AnimatedCard({
         x: "-50%",
         bottom: 0,
       }}
-      className="absolute flex h-[260px] w-[320px] items-center justify-center overflow-hidden rounded-t-xl border-x border-t border-border bg-card p-1 shadow-lg will-change-transform sm:w-[480px]"
+      className="absolute flex h-[200px] w-[280px] items-center justify-center overflow-hidden rounded-t-xl border-x border-t border-border/40 bg-card/80 p-1 shadow-md will-change-transform sm:w-[400px]"
     >
       <CardContent contentType={card.contentType} />
     </motion.div>
@@ -184,7 +184,7 @@ export default function AnimatedCardStack() {
 
   return (
     <div className="flex w-full flex-col items-center justify-center">
-      <div className="relative h-[340px] w-full overflow-hidden sm:w-[580px]">
+      <div className="relative h-[260px] w-full overflow-hidden sm:w-[480px]">
         <AnimatePresence initial={false}>
           {cards.slice(0, 3).map((card, index) => (
             <AnimatedCard key={card.id} card={card} index={index} isAnimating={isAnimating} />
