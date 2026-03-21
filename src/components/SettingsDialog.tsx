@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import {
-
   User,
   Settings as SettingsIcon,
   BarChart3,
@@ -13,8 +12,15 @@ import {
   Puzzle,
   Link2,
   ExternalLink,
-  ChevronDown } from
-"lucide-react";
+  ChevronDown,
+  Camera,
+  Key,
+  Globe,
+  Trash2,
+  Copy,
+  Check,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 
