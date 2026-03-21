@@ -155,9 +155,9 @@ const CATEGORY_PREFERENCES: Record<MessageCategory, ModelCandidate[]> = {
     { model: "gemini-2.5-pro", provider: "google" },
   ],
   general: [
-    { model: "claude-haiku-4-5-20251001", provider: "anthropic" },
-    { model: "gpt-4o-mini", provider: "openai" },
-    { model: "gemini-2.0-flash", provider: "google" },
+    { model: "claude-sonnet-4-20250514", provider: "anthropic" },
+    { model: "gpt-4o", provider: "openai" },
+    { model: "gemini-2.5-pro", provider: "google" },
   ],
 };
 

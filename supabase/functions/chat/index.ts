@@ -23,6 +23,30 @@ const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 short foll
 
 const PLAN_PROMPT = `Analyze the user's message and break the task into 3-5 concrete steps. Return ONLY a JSON array of objects with "label" and "detail" fields. Each label should be 2-4 words. Example: [{"label":"Understanding task","detail":"Parsing requirements and planning approach"},{"label":"Researching topic","detail":"Gathering relevant information"},{"label":"Composing response","detail":"Writing comprehensive answer"}]`;
 
+const CLASSIFY_PROMPT = `Classify this user message into one of two modes. Return ONLY the word "direct" or "agentic".
+
+Use "direct" for:
+- Simple questions with short answers (math, facts, greetings, definitions)
+- Conversational messages (hello, thanks, follow-ups)
+- One-line requests
+
+Use "agentic" for:
+- Research tasks requiring multiple steps
+- Analysis or comparison requests
+- Content creation (reports, articles, presentations)
+- Complex multi-part questions
+- Tasks that would benefit from planning and structured execution
+
+Examples:
+"What is 2+2?" → direct
+"Hello" → direct
+"What's the capital of France?" → direct
+"Analyze the top 5 DTC skincare brands" → agentic
+"Create a marketing strategy for my startup" → agentic
+"Compare React vs Vue for enterprise apps" → agentic
+"Research nutrition trends in 2026" → agentic
+"Thanks!" → direct`;
+
 // Map provider IDs to lightweight/fast models for follow-up generation
 const FAST_MODELS: Record<string, string> = {
   anthropic: "claude-3-5-haiku-latest",
@@ -249,6 +273,110 @@ async function generatePlan(
   } catch {
     // Plan generation is non-critical
     return DEFAULT_PLAN;
+  }
+}
+
+/**
+ * Classify whether a message needs the full agentic flow (plan + steps) or a direct answer.
+ * Uses a fast model with max_tokens: 10 for near-instant classification.
+ */
+async function classifyTask(
+  providerId: string,
+  apiKey: string,
+  userMessage: string
+): Promise<"direct" | "agentic"> {
+  // Short messages are almost always direct — skip the LLM call
+  if (userMessage.trim().length < 30) return "direct";
+
+  const fastModel = FAST_MODELS[providerId];
+  if (!fastModel) return "agentic";
+
+  try {
+    let text = "";
+
+    if (providerId === "anthropic") {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: fastModel,
+          max_tokens: 10,
+          system: CLASSIFY_PROMPT,
+          messages: [{ role: "user", content: userMessage }],
+        }),
+      });
+      if (!res.ok) return "agentic";
+      const data = await res.json();
+      text = data.content?.[0]?.text || "";
+    } else if (providerId === "openai") {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: fastModel,
+          max_tokens: 10,
+          messages: [
+            { role: "system", content: CLASSIFY_PROMPT },
+            { role: "user", content: userMessage },
+          ],
+        }),
+      });
+      if (!res.ok) return "agentic";
+      const data = await res.json();
+      text = data.choices?.[0]?.message?.content || "";
+    } else if (providerId === "gemini") {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${fastModel}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              { role: "user", parts: [{ text: `${CLASSIFY_PROMPT}\n\nUser message: ${userMessage}` }] },
+            ],
+            generationConfig: { maxOutputTokens: 10 },
+          }),
+        }
+      );
+      if (!res.ok) return "agentic";
+      const data = await res.json();
+      text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } else if (providerId === "together") {
+      const res = await fetch("https://api.together.xyz/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: fastModel,
+          max_tokens: 10,
+          messages: [
+            { role: "system", content: CLASSIFY_PROMPT },
+            { role: "user", content: userMessage },
+          ],
+        }),
+      });
+      if (!res.ok) return "agentic";
+      const data = await res.json();
+      text = data.choices?.[0]?.message?.content || "";
+    }
+
+    const lower = text.toLowerCase().trim();
+    if (lower.includes("direct")) return "direct";
+    if (lower.includes("agentic")) return "agentic";
+    // Default to agentic for safety
+    return "agentic";
+  } catch {
+    // Classification is non-critical — default to agentic for complex task safety
+    return "agentic";
   }
 }
 
@@ -493,22 +621,30 @@ Deno.serve(async (req) => {
             encoder.encode(`event: model\ndata: ${JSON.stringify({ model: selectedModel })}\n\n`)
           );
 
-          // Generate task plan for agentic step visualization
-          const plan = await generatePlan(actualProviderId, apiKey!, message);
-          const startTime = Date.now();
+          // Classify whether this needs the full agentic flow or a direct answer
+          const taskMode = await classifyTask(actualProviderId, apiKey!, message);
+
+          let plan: Array<{label: string; detail: string}> = [];
+          let startTime = Date.now();
           const completedSteps = new Set<number>();
 
-          // Emit initial step events (first step active, rest pending)
-          for (let i = 0; i < plan.length; i++) {
-            controller.enqueue(
-              encoder.encode(`event: step\ndata: ${JSON.stringify({
-                id: i + 1,
-                label: plan[i].label,
-                detail: plan[i].detail,
-                status: i === 0 ? "active" : "pending",
-                logs: i === 0 ? [{ time: "0:00", text: "Starting...", type: "info" }] : [],
-              })}\n\n`)
-            );
+          if (taskMode === "agentic") {
+            // Generate task plan for agentic step visualization
+            plan = await generatePlan(actualProviderId, apiKey!, message);
+            startTime = Date.now();
+
+            // Emit initial step events (first step active, rest pending)
+            for (let i = 0; i < plan.length; i++) {
+              controller.enqueue(
+                encoder.encode(`event: step\ndata: ${JSON.stringify({
+                  id: i + 1,
+                  label: plan[i].label,
+                  detail: plan[i].detail,
+                  status: i === 0 ? "active" : "pending",
+                  logs: i === 0 ? [{ time: "0:00", text: "Starting...", type: "info" }] : [],
+                })}\n\n`)
+              );
+            }
           }
 
           const reader = providerStream.getReader();
@@ -538,85 +674,89 @@ Deno.serve(async (req) => {
             // Forward the chunk as-is to the client
             controller.enqueue(value);
 
-            // Update step progress based on response length
-            const progress = fullResponse.length;
-            const thresholds = plan.map((_, i) => Math.floor((i + 1) * (1500 / plan.length)));
+            // Update step progress based on response length (only in agentic mode)
+            if (taskMode === "agentic" && plan.length > 0) {
+              const progress = fullResponse.length;
+              const thresholds = plan.map((_, i) => Math.floor((i + 1) * (1500 / plan.length)));
+              for (let i = 0; i < plan.length; i++) {
+                if (progress > thresholds[i] && !completedSteps.has(i)) {
+                  completedSteps.add(i);
+                  const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+                  const mins = Math.floor(Number(elapsed) / 60);
+                  const secs = Number(elapsed) % 60;
+                  const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
+
+                  // Complete this step
+                  controller.enqueue(
+                    encoder.encode(`event: step\ndata: ${JSON.stringify({
+                      id: i + 1,
+                      label: plan[i].label,
+                      detail: plan[i].detail,
+                      status: "complete",
+                      logs: [
+                        { time: timeStr, text: plan[i].detail, type: "result" },
+                      ],
+                    })}\n\n`)
+                  );
+
+                  // Activate next step if exists
+                  if (i + 1 < plan.length) {
+                    controller.enqueue(
+                      encoder.encode(`event: step\ndata: ${JSON.stringify({
+                        id: i + 2,
+                        label: plan[i + 1].label,
+                        detail: plan[i + 1].detail,
+                        status: "active",
+                        logs: [{ time: timeStr, text: "Starting...", type: "info" }],
+                      })}\n\n`)
+                    );
+                  }
+                }
+              }
+            }
+          }
+
+          // Complete all remaining steps (only in agentic mode)
+          if (taskMode === "agentic" && plan.length > 0) {
             for (let i = 0; i < plan.length; i++) {
-              if (progress > thresholds[i] && !completedSteps.has(i)) {
-                completedSteps.add(i);
+              if (!completedSteps.has(i)) {
                 const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
                 const mins = Math.floor(Number(elapsed) / 60);
                 const secs = Number(elapsed) % 60;
                 const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
-
-                // Complete this step
                 controller.enqueue(
                   encoder.encode(`event: step\ndata: ${JSON.stringify({
                     id: i + 1,
                     label: plan[i].label,
                     detail: plan[i].detail,
                     status: "complete",
-                    logs: [
-                      { time: timeStr, text: plan[i].detail, type: "result" },
-                    ],
+                    logs: [{ time: timeStr, text: "Complete", type: "result" }],
                   })}\n\n`)
                 );
-
-                // Activate next step if exists
-                if (i + 1 < plan.length) {
-                  controller.enqueue(
-                    encoder.encode(`event: step\ndata: ${JSON.stringify({
-                      id: i + 2,
-                      label: plan[i + 1].label,
-                      detail: plan[i + 1].detail,
-                      status: "active",
-                      logs: [{ time: timeStr, text: "Starting...", type: "info" }],
-                    })}\n\n`)
-                  );
-                }
               }
             }
-          }
 
-          // Complete all remaining steps
-          for (let i = 0; i < plan.length; i++) {
-            if (!completedSteps.has(i)) {
-              const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-              const mins = Math.floor(Number(elapsed) / 60);
-              const secs = Number(elapsed) % 60;
-              const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
-              controller.enqueue(
-                encoder.encode(`event: step\ndata: ${JSON.stringify({
-                  id: i + 1,
-                  label: plan[i].label,
-                  detail: plan[i].detail,
-                  status: "complete",
-                  logs: [{ time: timeStr, text: "Complete", type: "result" }],
-                })}\n\n`)
-              );
-            }
-          }
-
-          // Check if response has table-like data (markdown tables)
-          if (fullResponse.includes('|') && fullResponse.includes('---')) {
-            try {
-              const tableLines = fullResponse.split('\n').filter(l => l.includes('|'));
-              if (tableLines.length >= 3) {
-                const headers = tableLines[0].split('|').map(h => h.trim()).filter(Boolean);
-                const rows = tableLines.slice(2).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
-                if (headers.length > 0 && rows.length > 0) {
-                  controller.enqueue(
-                    encoder.encode(`event: report\ndata: ${JSON.stringify({
-                      title: plan[plan.length - 1]?.label || "Report",
-                      summary: fullResponse.slice(0, 150),
-                      headers,
-                      rows: rows.slice(0, 20),
-                    })}\n\n`)
-                  );
+            // Check if response has table-like data (markdown tables) — only for agentic
+            if (fullResponse.includes('|') && fullResponse.includes('---')) {
+              try {
+                const tableLines = fullResponse.split('\n').filter(l => l.includes('|'));
+                if (tableLines.length >= 3) {
+                  const headers = tableLines[0].split('|').map(h => h.trim()).filter(Boolean);
+                  const rows = tableLines.slice(2).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
+                  if (headers.length > 0 && rows.length > 0) {
+                    controller.enqueue(
+                      encoder.encode(`event: report\ndata: ${JSON.stringify({
+                        title: plan[plan.length - 1]?.label || "Report",
+                        summary: fullResponse.slice(0, 150),
+                        headers,
+                        rows: rows.slice(0, 20),
+                      })}\n\n`)
+                    );
+                  }
                 }
+              } catch {
+                // Report generation is non-critical
               }
-            } catch {
-              // Report generation is non-critical
             }
           }
 
@@ -644,20 +784,22 @@ Deno.serve(async (req) => {
               // Fallback if RPC doesn't exist yet
             }
 
-            // Save steps to database — delete old ones first to avoid accumulation
-            try {
-              await supabase.from("steps").delete().eq("conversation_id", conversationId);
-              for (let i = 0; i < plan.length; i++) {
-                await supabase.from("steps").insert({
-                  conversation_id: conversationId,
-                  step_number: i + 1,
-                  label: plan[i].label,
-                  detail: plan[i].detail,
-                  status: "complete",
-                });
+            // Save steps to database — only for agentic mode
+            if (taskMode === "agentic" && plan.length > 0) {
+              try {
+                await supabase.from("steps").delete().eq("conversation_id", conversationId);
+                for (let i = 0; i < plan.length; i++) {
+                  await supabase.from("steps").insert({
+                    conversation_id: conversationId,
+                    step_number: i + 1,
+                    label: plan[i].label,
+                    detail: plan[i].detail,
+                    status: "complete",
+                  });
+                }
+              } catch {
+                // Step persistence is non-critical
               }
-            } catch {
-              // Step persistence is non-critical
             }
 
             // Auto-title: check if this conversation needs a title
