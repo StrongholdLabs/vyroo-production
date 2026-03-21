@@ -805,6 +805,38 @@ Deno.serve(async (req) => {
                   fullResponse += chunk;
                 }
               }
+
+              // Emit collected sources with favicons for Perplexity-style display
+              const allSources: Array<{title: string; url: string; favicon: string; domain: string}> = [];
+              for (const msg of loopMessages) {
+                if (Array.isArray(msg.content)) {
+                  for (const block of msg.content) {
+                    if (block.type === "tool_result") {
+                      try {
+                        const data = JSON.parse(block.content);
+                        if (data.results && Array.isArray(data.results)) {
+                          for (const r of data.results) {
+                            if (r.url) {
+                              const domain = new URL(r.url).hostname.replace("www.", "");
+                              allSources.push({
+                                title: r.title || domain,
+                                url: r.url,
+                                favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+                                domain,
+                              });
+                            }
+                          }
+                        }
+                      } catch {}
+                    }
+                  }
+                }
+              }
+              if (allSources.length > 0) {
+                controller.enqueue(encoder.encode(`event: sources\ndata: ${JSON.stringify({
+                  sources: allSources.slice(0, 10),
+                })}\n\n`));
+              }
             } catch (toolLoopError) {
               // Tool loop failed — fall back to normal streaming
               console.error("ReAct tool loop error, falling back to streaming:", toolLoopError);

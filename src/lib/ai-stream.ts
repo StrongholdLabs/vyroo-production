@@ -16,11 +16,12 @@ export interface StreamOptions {
   onTool?: (tool: { name: string; args: Record<string, any>; result?: any; duration?: number; status: "executing" | "complete" }) => void;
   onSearch?: (data: { query: string; results: Array<{ title: string; url: string; snippet?: string }> }) => void;
   onBrowse?: (data: { url: string; title: string; content: string }) => void;
+  onSources?: (data: { sources: Array<{ title: string; url: string; favicon: string; domain: string }> }) => void;
   signal?: AbortSignal;
 }
 
 export async function streamChat(options: StreamOptions) {
-  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, onTool, onSearch, onBrowse, signal } = options;
+  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, onTool, onSearch, onBrowse, onSources, signal } = options;
 
   console.log("[ai-stream] streamChat called for:", message);
 
@@ -118,6 +119,8 @@ export async function streamChat(options: StreamOptions) {
               onSearch?.(parsed);
             } else if (eventType === "browse" && parsed) {
               onBrowse?.(parsed);
+            } else if (eventType === "sources" && parsed) {
+              onSources?.(parsed);
             } else if (eventType === "error") {
               onError(parsed.error || "Unknown error");
               return;

@@ -62,6 +62,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [searchResults, setSearchResults] = useState<SearchData[]>([]);
   const [browseData, setBrowseData] = useState<BrowseData[]>([]);
   const [isUsingTools, setIsUsingTools] = useState(false);
+  const [sources, setSources] = useState<Array<{ title: string; url: string; favicon: string; domain: string }>>([]);
   const abortRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
   const { provider, model } = useModelSettings();
@@ -81,6 +82,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
       setSearchResults([]);
       setBrowseData([]);
       setIsUsingTools(false);
+      setSources([]);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -144,6 +146,9 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         onBrowse: (data) => {
           setBrowseData(prev => [...prev, data]);
         },
+        onSources: (data) => {
+          setSources(data.sources || []);
+        },
         onError: (err) => {
           setError(err);
           setIsStreaming(false);
@@ -190,5 +195,6 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
     searchResults,
     browseData,
     isUsingTools,
+    sources,
   };
 }

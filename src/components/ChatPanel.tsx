@@ -53,7 +53,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, taskMode, toolCalls, searchResults, browseData, isUsingTools } = useAIChat({
+  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, taskMode, toolCalls, searchResults, browseData, isUsingTools, sources } = useAIChat({
     conversationId: conversation.id,
   });
 
@@ -357,8 +357,30 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
+        {/* Sources with favicons — Perplexity style */}
+        {sources.length > 0 && (
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-muted-foreground">Sources</span>
+            <div className="flex flex-wrap gap-2">
+              {sources.slice(0, 8).map((s, i) => (
+                <a
+                  key={i}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border hover:bg-accent/50 transition-colors group"
+                  style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
+                >
+                  <img src={s.favicon} alt="" width={16} height={16} className="rounded-sm flex-shrink-0" />
+                  <span className="text-xs text-muted-foreground group-hover:text-foreground truncate max-w-[120px]">{s.domain}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Inline search results when Computer Panel is closed */}
-        {!computerVisible && searchResults.length > 0 && (
+        {!computerVisible && searchResults.length > 0 && sources.length === 0 && (
           <div className="rounded-lg border border-border p-3 space-y-2" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Globe size={12} />
