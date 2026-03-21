@@ -1,0 +1,368 @@
+import { useState, useCallback, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { AnimatePresence } from "motion/react";
+import { useAgentTemplates } from "@/hooks/useAgentTemplates";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { WorkflowCanvas } from "@/components/agents/workflow/WorkflowCanvas";
+import { WorkflowToolbar } from "@/components/agents/workflow/WorkflowToolbar";
+import { WorkflowSidebar } from "@/components/agents/workflow/WorkflowSidebar";
+import type { Workflow, WorkflowNode, WorkflowEdge } from "@/types/workflows";
+
+// ─── Mock workflows ───
+
+function createMockWorkflow(id: string): Workflow {
+  if (id === "new" || !id) {
+    return {
+      id: `wf-${Date.now()}`,
+      user_id: "demo",
+      name: "Untitled Workflow",
+      description: "A new multi-agent workflow",
+      nodes: [],
+      edges: [],
+      status: "draft",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  // Default demo workflow with 3 nodes
+  return {
+    id: id || "wf-demo",
+    user_id: "demo",
+    name: "Research & Report Pipeline",
+    description: "Research a topic, analyze findings, and produce a polished report.",
+    nodes: [
+      {
+        id: "node-research",
+        agent_template_id: "research-agent",
+        position: { x: 100, y: 200 },
+        config: { model: "claude-sonnet-4-20250514" },
+        status: "idle",
+      },
+      {
+        id: "node-data",
+        agent_template_id: "data-analyst-agent",
+        position: { x: 420, y: 200 },
+        config: { model: "gpt-4o" },
+        status: "idle",
+      },
+      {
+        id: "node-content",
+        agent_template_id: "content-creator-agent",
+        position: { x: 740, y: 200 },
+        config: { model: "gpt-4o" },
+        status: "idle",
+      },
+    ],
+    edges: [
+      {
+        id: "edge-1",
+        source_node_id: "node-research",
+        target_node_id: "node-data",
+        condition: "on_success",
+      },
+      {
+        id: "edge-2",
+        source_node_id: "node-data",
+        target_node_id: "node-content",
+        condition: "on_success",
+      },
+    ],
+    status: "draft",
+    created_at: "2026-03-20T10:00:00Z",
+    updated_at: "2026-03-21T09:30:00Z",
+  };
+}
+
+// ─── Component ───
+
+const WorkflowEditor = () => {
+  const { workflowId } = useParams();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const { data: templates = [] } = useAgentTemplates();
+
+  // Workflow state
+  const [workflow, setWorkflow] = useState<Workflow>(() =>
+    createMockWorkflow(workflowId ?? "demo"),
+  );
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [zoom, setZoom] = useState(1);
+  const [isRunning, setIsRunning] = useState(false);
+  const [runStep, setRunStep] = useState(0);
+
+  // Hide sidebar on mobile
+  useEffect(() => {
+    if (isMobile) setShowSidebar(false);
+  }, [isMobile]);
+
+  // ─── Workflow name ───
+
+  const handleNameChange = useCallback((name: string) => {
+    setWorkflow((prev) => ({ ...prev, name, updated_at: new Date().toISOString() }));
+  }, []);
+
+  // ─── Node operations ───
+
+  const handleNodeSelect = useCallback((nodeId: string | null) => {
+    setSelectedNodeId(nodeId);
+    if (nodeId && !showSidebar && !isMobile) {
+      setShowSidebar(true);
+    }
+  }, [showSidebar, isMobile]);
+
+  const handleNodeMove = useCallback((nodeId: string, position: { x: number; y: number }) => {
+    setWorkflow((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, position } : n)),
+      updated_at: new Date().toISOString(),
+    }));
+  }, []);
+
+  const handleAddAgent = useCallback((templateId: string) => {
+    const newNode: WorkflowNode = {
+      id: `node-${Date.now()}`,
+      agent_template_id: templateId,
+      position: {
+        x: 100 + workflow.nodes.length * 320,
+        y: 200,
+      },
+      config: {},
+      status: "idle",
+    };
+    setWorkflow((prev) => ({
+      ...prev,
+      nodes: [...prev.nodes, newNode],
+      updated_at: new Date().toISOString(),
+    }));
+  }, [workflow.nodes.length]);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    setWorkflow((prev) => ({
+      ...prev,
+      nodes: prev.nodes.filter((n) => n.id !== nodeId),
+      edges: prev.edges.filter((e) => e.source_node_id !== nodeId && e.target_node_id !== nodeId),
+      updated_at: new Date().toISOString(),
+    }));
+    if (selectedNodeId === nodeId) {
+      setSelectedNodeId(null);
+    }
+  }, [selectedNodeId]);
+
+  const handleDuplicateNode = useCallback((nodeId: string) => {
+    const original = workflow.nodes.find((n) => n.id === nodeId);
+    if (!original) return;
+    const newNode: WorkflowNode = {
+      ...original,
+      id: `node-${Date.now()}`,
+      position: { x: original.position.x + 40, y: original.position.y + 40 },
+      status: "idle",
+      run_id: undefined,
+    };
+    setWorkflow((prev) => ({
+      ...prev,
+      nodes: [...prev.nodes, newNode],
+      updated_at: new Date().toISOString(),
+    }));
+  }, [workflow.nodes]);
+
+  const handleNodeConfigure = useCallback((nodeId: string) => {
+    setSelectedNodeId(nodeId);
+    if (!showSidebar) setShowSidebar(true);
+  }, [showSidebar]);
+
+  const handleNodeConfigChange = useCallback((nodeId: string, config: WorkflowNode["config"]) => {
+    setWorkflow((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((n) => (n.id === nodeId ? { ...n, config } : n)),
+      updated_at: new Date().toISOString(),
+    }));
+  }, []);
+
+  // ─── Edge operations ───
+
+  const handleEdgeCreate = useCallback((sourceNodeId: string, targetNodeId: string) => {
+    // Don't allow duplicate edges
+    const exists = workflow.edges.some(
+      (e) => e.source_node_id === sourceNodeId && e.target_node_id === targetNodeId,
+    );
+    if (exists) return;
+
+    const newEdge: WorkflowEdge = {
+      id: `edge-${Date.now()}`,
+      source_node_id: sourceNodeId,
+      target_node_id: targetNodeId,
+      condition: "on_success",
+    };
+    setWorkflow((prev) => ({
+      ...prev,
+      edges: [...prev.edges, newEdge],
+      updated_at: new Date().toISOString(),
+    }));
+  }, [workflow.edges]);
+
+  // ─── Zoom ───
+
+  const handleZoomIn = useCallback(() => {
+    setZoom((z) => Math.min(1.5, z + 0.1));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((z) => Math.max(0.5, z - 0.1));
+  }, []);
+
+  const handleFitView = useCallback(() => {
+    setZoom(1);
+  }, []);
+
+  // ─── Auto-layout ───
+
+  const handleAutoLayout = useCallback(() => {
+    setWorkflow((prev) => {
+      const sorted = [...prev.nodes];
+      // Simple left-to-right layout
+      const updated = sorted.map((node, index) => ({
+        ...node,
+        position: { x: 100 + index * 320, y: 200 },
+      }));
+      return { ...prev, nodes: updated, updated_at: new Date().toISOString() };
+    });
+  }, []);
+
+  // ─── Run simulation ───
+
+  const handleRun = useCallback(() => {
+    if (workflow.nodes.length === 0) return;
+    setIsRunning(true);
+    setRunStep(0);
+    setWorkflow((prev) => ({
+      ...prev,
+      status: "running",
+      nodes: prev.nodes.map((n) => ({ ...n, status: "idle" as const })),
+    }));
+
+    // Simulate sequential execution
+    let step = 0;
+    const nodeIds = workflow.nodes.map((n) => n.id);
+
+    const runNext = () => {
+      if (step >= nodeIds.length) {
+        // All done
+        setIsRunning(false);
+        setWorkflow((prev) => ({ ...prev, status: "completed" }));
+        return;
+      }
+
+      const currentId = nodeIds[step];
+      setRunStep(step + 1);
+
+      // Set current node to running
+      setWorkflow((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((n) =>
+          n.id === currentId ? { ...n, status: "running" as const } : n,
+        ),
+      }));
+
+      // Complete after delay
+      setTimeout(() => {
+        setWorkflow((prev) => ({
+          ...prev,
+          nodes: prev.nodes.map((n) =>
+            n.id === currentId ? { ...n, status: "completed" as const } : n,
+          ),
+        }));
+        step++;
+        runNext();
+      }, 2500);
+    };
+
+    runNext();
+  }, [workflow.nodes]);
+
+  const handleStop = useCallback(() => {
+    setIsRunning(false);
+    setRunStep(0);
+    setWorkflow((prev) => ({
+      ...prev,
+      status: "draft",
+      nodes: prev.nodes.map((n) => ({ ...n, status: "idle" as const })),
+    }));
+  }, []);
+
+  const handleSave = useCallback(() => {
+    // In production: save workflow to Supabase
+    console.log("Saving workflow:", workflow);
+  }, [workflow]);
+
+  return (
+    <div className="h-screen flex flex-col bg-background">
+      {/* Back + Toolbar */}
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
+        <button
+          onClick={() => navigate("/agents")}
+          className="p-1.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground flex-shrink-0"
+        >
+          <ArrowLeft size={16} />
+        </button>
+      </div>
+
+      <WorkflowToolbar
+        workflowName={workflow.name}
+        onNameChange={handleNameChange}
+        agents={templates}
+        onAddAgent={handleAddAgent}
+        onAutoLayout={handleAutoLayout}
+        zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onFitView={handleFitView}
+        isRunning={isRunning}
+        runProgress={isRunning ? `Step ${runStep}/${workflow.nodes.length}` : undefined}
+        onRun={handleRun}
+        onStop={handleStop}
+        onSave={handleSave}
+        onSettings={() => {
+          setSelectedNodeId(null);
+          setShowSidebar(!showSidebar);
+        }}
+      />
+
+      {/* Main area */}
+      <div className="flex-1 flex overflow-hidden">
+        <WorkflowCanvas
+          workflow={workflow}
+          templates={templates}
+          selectedNodeId={selectedNodeId}
+          onNodeSelect={handleNodeSelect}
+          onNodeMove={handleNodeMove}
+          onEdgeCreate={handleEdgeCreate}
+          onNodeDelete={handleDeleteNode}
+          onNodeConfigure={handleNodeConfigure}
+          onNodeDuplicate={handleDuplicateNode}
+          isRunning={isRunning}
+          zoom={zoom}
+          onZoomChange={setZoom}
+        />
+
+        {/* Sidebar */}
+        <AnimatePresence>
+          {showSidebar && !isMobile && (
+            <WorkflowSidebar
+              workflow={workflow}
+              selectedNodeId={selectedNodeId}
+              templates={templates}
+              onClose={() => setShowSidebar(false)}
+              onDeleteNode={handleDeleteNode}
+              onNodeConfigChange={handleNodeConfigChange}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+export default WorkflowEditor;

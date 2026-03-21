@@ -21,6 +21,7 @@ import { lazy, Suspense } from "react";
 const Agents = lazy(() => import("./pages/Agents.tsx"));
 const AgentConfig = lazy(() => import("./pages/AgentConfig.tsx"));
 const AgentRun = lazy(() => import("./pages/AgentRun.tsx"));
+const WorkflowEditor = lazy(() => import("./pages/WorkflowEditor.tsx"));
 import Onboarding from "./pages/Onboarding.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -101,6 +102,16 @@ const App = () => (
                   <ProtectedRoute>
                     <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
                       <AgentRun />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agents/workflow/:workflowId?"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                      <WorkflowEditor />
                     </Suspense>
                   </ProtectedRoute>
                 }
