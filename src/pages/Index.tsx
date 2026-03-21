@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
+import AnimatedCardStack from "@/components/ui/animated-card-stack";
 import { useAuth } from "@/contexts/AuthContext";
 import type { VerticalType } from "@/lib/plugins/types";
 
@@ -79,11 +80,11 @@ const Index = () => {
   const slogan = verticalSlogans[workspace] || verticalSlogans.general;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen bg-background overflow-y-auto">
       <Header />
 
       {/* ─── Centered Composer ──────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4 pb-24 pt-16">
+      <main className="flex flex-col items-center px-4 pt-28 md:pt-36">
         <div
           className={`flex flex-col items-center gap-5 w-full max-w-2xl transition-all duration-700 ${
             visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
@@ -121,6 +122,16 @@ const Index = () => {
           >
             <ActionChips />
           </div>
+        </div>
+
+        {/* ─── Animated Feature Cards ────────────────────────────────── */}
+        <div
+          className={`w-full mt-12 transition-all duration-1000 delay-500 ${
+            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+          }`}
+          style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+        >
+          <AnimatedCardStack />
         </div>
       </main>
 
