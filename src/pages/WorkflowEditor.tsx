@@ -1,77 +1,28 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { AnimatePresence } from "motion/react";
 import { useAgentTemplates } from "@/hooks/useAgentTemplates";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useWorkflow, useSaveWorkflow } from "@/hooks/useWorkflows";
 import { WorkflowCanvas } from "@/components/agents/workflow/WorkflowCanvas";
 import { WorkflowToolbar } from "@/components/agents/workflow/WorkflowToolbar";
 import { WorkflowSidebar } from "@/components/agents/workflow/WorkflowSidebar";
 import type { Workflow, WorkflowNode, WorkflowEdge } from "@/types/workflows";
 
-// ─── Mock workflows ───
+// ─── Default new workflow ───
 
-function createMockWorkflow(id: string): Workflow {
-  if (id === "new" || !id) {
-    return {
-      id: `wf-${Date.now()}`,
-      user_id: "demo",
-      name: "Untitled Workflow",
-      description: "A new multi-agent workflow",
-      nodes: [],
-      edges: [],
-      status: "draft",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  }
-
-  // Default demo workflow with 3 nodes
+function createNewWorkflow(): Workflow {
   return {
-    id: id || "wf-demo",
+    id: `wf-${Date.now()}`,
     user_id: "demo",
-    name: "Research & Report Pipeline",
-    description: "Research a topic, analyze findings, and produce a polished report.",
-    nodes: [
-      {
-        id: "node-research",
-        agent_template_id: "research-agent",
-        position: { x: 100, y: 200 },
-        config: { model: "claude-sonnet-4-20250514" },
-        status: "idle",
-      },
-      {
-        id: "node-data",
-        agent_template_id: "data-analyst-agent",
-        position: { x: 420, y: 200 },
-        config: { model: "gpt-4o" },
-        status: "idle",
-      },
-      {
-        id: "node-content",
-        agent_template_id: "content-creator-agent",
-        position: { x: 740, y: 200 },
-        config: { model: "gpt-4o" },
-        status: "idle",
-      },
-    ],
-    edges: [
-      {
-        id: "edge-1",
-        source_node_id: "node-research",
-        target_node_id: "node-data",
-        condition: "on_success",
-      },
-      {
-        id: "edge-2",
-        source_node_id: "node-data",
-        target_node_id: "node-content",
-        condition: "on_success",
-      },
-    ],
+    name: "Untitled Workflow",
+    description: "A new multi-agent workflow",
+    nodes: [],
+    edges: [],
     status: "draft",
-    created_at: "2026-03-20T10:00:00Z",
-    updated_at: "2026-03-21T09:30:00Z",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 }
 
@@ -83,20 +34,109 @@ const WorkflowEditor = () => {
   const isMobile = useIsMobile();
   const { data: templates = [] } = useAgentTemplates();
 
-  // Workflow state
-  const [workflow, setWorkflow] = useState<Workflow>(() =>
-    createMockWorkflow(workflowId ?? "demo"),
+  // Persistence hooks
+  const isNewWorkflow = !workflowId || workflowId === "new";
+  const { data: loadedWorkflow, isLoading: isLoadingWorkflow } = useWorkflow(
+    isNewWorkflow ? undefined : workflowId,
   );
+  const saveMutation = useSaveWorkflow();
+
+  // Workflow state
+  const [workflow, setWorkflow] = useState<Workflow>(createNewWorkflow);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [zoom, setZoom] = useState(1);
   const [isRunning, setIsRunning] = useState(false);
   const [runStep, setRunStep] = useState(0);
+  const [saveNotice, setSaveNotice] = useState<"saved" | "saving" | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(isNewWorkflow);
+
+  // Auto-save debounce ref
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRef = useRef<string>("");
+
+  // Load workflow from Supabase when data arrives
+  useEffect(() => {
+    if (loadedWorkflow && !hasInitialized) {
+      setWorkflow(loadedWorkflow);
+      lastSavedRef.current = JSON.stringify({
+        name: loadedWorkflow.name,
+        nodes: loadedWorkflow.nodes,
+        edges: loadedWorkflow.edges,
+      });
+      setHasInitialized(true);
+    }
+  }, [loadedWorkflow, hasInitialized]);
 
   // Hide sidebar on mobile
   useEffect(() => {
     if (isMobile) setShowSidebar(false);
   }, [isMobile]);
+
+  // ─── Save logic ───
+
+  const doSave = useCallback(async () => {
+    const persistableStatus =
+      workflow.status === "running" || workflow.status === "completed" || workflow.status === "failed"
+        ? "draft"
+        : workflow.status;
+
+    setSaveNotice("saving");
+    try {
+      const result = await saveMutation.mutateAsync({
+        id: isNewWorkflow ? undefined : workflowId,
+        name: workflow.name,
+        description: workflow.description,
+        nodes: workflow.nodes,
+        edges: workflow.edges,
+        status: persistableStatus,
+      });
+
+      lastSavedRef.current = JSON.stringify({
+        name: workflow.name,
+        nodes: workflow.nodes,
+        edges: workflow.edges,
+      });
+
+      setSaveNotice("saved");
+      setTimeout(() => setSaveNotice(null), 2000);
+
+      // If this was a new workflow, navigate to its persisted ID
+      if (isNewWorkflow && result?.id) {
+        navigate(`/agents/workflow/${result.id}`, { replace: true });
+      }
+    } catch {
+      setSaveNotice(null);
+    }
+  }, [workflow, isNewWorkflow, workflowId, saveMutation, navigate]);
+
+  // Auto-save on significant changes (debounced 2s)
+  useEffect(() => {
+    if (!hasInitialized || isRunning) return;
+
+    const currentSnapshot = JSON.stringify({
+      name: workflow.name,
+      nodes: workflow.nodes,
+      edges: workflow.edges,
+    });
+
+    // Skip if nothing changed
+    if (currentSnapshot === lastSavedRef.current) return;
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      doSave();
+    }, 2000);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [workflow.name, workflow.nodes, workflow.edges, hasInitialized, isRunning, doSave]);
 
   // ─── Workflow name ───
 
@@ -293,9 +333,20 @@ const WorkflowEditor = () => {
   }, []);
 
   const handleSave = useCallback(() => {
-    // In production: save workflow to Supabase
-    console.log("Saving workflow:", workflow);
-  }, [workflow]);
+    doSave();
+  }, [doSave]);
+
+  // Loading state while fetching existing workflow
+  if (!isNewWorkflow && isLoadingWorkflow && !hasInitialized) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 size={18} className="animate-spin" />
+          <span className="text-sm">Loading workflow...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -307,6 +358,23 @@ const WorkflowEditor = () => {
         >
           <ArrowLeft size={16} />
         </button>
+
+        {/* Save status indicator */}
+        {saveNotice && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-auto mr-2">
+            {saveNotice === "saving" ? (
+              <>
+                <Loader2 size={12} className="animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Check size={12} className="text-[hsl(var(--success))]" />
+                <span className="text-[hsl(var(--success))]">Saved</span>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <WorkflowToolbar

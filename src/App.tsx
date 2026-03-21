@@ -7,23 +7,23 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Index from "./pages/Index.tsx";
-import Dashboard from "./pages/Dashboard.tsx";
-import Login from "./pages/Login.tsx";
-import Signup from "./pages/Signup.tsx";
-import Connectors from "./pages/Connectors.tsx";
-import Skills from "./pages/Skills.tsx";
-import Plugins from "./pages/Plugins.tsx";
-import Pricing from "./pages/Pricing.tsx";
 import { lazy, Suspense } from "react";
 
-// Lazy-load agent pages for code splitting
+// Lazy-load all pages for optimal code splitting
+const Index = lazy(() => import("./pages/Index.tsx"));
+const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const Login = lazy(() => import("./pages/Login.tsx"));
+const Signup = lazy(() => import("./pages/Signup.tsx"));
+const Connectors = lazy(() => import("./pages/Connectors.tsx"));
+const Skills = lazy(() => import("./pages/Skills.tsx"));
+const Plugins = lazy(() => import("./pages/Plugins.tsx"));
+const Pricing = lazy(() => import("./pages/Pricing.tsx"));
 const Agents = lazy(() => import("./pages/Agents.tsx"));
 const AgentConfig = lazy(() => import("./pages/AgentConfig.tsx"));
 const AgentRun = lazy(() => import("./pages/AgentRun.tsx"));
 const WorkflowEditor = lazy(() => import("./pages/WorkflowEditor.tsx"));
-import Onboarding from "./pages/Onboarding.tsx";
-import NotFound from "./pages/NotFound.tsx";
+const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
+const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -40,6 +40,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <Router>
+            <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
@@ -80,9 +81,7 @@ const App = () => (
                 path="/agents"
                 element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-                      <Agents />
-                    </Suspense>
+                    <Agents />
                   </ProtectedRoute>
                 }
               />
@@ -90,9 +89,7 @@ const App = () => (
                 path="/agents/configure/:templateId"
                 element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-                      <AgentConfig />
-                    </Suspense>
+                    <AgentConfig />
                   </ProtectedRoute>
                 }
               />
@@ -100,9 +97,7 @@ const App = () => (
                 path="/agents/run/:runId"
                 element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-                      <AgentRun />
-                    </Suspense>
+                    <AgentRun />
                   </ProtectedRoute>
                 }
               />
@@ -110,9 +105,7 @@ const App = () => (
                 path="/agents/workflow/:workflowId?"
                 element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-                      <WorkflowEditor />
-                    </Suspense>
+                    <WorkflowEditor />
                   </ProtectedRoute>
                 }
               />
@@ -127,6 +120,7 @@ const App = () => (
               />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </Router>
         </TooltipProvider>
       </ThemeProvider>

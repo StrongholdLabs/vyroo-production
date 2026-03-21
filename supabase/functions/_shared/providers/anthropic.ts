@@ -32,7 +32,15 @@ export function streamAnthropic(
         };
 
         if (systemPrompt) {
-          body.system = systemPrompt;
+          // Use structured system prompt with cache_control for Anthropic prompt caching
+          // This can reduce costs by up to 90% on repeated system prompt context
+          body.system = [
+            {
+              type: "text",
+              text: systemPrompt,
+              cache_control: { type: "ephemeral" },
+            },
+          ];
         }
 
         const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -41,6 +49,7 @@ export function streamAnthropic(
             "Content-Type": "application/json",
             "x-api-key": apiKey,
             "anthropic-version": "2023-06-01",
+            "anthropic-beta": "prompt-caching-2024-07-31",
           },
           body: JSON.stringify(body),
         });

@@ -1,6 +1,5 @@
 // Agent Tool Registry: defines available tools for agent execution
 // Each tool has an ID, metadata, and an execute function that returns structured output.
-// Currently returns realistic mock data — in production these will call real APIs.
 
 export interface AgentToolDefinition {
   id: string;
@@ -11,7 +10,135 @@ export interface AgentToolDefinition {
 }
 
 // ---------------------------------------------------------------------------
-// Tool implementations (mock stubs)
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Call Anthropic Messages API and return the text response. */
+async function callAnthropic(
+  model: string,
+  systemPrompt: string,
+  userMessage: string,
+  maxTokens = 2048
+): Promise<string> {
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY not configured");
+  }
+
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    }),
+  });
+
+  if (!resp.ok) {
+    const errBody = await resp.text();
+    throw new Error(`Anthropic API error (${resp.status}): ${errBody}`);
+  }
+
+  const data = await resp.json();
+  const textBlock = data.content?.find(
+    (b: { type: string }) => b.type === "text"
+  );
+  return textBlock?.text ?? "";
+}
+
+/** Strip HTML tags and collapse whitespace. */
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Extract <title> from HTML. */
+function extractTitle(html: string): string {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return match ? stripHtml(match[1]) : "";
+}
+
+/** Browser-like User-Agent for fetching pages. */
+const BROWSER_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+/** Parse CSV text into header + rows. */
+function parseCsv(text: string): { headers: string[]; rows: string[][] } {
+  const lines = text.trim().split("\n");
+  if (lines.length === 0) return { headers: [], rows: [] };
+
+  const parseLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === "," && !inQuotes) {
+        result.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  const headers = parseLine(lines[0]);
+  const rows = lines.slice(1).filter(Boolean).map(parseLine);
+  return { headers, rows };
+}
+
+/** Compute basic stats for an array of numbers. */
+function numericStats(values: number[]): {
+  count: number;
+  min: number;
+  max: number;
+  avg: number;
+  median: number;
+} {
+  if (values.length === 0) return { count: 0, min: 0, max: 0, avg: 0, median: 0 };
+  const sorted = [...values].sort((a, b) => a - b);
+  const sum = sorted.reduce((a, b) => a + b, 0);
+  const mid = Math.floor(sorted.length / 2);
+  const median =
+    sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
+  return {
+    count: sorted.length,
+    min: sorted[0],
+    max: sorted[sorted.length - 1],
+    avg: sum / sorted.length,
+    median,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Tool implementations
 // ---------------------------------------------------------------------------
 
 const webSearch: AgentToolDefinition = {
@@ -23,88 +150,252 @@ const webSearch: AgentToolDefinition = {
   },
   async execute(args) {
     const query = String(args.query ?? "");
-    return {
-      results: [
-        {
-          title: `Top result for "${query}"`,
-          url: `https://example.com/search?q=${encodeURIComponent(query)}`,
-          snippet: `This is a highly relevant result about ${query}. It covers the key points and provides detailed analysis.`,
-        },
-        {
-          title: `${query} — Wikipedia`,
-          url: `https://en.wikipedia.org/wiki/${encodeURIComponent(query.replace(/\s+/g, "_"))}`,
-          snippet: `${query} refers to a broad topic encompassing multiple perspectives and historical context.`,
-        },
-        {
-          title: `Latest research on ${query}`,
-          url: `https://scholar.example.com/papers/${encodeURIComponent(query)}`,
-          snippet: `Recent academic findings related to ${query}, published in leading journals.`,
-        },
-      ],
-    };
+    if (!query) return { error: "No query provided", results: [] };
+
+    // Try Brave Search first
+    const braveKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
+    if (braveKey) {
+      try {
+        const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`;
+        const resp = await fetch(url, {
+          headers: { "X-Subscription-Token": braveKey, Accept: "application/json" },
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          const results = (data.web?.results ?? []).map(
+            (r: { title?: string; url?: string; description?: string }) => ({
+              title: r.title ?? "",
+              url: r.url ?? "",
+              snippet: r.description ?? "",
+            })
+          );
+          return { results, source: "brave" };
+        }
+        // If Brave fails (rate limit, etc.), fall through to DuckDuckGo
+      } catch {
+        // fall through
+      }
+    }
+
+    // Fallback: DuckDuckGo HTML scrape
+    try {
+      const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+      const resp = await fetch(ddgUrl, {
+        headers: { "User-Agent": BROWSER_UA },
+      });
+      const html = await resp.text();
+
+      // Parse result blocks from DuckDuckGo HTML
+      const results: { title: string; url: string; snippet: string }[] = [];
+      const resultRegex =
+        /<a[^>]+class="result__a"[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/gi;
+      let match: RegExpExecArray | null;
+      while ((match = resultRegex.exec(html)) !== null && results.length < 5) {
+        const rawUrl = match[1];
+        // DuckDuckGo wraps URLs in a redirect; extract the actual URL
+        const uddg = new URL(rawUrl, "https://duckduckgo.com").searchParams.get(
+          "uddg"
+        );
+        results.push({
+          title: stripHtml(match[2]),
+          url: uddg ?? rawUrl,
+          snippet: stripHtml(match[3]),
+        });
+      }
+
+      // If regex didn't match, try a simpler extraction
+      if (results.length === 0) {
+        const simpleRegex =
+          /<a[^>]+class="result__a"[^>]*>([\s\S]*?)<\/a>/gi;
+        let sMatch: RegExpExecArray | null;
+        while (
+          (sMatch = simpleRegex.exec(html)) !== null &&
+          results.length < 5
+        ) {
+          results.push({
+            title: stripHtml(sMatch[1]),
+            url: "",
+            snippet: "",
+          });
+        }
+      }
+
+      return { results, source: "duckduckgo" };
+    } catch (err) {
+      return {
+        error: `Search failed: ${String(err)}`,
+        results: [],
+      };
+    }
   },
 };
 
 const browseUrl: AgentToolDefinition = {
   id: "browse_url",
   name: "Browse URL",
-  description: "Navigate to a URL and extract its content.",
+  description: "Navigate to a URL and extract its text content.",
   parameters: {
     url: { type: "string", description: "The URL to browse", required: true },
   },
   async execute(args) {
-    const url = String(args.url ?? "https://example.com");
-    return {
-      title: `Page at ${new URL(url).hostname}`,
-      content: `This is the extracted text content from ${url}. The page contains detailed information about the topic, including sections on background, methodology, results, and conclusions. Key takeaways are highlighted throughout.`,
-      links: [
-        { text: "Related Article", href: `${url}/related` },
-        { text: "References", href: `${url}/references` },
-      ],
-    };
+    const url = String(args.url ?? "");
+    if (!url) return { error: "No URL provided" };
+
+    try {
+      const resp = await fetch(url, {
+        headers: { "User-Agent": BROWSER_UA },
+        redirect: "follow",
+      });
+
+      if (!resp.ok) {
+        return { error: `HTTP ${resp.status} ${resp.statusText}`, url };
+      }
+
+      const html = await resp.text();
+      const title = extractTitle(html);
+      const content = stripHtml(html).slice(0, 5000);
+
+      return {
+        url,
+        title,
+        content,
+        length: content.length,
+      };
+    } catch (err) {
+      return { error: `Failed to fetch URL: ${String(err)}`, url };
+    }
   },
 };
 
 const extractContent: AgentToolDefinition = {
   id: "extract_content",
   name: "Extract Content",
-  description: "Extract specific content from a URL using an optional CSS selector.",
+  description:
+    "Extract specific content from a URL. Optionally provide a selector hint (e.g. 'article', 'main', 'table') to focus extraction.",
   parameters: {
     url: { type: "string", description: "The URL to extract from", required: true },
-    selector: { type: "string", description: "Optional CSS selector to target specific elements" },
+    selector: {
+      type: "string",
+      description:
+        "Optional element hint to focus extraction (e.g. 'article', 'main', 'table', 'h1')",
+    },
   },
   async execute(args) {
-    const url = String(args.url ?? "https://example.com");
-    const selector = args.selector ? String(args.selector) : "body";
-    return {
-      text: `Extracted content from ${url} using selector "${selector}". The main content discusses several important points with supporting evidence and data visualizations.`,
-      metadata: {
+    const url = String(args.url ?? "");
+    if (!url) return { error: "No URL provided" };
+
+    const selectorHint = args.selector ? String(args.selector) : null;
+
+    try {
+      const resp = await fetch(url, {
+        headers: { "User-Agent": BROWSER_UA },
+        redirect: "follow",
+      });
+
+      if (!resp.ok) {
+        return { error: `HTTP ${resp.status} ${resp.statusText}`, url };
+      }
+
+      const html = await resp.text();
+      const title = extractTitle(html);
+
+      const sections: { tag: string; content: string }[] = [];
+
+      if (selectorHint) {
+        // Extract content from matching tags
+        const tagRegex = new RegExp(
+          `<${selectorHint}[^>]*>([\\s\\S]*?)<\\/${selectorHint}>`,
+          "gi"
+        );
+        let tagMatch: RegExpExecArray | null;
+        while (
+          (tagMatch = tagRegex.exec(html)) !== null &&
+          sections.length < 20
+        ) {
+          const text = stripHtml(tagMatch[1]).trim();
+          if (text.length > 10) {
+            sections.push({ tag: selectorHint, content: text.slice(0, 2000) });
+          }
+        }
+      }
+
+      // If no sections found via selector, fall back to full text extraction
+      if (sections.length === 0) {
+        // Try common content elements
+        const contentTags = ["article", "main", "section"];
+        for (const tag of contentTags) {
+          const regex = new RegExp(
+            `<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`,
+            "gi"
+          );
+          let m: RegExpExecArray | null;
+          while ((m = regex.exec(html)) !== null && sections.length < 10) {
+            const text = stripHtml(m[1]).trim();
+            if (text.length > 50) {
+              sections.push({ tag, content: text.slice(0, 2000) });
+            }
+          }
+          if (sections.length > 0) break;
+        }
+      }
+
+      // Final fallback: full body text
+      if (sections.length === 0) {
+        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        const bodyText = bodyMatch ? stripHtml(bodyMatch[1]) : stripHtml(html);
+        sections.push({ tag: "body", content: bodyText.slice(0, 5000) });
+      }
+
+      const totalWords = sections.reduce(
+        (sum, s) => sum + s.content.split(/\s+/).length,
+        0
+      );
+
+      return {
         url,
-        selector,
-        word_count: 342,
+        title,
+        sections,
+        word_count: totalWords,
         extracted_at: new Date().toISOString(),
-      },
-    };
+      };
+    } catch (err) {
+      return { error: `Failed to extract content: ${String(err)}`, url };
+    }
   },
 };
 
 const summarize: AgentToolDefinition = {
   id: "summarize",
   name: "Summarize",
-  description: "Generate a concise summary of the provided text.",
+  description: "Generate a concise summary of the provided text using AI.",
   parameters: {
     text: { type: "string", description: "The text to summarize", required: true },
-    max_length: { type: "number", description: "Maximum length of the summary in words" },
+    max_length: {
+      type: "number",
+      description: "Desired maximum length of the summary in words (default 150)",
+    },
   },
   async execute(args) {
     const text = String(args.text ?? "");
-    const maxLength = Number(args.max_length ?? 100);
-    const words = text.split(/\s+/).slice(0, Math.min(maxLength, 50));
-    return {
-      summary: words.length > 10
-        ? `Summary: ${words.slice(0, 10).join(" ")}... The key points are: (1) the main argument is well-supported, (2) evidence is drawn from multiple sources, (3) conclusions align with current research.`
-        : `Summary of provided text covering the main themes and conclusions in ${maxLength} words or fewer.`,
-    };
+    if (!text) return { error: "No text provided" };
+
+    const maxLength = Number(args.max_length ?? 150);
+
+    try {
+      const summary = await callAnthropic(
+        "claude-3-5-haiku-20241022",
+        "You are a concise summarizer. Produce a clear, accurate summary of the provided text. Focus on key points and main ideas.",
+        `Summarize the following text in approximately ${maxLength} words or fewer:\n\n${text.slice(0, 15000)}`,
+        1024
+      );
+
+      return {
+        summary,
+        word_count: summary.split(/\s+/).length,
+      };
+    } catch (err) {
+      return { error: `Summarization failed: ${String(err)}` };
+    }
   },
 };
 
@@ -114,20 +405,46 @@ const generateCode: AgentToolDefinition = {
   description: "Generate code in the specified language based on a description.",
   parameters: {
     language: { type: "string", description: "The programming language", required: true },
-    description: { type: "string", description: "Description of what the code should do", required: true },
+    description: {
+      type: "string",
+      description: "Description of what the code should do",
+      required: true,
+    },
+    context: {
+      type: "string",
+      description: "Optional additional context (e.g. existing code, framework info)",
+    },
   },
   async execute(args) {
     const language = String(args.language ?? "typescript");
-    const description = String(args.description ?? "a utility function");
-    const codeTemplates: Record<string, string> = {
-      typescript: `// ${description}\nexport function execute(input: unknown): unknown {\n  // Implementation\n  console.log("Executing: ${description}");\n  return { success: true, input };\n}\n`,
-      python: `# ${description}\ndef execute(input):\n    \"\"\"${description}\"\"\"\n    print(f"Executing: ${description}")\n    return {"success": True, "input": input}\n`,
-      javascript: `// ${description}\nfunction execute(input) {\n  // Implementation\n  console.log("Executing: ${description}");\n  return { success: true, input };\n}\nmodule.exports = { execute };\n`,
-    };
-    return {
-      code: codeTemplates[language.toLowerCase()] ?? codeTemplates.typescript,
-      filename: `generated.${language === "python" ? "py" : language === "javascript" ? "js" : "ts"}`,
-    };
+    const description = String(args.description ?? "");
+    const context = args.context ? String(args.context) : "";
+
+    if (!description) return { error: "No description provided" };
+
+    try {
+      const result = await callAnthropic(
+        "claude-sonnet-4-20250514",
+        `You are an expert programmer. Generate clean, production-quality ${language} code based on the user's description. Include brief inline comments. Output ONLY a JSON object with two keys: "code" (the generated code as a string) and "explanation" (a brief explanation of the code). No markdown fences around the JSON.`,
+        `Language: ${language}\nDescription: ${description}${context ? `\nContext: ${context}` : ""}`,
+        4096
+      );
+
+      // Try to parse structured output
+      try {
+        const parsed = JSON.parse(result);
+        return {
+          code: parsed.code ?? result,
+          language,
+          explanation: parsed.explanation ?? "",
+        };
+      } catch {
+        // If AI didn't return valid JSON, treat the whole response as code
+        return { code: result, language, explanation: "" };
+      }
+    } catch (err) {
+      return { error: `Code generation failed: ${String(err)}` };
+    }
   },
 };
 
@@ -140,101 +457,247 @@ const reviewCode: AgentToolDefinition = {
     language: { type: "string", description: "The programming language", required: true },
   },
   async execute(args) {
+    const code = String(args.code ?? "");
     const language = String(args.language ?? "typescript");
-    return {
-      issues: [
-        {
-          severity: "warning",
-          line: 3,
-          message: "Consider adding input validation before processing.",
-        },
-        {
-          severity: "info",
-          line: 7,
-          message: "This function could benefit from explicit return type annotation.",
-        },
-      ],
-      suggestions: [
-        `Add error handling for edge cases in the ${language} implementation.`,
-        "Consider extracting magic numbers into named constants.",
-        "Add JSDoc/docstring comments for public API surfaces.",
-      ],
-    };
+
+    if (!code) return { error: "No code provided" };
+
+    try {
+      const result = await callAnthropic(
+        "claude-sonnet-4-20250514",
+        `You are an expert code reviewer. Analyze the provided ${language} code and return a JSON object (no markdown fences) with these keys:
+- "issues": array of {severity: "error"|"warning"|"info", line: number|null, message: string}
+- "suggestions": array of strings with improvement ideas
+- "overall_quality": string, one of "excellent", "good", "fair", "poor"`,
+        `Review this ${language} code:\n\n${code.slice(0, 10000)}`,
+        2048
+      );
+
+      try {
+        const parsed = JSON.parse(result);
+        return {
+          issues: parsed.issues ?? [],
+          suggestions: parsed.suggestions ?? [],
+          overall_quality: parsed.overall_quality ?? "unknown",
+        };
+      } catch {
+        return {
+          issues: [],
+          suggestions: [result],
+          overall_quality: "unknown",
+        };
+      }
+    } catch (err) {
+      return { error: `Code review failed: ${String(err)}` };
+    }
   },
 };
 
 const analyzeCsv: AgentToolDefinition = {
   id: "analyze_csv",
   name: "Analyze CSV",
-  description: "Analyze CSV data and answer questions about it.",
+  description: "Parse CSV data and compute basic statistics on numeric columns.",
   parameters: {
-    data: { type: "string", description: "The CSV data or reference to analyze", required: true },
-    question: { type: "string", description: "The question to answer about the data", required: true },
+    data: { type: "string", description: "The CSV data to analyze", required: true },
+    question: {
+      type: "string",
+      description: "Optional question to answer about the data",
+    },
   },
   async execute(args) {
-    const question = String(args.question ?? "What are the trends?");
-    return {
-      answer: `Based on the analysis of the provided dataset: the data shows a clear upward trend over the measured period. In response to "${question}", the key finding is that the primary metric increased by approximately 23% with statistical significance (p < 0.05).`,
-      chart_data: {
-        type: "line",
-        labels: ["Q1", "Q2", "Q3", "Q4"],
-        datasets: [
-          {
-            label: "Primary Metric",
-            data: [42, 55, 61, 78],
-          },
-        ],
-      },
-    };
+    const data = String(args.data ?? "");
+    if (!data) return { error: "No CSV data provided" };
+
+    try {
+      const { headers, rows } = parseCsv(data);
+      if (headers.length === 0) return { error: "Could not parse CSV headers" };
+
+      // Determine which columns are numeric
+      const stats: Record<
+        string,
+        { count: number; min: number; max: number; avg: number; median: number }
+      > = {};
+
+      for (let col = 0; col < headers.length; col++) {
+        const values: number[] = [];
+        for (const row of rows) {
+          const val = parseFloat(row[col]);
+          if (!isNaN(val)) values.push(val);
+        }
+        // Only compute stats if at least half the rows have numeric values
+        if (values.length >= rows.length * 0.5 && values.length > 0) {
+          stats[headers[col]] = numericStats(values);
+        }
+      }
+
+      // Sample rows (first 5)
+      const sampleRows = rows.slice(0, 5).map((row) => {
+        const obj: Record<string, string> = {};
+        headers.forEach((h, i) => {
+          obj[h] = row[i] ?? "";
+        });
+        return obj;
+      });
+
+      return {
+        columns: headers,
+        row_count: rows.length,
+        stats,
+        sample_rows: sampleRows,
+      };
+    } catch (err) {
+      return { error: `CSV analysis failed: ${String(err)}` };
+    }
   },
 };
 
 const createChart: AgentToolDefinition = {
   id: "create_chart",
   name: "Create Chart",
-  description: "Create a chart visualization from data.",
+  description:
+    "Generate a Chart.js-compatible JSON config from data. The frontend can render this directly.",
   parameters: {
-    data: { type: "string", description: "The data to visualize", required: true },
-    type: { type: "string", description: "Chart type (bar, line, pie, scatter)", required: true },
+    data: {
+      type: "string",
+      description:
+        "JSON string with labels and values, or CSV text. E.g. {\"labels\":[\"A\",\"B\"],\"values\":[10,20]}",
+      required: true,
+    },
+    chart_type: {
+      type: "string",
+      description: "Chart type: bar, line, or pie (default: bar)",
+      required: true,
+    },
+    title: { type: "string", description: "Optional chart title" },
   },
   async execute(args) {
-    const chartType = String(args.type ?? "bar");
-    return {
-      chart_url: `https://charts.example.com/render/${chartType}/${Date.now()}`,
-      chart_config: {
-        type: chartType,
-        data: {
-          labels: ["Category A", "Category B", "Category C", "Category D"],
-          datasets: [
-            {
-              label: "Values",
-              data: [30, 50, 20, 40],
-            },
-          ],
+    const chartType = String(args.chart_type ?? args.type ?? "bar");
+    const title = args.title ? String(args.title) : "Chart";
+    const rawData = String(args.data ?? "");
+
+    if (!rawData) return { error: "No data provided" };
+
+    let labels: string[] = [];
+    let datasets: { label: string; data: number[] }[] = [];
+
+    try {
+      // Try parsing as JSON first
+      const parsed = JSON.parse(rawData);
+      if (Array.isArray(parsed.labels)) {
+        labels = parsed.labels.map(String);
+      }
+      if (Array.isArray(parsed.values)) {
+        datasets = [{ label: title, data: parsed.values.map(Number) }];
+      } else if (Array.isArray(parsed.datasets)) {
+        datasets = parsed.datasets;
+      }
+    } catch {
+      // Try parsing as CSV
+      try {
+        const { headers, rows } = parseCsv(rawData);
+        if (headers.length >= 2) {
+          labels = rows.map((r) => r[0]);
+          // Each numeric column becomes a dataset
+          for (let c = 1; c < headers.length; c++) {
+            const vals = rows.map((r) => parseFloat(r[c]) || 0);
+            datasets.push({ label: headers[c], data: vals });
+          }
+        }
+      } catch {
+        return { error: "Could not parse data as JSON or CSV" };
+      }
+    }
+
+    if (labels.length === 0 || datasets.length === 0) {
+      return { error: "Could not extract labels and values from data" };
+    }
+
+    // Generate colors
+    const palette = [
+      "rgba(54, 162, 235, 0.7)",
+      "rgba(255, 99, 132, 0.7)",
+      "rgba(75, 192, 192, 0.7)",
+      "rgba(255, 206, 86, 0.7)",
+      "rgba(153, 102, 255, 0.7)",
+      "rgba(255, 159, 64, 0.7)",
+      "rgba(199, 199, 199, 0.7)",
+    ];
+
+    const chartConfig = {
+      type: chartType,
+      data: {
+        labels,
+        datasets: datasets.map((ds, i) => ({
+          ...ds,
+          backgroundColor:
+            chartType === "pie"
+              ? palette.slice(0, labels.length)
+              : palette[i % palette.length],
+          borderColor:
+            chartType === "line"
+              ? palette[i % palette.length].replace("0.7", "1")
+              : undefined,
+          borderWidth: chartType === "line" ? 2 : 1,
+          fill: chartType === "line" ? false : undefined,
+        })),
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: title },
+          legend: { display: datasets.length > 1 || chartType === "pie" },
         },
-        options: {
-          responsive: true,
-          title: { display: true, text: `Generated ${chartType} chart` },
-        },
+        scales:
+          chartType === "pie"
+            ? undefined
+            : {
+                y: { beginAtZero: true },
+              },
       },
     };
+
+    return { chart_config: chartConfig };
   },
 };
 
 const writeReport: AgentToolDefinition = {
   id: "write_report",
   name: "Write Report",
-  description: "Write a structured report on a given topic.",
+  description: "Write a structured report on a given topic using AI.",
   parameters: {
     topic: { type: "string", description: "The topic of the report", required: true },
-    outline: { type: "string", description: "Optional outline or structure for the report" },
+    data: {
+      type: "string",
+      description: "Optional data or findings to incorporate into the report",
+    },
+    format: {
+      type: "string",
+      description: "Output format: markdown (default) or html",
+    },
   },
   async execute(args) {
-    const topic = String(args.topic ?? "Untitled Report");
-    return {
-      content: `# Report: ${topic}\n\n## Executive Summary\nThis report provides a comprehensive analysis of ${topic}, examining current trends, key findings, and actionable recommendations.\n\n## Key Findings\n1. The primary trend shows significant growth in the target area.\n2. Stakeholder feedback has been largely positive.\n3. Implementation timelines align with projected milestones.\n\n## Recommendations\n- Continue monitoring key performance indicators.\n- Expand scope to include secondary factors.\n- Schedule follow-up analysis in 30 days.\n\n## Conclusion\nThe analysis of ${topic} reveals promising opportunities for further development and optimization.`,
-      word_count: 87,
-    };
+    const topic = String(args.topic ?? "");
+    if (!topic) return { error: "No topic provided" };
+
+    const data = args.data ? String(args.data) : "";
+    const format = String(args.format ?? "markdown");
+
+    try {
+      const content = await callAnthropic(
+        "claude-sonnet-4-20250514",
+        `You are a professional report writer. Write a well-structured ${format === "html" ? "HTML" : "Markdown"} report on the given topic. Include: Executive Summary, Key Findings, Analysis, and Recommendations sections. Be thorough but concise.`,
+        `Write a report on: ${topic}${data ? `\n\nIncorporate these data/findings:\n${data.slice(0, 10000)}` : ""}`,
+        4096
+      );
+
+      return {
+        content,
+        format,
+        word_count: content.split(/\s+/).length,
+      };
+    } catch (err) {
+      return { error: `Report writing failed: ${String(err)}` };
+    }
   },
 };
 
@@ -271,7 +734,7 @@ export function getToolDefinitions(
 
 /**
  * Execute a tool by ID with the given arguments.
- * Throws if the tool is not found.
+ * Returns an error object instead of throwing if the tool fails.
  */
 export async function executeTool(
   toolId: string,
@@ -279,7 +742,11 @@ export async function executeTool(
 ): Promise<Record<string, unknown>> {
   const tool = AGENT_TOOLS[toolId];
   if (!tool) {
-    throw new Error(`Unknown tool: ${toolId}`);
+    return { error: `Unknown tool: ${toolId}` };
   }
-  return tool.execute(args);
+  try {
+    return await tool.execute(args);
+  } catch (err) {
+    return { error: `Tool "${toolId}" failed: ${String(err)}` };
+  }
 }

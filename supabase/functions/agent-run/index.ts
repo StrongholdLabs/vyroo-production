@@ -13,6 +13,10 @@ import {
   getStepExecutionPrompt,
   getSummaryPrompt,
 } from "../_shared/agent-prompts.ts";
+import {
+  getConversationContext,
+  buildMemoryPrompt,
+} from "../_shared/agent-memory.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -281,9 +285,24 @@ Deno.serve(async (req) => {
 
         try {
           // =================================================================
+          // Phase 0: Fetch conversation memory for context
+          // =================================================================
+          let memoryPromptAddition = "";
+          try {
+            const conversationContext = await getConversationContext(
+              user.id,
+              supabase,
+              { limit: 5, maxAgeDays: 30 }
+            );
+            memoryPromptAddition = buildMemoryPrompt(conversationContext);
+          } catch {
+            // Memory is non-critical — continue without it
+          }
+
+          // =================================================================
           // Phase 1: Planning
           // =================================================================
-          const planningPrompt = getPlanningPrompt(
+          const basePlanningPrompt = getPlanningPrompt(
             {
               name: template.name,
               description: template.description,
@@ -293,6 +312,11 @@ Deno.serve(async (req) => {
             goal,
             tools
           );
+
+          // Inject memory context into the planning prompt
+          const planningPrompt = memoryPromptAddition
+            ? basePlanningPrompt + memoryPromptAddition
+            : basePlanningPrompt;
 
           const planStream = streamFn(
             apiKey,

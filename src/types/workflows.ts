@@ -27,9 +27,28 @@ export interface Workflow {
   description?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
-  status: "draft" | "running" | "completed" | "failed";
+  // Persisted status: draft | active | archived
+  // Runtime-only status: running | completed | failed (not stored in DB)
+  status: "draft" | "active" | "archived" | "running" | "completed" | "failed";
+  last_run_at?: string;
+  run_count?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface ScheduledAgent {
+  id: string;
+  user_id: string;
+  agent_template_id?: string;
+  workflow_id?: string;
+  name: string;
+  cron_expression: string;
+  input_config: Record<string, unknown>;
+  is_active: boolean;
+  last_run_at?: string;
+  next_run_at?: string;
+  run_count: number;
+  created_at: string;
 }
 
 export interface WorkflowRun {

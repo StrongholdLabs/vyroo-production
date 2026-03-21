@@ -12,57 +12,35 @@ import {
   Play,
   Clock,
   Layers,
+  Calendar,
+  Power,
+  Trash2,
+  Pencil,
+  X,
 } from "lucide-react";
 import type { AgentCategory } from "@/types/agents";
 import type { Workflow } from "@/types/workflows";
+import type { ScheduledAgent } from "@/types/workflows";
 import { useAgentTemplates, useFeaturedAgents } from "@/hooks/useAgentTemplates";
+import { useWorkflows } from "@/hooks/useWorkflows";
+import {
+  useScheduledAgents,
+  useCreateSchedule,
+  useUpdateSchedule,
+  useDeleteSchedule,
+  cronToHuman,
+  cronPresets,
+} from "@/hooks/useScheduledAgents";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { cn } from "@/lib/utils";
-
-// ─── Mock workflows ───
-
-const mockWorkflows: Workflow[] = [
-  {
-    id: "wf-research-report",
-    user_id: "demo",
-    name: "Research & Report Pipeline",
-    description: "Research a topic, analyze findings, and produce a polished report.",
-    nodes: [
-      { id: "n1", agent_template_id: "research-agent", position: { x: 100, y: 200 }, config: {}, status: "idle" },
-      { id: "n2", agent_template_id: "data-analyst-agent", position: { x: 420, y: 200 }, config: {}, status: "idle" },
-      { id: "n3", agent_template_id: "content-creator-agent", position: { x: 740, y: 200 }, config: {}, status: "idle" },
-    ],
-    edges: [
-      { id: "e1", source_node_id: "n1", target_node_id: "n2", condition: "on_success" },
-      { id: "e2", source_node_id: "n2", target_node_id: "n3", condition: "on_success" },
-    ],
-    status: "completed",
-    created_at: "2026-03-18T10:00:00Z",
-    updated_at: "2026-03-20T14:30:00Z",
-  },
-  {
-    id: "wf-code-review",
-    user_id: "demo",
-    name: "Code Review Automation",
-    description: "Analyze code changes, run quality checks, and generate a review summary.",
-    nodes: [
-      { id: "n1", agent_template_id: "coding-agent", position: { x: 100, y: 200 }, config: {}, status: "idle" },
-      { id: "n2", agent_template_id: "research-agent", position: { x: 420, y: 200 }, config: {}, status: "idle" },
-    ],
-    edges: [
-      { id: "e1", source_node_id: "n1", target_node_id: "n2", condition: "on_success" },
-    ],
-    status: "draft",
-    created_at: "2026-03-19T08:00:00Z",
-    updated_at: "2026-03-21T09:00:00Z",
-  },
-];
 
 // ─── Workflow card ───
 
 function WorkflowCard({ workflow, onClick }: { workflow: Workflow; onClick: () => void }) {
-  const statusColors: Record<Workflow["status"], string> = {
+  const statusColors: Record<string, string> = {
     draft: "bg-muted text-muted-foreground",
+    active: "bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]",
+    archived: "bg-muted text-muted-foreground",
     running: "bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]",
     completed: "bg-[hsl(var(--success))]/10 text-[hsl(var(--success))]",
     failed: "bg-destructive/10 text-destructive",
@@ -87,9 +65,14 @@ function WorkflowCard({ workflow, onClick }: { workflow: Workflow; onClick: () =
         </div>
 
         <div className="flex items-center gap-2 mb-3">
-          <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider", statusColors[workflow.status])}>
+          <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider", statusColors[workflow.status] ?? statusColors.draft)}>
             {workflow.status}
           </span>
+          {(workflow.run_count ?? 0) > 0 && (
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {workflow.run_count} runs
+            </span>
+          )}
         </div>
 
         {workflow.description && (
@@ -120,9 +103,298 @@ function WorkflowCard({ workflow, onClick }: { workflow: Workflow; onClick: () =
   );
 }
 
+// ─── Schedule card ───
+
+function ScheduleCard({
+  schedule,
+  onToggle,
+  onDelete,
+}: {
+  schedule: ScheduledAgent;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  const isAgent = !!schedule.agent_template_id;
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur p-5 transition-all duration-200 hover:border-border">
+      <div className="flex items-start gap-3 mb-3">
+        <div
+          className={cn(
+            "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border",
+            isAgent
+              ? "bg-primary/10 border-primary/20"
+              : "bg-purple-500/10 border-purple-500/20",
+          )}
+        >
+          {isAgent ? (
+            <Bot size={20} className="text-primary" />
+          ) : (
+            <GitBranch size={20} className="text-purple-400" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-foreground truncate">{schedule.name}</h3>
+          <span className="text-[11px] text-muted-foreground">
+            {isAgent ? "Agent" : "Workflow"}
+          </span>
+        </div>
+
+        {/* Active toggle */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+          className={cn(
+            "relative w-9 h-5 rounded-full transition-colors flex-shrink-0",
+            schedule.is_active ? "bg-[hsl(var(--success))]" : "bg-muted",
+          )}
+        >
+          <span
+            className={cn(
+              "absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm",
+              schedule.is_active && "translate-x-4",
+            )}
+          />
+        </button>
+      </div>
+
+      {/* Schedule info */}
+      <div className="flex items-center gap-1.5 mb-3">
+        <Calendar size={12} className="text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">
+          {cronToHuman(schedule.cron_expression)}
+        </span>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center gap-4 mb-4 text-[11px] text-muted-foreground">
+        {schedule.last_run_at && (
+          <span className="flex items-center gap-1">
+            <Clock size={11} />
+            Last: {new Date(schedule.last_run_at).toLocaleDateString()}
+          </span>
+        )}
+        {schedule.next_run_at && (
+          <span className="flex items-center gap-1">
+            <Play size={11} />
+            Next: {new Date(schedule.next_run_at).toLocaleDateString()}
+          </span>
+        )}
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-medium tabular-nums">
+          {schedule.run_count} runs
+        </span>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-destructive hover:bg-destructive/10 border border-transparent hover:border-destructive/30 transition-all"
+        >
+          <Trash2 size={12} />
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── New Schedule Form ───
+
+function NewScheduleForm({
+  agents,
+  workflows,
+  onSubmit,
+  onCancel,
+}: {
+  agents: { id: string; name: string }[];
+  workflows: { id: string; name: string }[];
+  onSubmit: (data: {
+    name: string;
+    agent_template_id?: string;
+    workflow_id?: string;
+    cron_expression: string;
+  }) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [targetType, setTargetType] = useState<"agent" | "workflow">("agent");
+  const [targetId, setTargetId] = useState("");
+  const [cronExpression, setCronExpression] = useState("0 9 * * 1");
+  const [cronPresetIdx, setCronPresetIdx] = useState<number | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !targetId) return;
+
+    onSubmit({
+      name: name.trim(),
+      agent_template_id: targetType === "agent" ? targetId : undefined,
+      workflow_id: targetType === "workflow" ? targetId : undefined,
+      cron_expression: cronExpression,
+    });
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-xl border border-primary/30 bg-card/80 backdrop-blur p-5 space-y-4"
+    >
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-sm font-semibold text-foreground">New Schedule</h3>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Name */}
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">Name</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g., Weekly Market Research"
+          className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
+        />
+      </div>
+
+      {/* Target type */}
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">Type</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setTargetType("agent");
+              setTargetId("");
+            }}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all",
+              targetType === "agent"
+                ? "bg-primary/15 text-primary border-primary/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent border-border",
+            )}
+          >
+            <Bot size={13} />
+            Agent
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTargetType("workflow");
+              setTargetId("");
+            }}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border transition-all",
+              targetType === "workflow"
+                ? "bg-primary/15 text-primary border-primary/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent border-border",
+            )}
+          >
+            <GitBranch size={13} />
+            Workflow
+          </button>
+        </div>
+      </div>
+
+      {/* Target select */}
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">
+          {targetType === "agent" ? "Select Agent" : "Select Workflow"}
+        </label>
+        <select
+          value={targetId}
+          onChange={(e) => setTargetId(e.target.value)}
+          className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
+        >
+          <option value="">Choose...</option>
+          {targetType === "agent"
+            ? agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))
+            : workflows.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+        </select>
+      </div>
+
+      {/* Cron expression */}
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">Schedule</label>
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {cronPresets.map((preset, idx) => (
+            <button
+              key={preset.value}
+              type="button"
+              onClick={() => {
+                setCronExpression(preset.value);
+                setCronPresetIdx(idx);
+              }}
+              className={cn(
+                "px-2 py-1 rounded-md text-[11px] font-medium border transition-all",
+                cronPresetIdx === idx
+                  ? "bg-primary/15 text-primary border-primary/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent border-border",
+              )}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <input
+          type="text"
+          value={cronExpression}
+          onChange={(e) => {
+            setCronExpression(e.target.value);
+            setCronPresetIdx(null);
+          }}
+          placeholder="0 9 * * 1"
+          className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">
+          {cronToHuman(cronExpression)}
+        </p>
+      </div>
+
+      {/* Submit */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="submit"
+          disabled={!name.trim() || !targetId}
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:pointer-events-none transition-all"
+        >
+          <Plus size={13} />
+          Create Schedule
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent border border-border transition-all"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // ─── Page-level tab type ───
 
-type PageTab = "agents" | "workflows";
+type PageTab = "agents" | "workflows" | "schedules";
 
 // ─── Filter tab definitions ───
 
@@ -181,10 +453,16 @@ export default function Agents() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [pageTab, setPageTab] = useState<PageTab>("agents");
+  const [showNewSchedule, setShowNewSchedule] = useState(false);
 
   // Data fetching
   const { data: allTemplates, isLoading } = useAgentTemplates();
   const { data: featuredTemplates } = useFeaturedAgents();
+  const { data: workflows = [] } = useWorkflows();
+  const { data: schedules = [], isLoading: isLoadingSchedules } = useScheduledAgents();
+  const createSchedule = useCreateSchedule();
+  const updateSchedule = useUpdateSchedule();
+  const deleteSchedule = useDeleteSchedule();
 
   // Filter and search
   const filteredTemplates = useMemo(() => {
@@ -258,7 +536,7 @@ export default function Agents() {
             </div>
           </div>
 
-          {/* Page-level tabs: Agents | Workflows */}
+          {/* Page-level tabs: Agents | Workflows | Schedules */}
           <div className="flex items-center gap-1 mt-5">
             <button
               onClick={() => setPageTab("agents")}
@@ -288,6 +566,20 @@ export default function Agents() {
                 Workflows
               </span>
             </button>
+            <button
+              onClick={() => setPageTab("schedules")}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                pageTab === "schedules"
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent",
+              )}
+            >
+              <span className="flex items-center gap-2">
+                <Calendar size={15} />
+                Schedules
+              </span>
+            </button>
           </div>
 
           {/* Search bar */}
@@ -298,7 +590,13 @@ export default function Agents() {
             />
             <input
               type="text"
-              placeholder="Search agents..."
+              placeholder={
+                pageTab === "schedules"
+                  ? "Search schedules..."
+                  : pageTab === "workflows"
+                    ? "Search workflows..."
+                    : "Search agents..."
+              }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all"
@@ -451,7 +749,7 @@ export default function Agents() {
 
           {/* Workflow cards grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockWorkflows.map((workflow) => (
+            {workflows.map((workflow) => (
               <WorkflowCard
                 key={workflow.id}
                 workflow={workflow}
@@ -460,15 +758,129 @@ export default function Agents() {
             ))}
           </div>
 
+          {workflows.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <GitBranch size={40} className="text-muted-foreground/40 mb-3" />
+              <p className="text-sm text-muted-foreground">
+                No workflows yet. Create one to chain agents together.
+              </p>
+            </div>
+          )}
+
           {/* Stats bar */}
           <div className="border-t border-border mt-8">
             <div className="max-w-6xl mx-auto py-3 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
-                <span className="tabular-nums text-foreground">{mockWorkflows.length}</span>
+                <span className="tabular-nums text-foreground">{workflows.length}</span>
                 {" workflows"}
               </span>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Schedules tab content */}
+      {pageTab === "schedules" && (
+        <div className="max-w-6xl mx-auto px-6 py-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Scheduled Agents & Workflows
+            </h2>
+            <button
+              onClick={() => setShowNewSchedule(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-all"
+            >
+              <Plus size={13} />
+              New Schedule
+            </button>
+          </div>
+
+          {/* New schedule form */}
+          {showNewSchedule && (
+            <div className="mb-6">
+              <NewScheduleForm
+                agents={(allTemplates ?? []).map((t) => ({ id: t.id, name: t.name }))}
+                workflows={workflows.map((w) => ({ id: w.id, name: w.name }))}
+                onSubmit={(data) => {
+                  createSchedule.mutate(data);
+                  setShowNewSchedule(false);
+                }}
+                onCancel={() => setShowNewSchedule(false)}
+              />
+            </div>
+          )}
+
+          {/* Loading */}
+          {isLoadingSchedules && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          )}
+
+          {/* Schedule cards */}
+          {!isLoadingSchedules && schedules.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {schedules
+                .filter((s) => {
+                  if (!search.trim()) return true;
+                  const q = search.toLowerCase();
+                  return (
+                    s.name.toLowerCase().includes(q) ||
+                    cronToHuman(s.cron_expression).toLowerCase().includes(q)
+                  );
+                })
+                .map((schedule) => (
+                  <ScheduleCard
+                    key={schedule.id}
+                    schedule={schedule}
+                    onToggle={() =>
+                      updateSchedule.mutate({
+                        id: schedule.id,
+                        is_active: !schedule.is_active,
+                      })
+                    }
+                    onDelete={() => deleteSchedule.mutate(schedule.id)}
+                  />
+                ))}
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!isLoadingSchedules && schedules.length === 0 && !showNewSchedule && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Calendar size={40} className="text-muted-foreground/40 mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">
+                No schedules yet. Set up recurring agent or workflow runs.
+              </p>
+              <button
+                onClick={() => setShowNewSchedule(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-all"
+              >
+                <Plus size={13} />
+                Create your first schedule
+              </button>
+            </div>
+          )}
+
+          {/* Stats bar */}
+          {!isLoadingSchedules && schedules.length > 0 && (
+            <div className="border-t border-border mt-8">
+              <div className="max-w-6xl mx-auto py-3 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  <span className="tabular-nums text-foreground">{schedules.length}</span>
+                  {" schedules"}
+                  {" \u00B7 "}
+                  <span className="tabular-nums text-foreground">
+                    {schedules.filter((s) => s.is_active).length}
+                  </span>
+                  {" active"}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
