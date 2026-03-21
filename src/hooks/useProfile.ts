@@ -44,8 +44,8 @@ export function useProfile() {
 
       return {
         id: data.id,
-        display_name: data.display_name,
-        avatar_url: data.avatar_url,
+        display_name: data.display_name || user.user_metadata?.full_name || user.user_metadata?.name,
+        avatar_url: data.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture,
         email: user.email ?? "",
         plan: data.plan as "free" | "pro" | "enterprise",
         credits: data.credits,

@@ -20,7 +20,8 @@ export function ProfileAvatar() {
   const { data: profile } = useProfile();
 
   const displayName = profile?.display_name || "User";
-  const initials = displayName.slice(0, 2);
+  const initials = displayName.slice(0, 2).toUpperCase();
+  const avatarUrl = profile?.avatar_url;
   const email = profile?.email || "";
   const credits = profile?.credits ?? 0;
   const plan = profile?.plan || "free";
@@ -49,9 +50,15 @@ export function ProfileAvatar() {
         </div>
         <button
           onClick={() => setOpen(!open)}
-          className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-white text-xs font-semibold ring-2 ring-transparent hover:ring-muted-foreground/30 transition-all duration-150"
+          className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent hover:ring-muted-foreground/30 transition-all duration-150"
         >
-          {initials}
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-white text-xs font-semibold">
+              {initials}
+            </div>
+          )}
         </button>
       </div>
 
@@ -63,8 +70,14 @@ export function ProfileAvatar() {
         >
           {/* User info */}
           <div className="px-4 py-3 border-b border-border flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-              {initials}
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-white text-sm font-semibold">
+                  {initials}
+                </div>
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
