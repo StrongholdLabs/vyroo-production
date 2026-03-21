@@ -210,12 +210,12 @@ export function useCheckLimit(type: string) {
 
 export const PRICE_IDS = {
   pro: {
-    monthly: "price_pro_monthly",
-    annual: "price_pro_annual",
+    monthly: "price_1TDO9WJmNogdsd3agslGukCj",
+    annual: "price_1TDO9ZJmNogdsd3a4OEa6fgf",
   },
   team: {
-    monthly: "price_team_monthly",
-    annual: "price_team_annual",
+    monthly: "price_1TDO9bJmNogdsd3ar6srzwC3",
+    annual: "price_1TDO9dJmNogdsd3aWdSeblKw",
   },
 } as const;
 
