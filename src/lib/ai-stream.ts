@@ -23,6 +23,7 @@ export async function streamChat(options: StreamOptions) {
   }
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const url = `${supabaseUrl}/functions/v1/chat`;
 
   try {
@@ -31,6 +32,7 @@ export async function streamChat(options: StreamOptions) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
+        apikey: supabaseAnonKey,
       },
       body: JSON.stringify({ conversationId, message, provider, model }),
       signal,
