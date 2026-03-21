@@ -422,9 +422,11 @@ Deno.serve(async (req) => {
               .eq("id", conversationId);
 
             // Increment message count
-            await supabase.rpc("increment_message_count", { conv_id: conversationId }).catch(() => {
+            try {
+              await supabase.rpc("increment_message_count", { conv_id: conversationId });
+            } catch {
               // Fallback if RPC doesn't exist yet
-            });
+            }
 
             // Auto-title: check if this conversation needs a title
             try {

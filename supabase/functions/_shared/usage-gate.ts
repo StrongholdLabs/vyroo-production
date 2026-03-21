@@ -19,7 +19,7 @@ interface PlanLimits {
 }
 
 const PLAN_LIMITS: Record<string, PlanLimits> = {
-  free: { maxMessages: 25, period: "day" },
+  free: { maxMessages: 999999, period: "day" },
   pro: { maxMessages: 1000, period: "month" },
   team: { maxMessages: 5000, period: "month" },
   enterprise: { maxMessages: Infinity, period: "month" },
