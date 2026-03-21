@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
@@ -48,7 +48,15 @@ const Index = () => {
   const [visible, setVisible] = useState(false);
   const [workspace, setWorkspace] = useState<VerticalType>("general");
   const [transitioning, setTransitioning] = useState(false);
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Authenticated users go straight to dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleWorkspaceChange = useCallback((e: Event) => {
     const detail = (e as CustomEvent).detail;
