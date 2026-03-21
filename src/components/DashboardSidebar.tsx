@@ -81,7 +81,7 @@ export function DashboardSidebar({
           {/* Navigation items */}
           <div className="px-2 space-y-0.5">
             <SidebarNavItem icon={<Plus size={16} />} label="New task" to="/" />
-            <SidebarNavItem icon={<Bot size={16} />} label="Agents" badge="New" />
+            <SidebarNavItem icon={<Bot size={16} />} label="Agents" to="/agents" badge="New" />
             <SidebarNavItem icon={<Zap size={16} />} label="Skills" to="/skills" />
             <SidebarNavItem icon={<Plug size={16} />} label="Connectors" to="/connectors" />
             <SidebarNavItem icon={<Store size={16} />} label="Plugins" to="/plugins" badge="New" />
@@ -170,9 +170,9 @@ export function DashboardSidebar({
           <Link to="/" className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Plus size={18} />
           </Link>
-          <button className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+          <Link to="/agents" className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Bot size={18} />
-          </button>
+          </Link>
           <button className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Search size={18} />
           </button>

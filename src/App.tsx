@@ -15,6 +15,12 @@ import Connectors from "./pages/Connectors.tsx";
 import Skills from "./pages/Skills.tsx";
 import Plugins from "./pages/Plugins.tsx";
 import Pricing from "./pages/Pricing.tsx";
+import { lazy, Suspense } from "react";
+
+// Lazy-load agent pages for code splitting
+const Agents = lazy(() => import("./pages/Agents.tsx"));
+const AgentConfig = lazy(() => import("./pages/AgentConfig.tsx"));
+const AgentRun = lazy(() => import("./pages/AgentRun.tsx"));
 import Onboarding from "./pages/Onboarding.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -66,6 +72,36 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Plugins />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agents"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                      <Agents />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agents/configure/:templateId"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                      <AgentConfig />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/agents/run/:runId"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-background"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                      <AgentRun />
+                    </Suspense>
                   </ProtectedRoute>
                 }
               />
