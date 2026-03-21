@@ -206,6 +206,112 @@ export function useCheckLimit(type: string) {
   };
 }
 
+// ─── Price IDs for Stripe ───
+
+export const PRICE_IDS = {
+  pro: {
+    monthly: "price_pro_monthly",
+    annual: "price_pro_annual",
+  },
+  team: {
+    monthly: "price_team_monthly",
+    annual: "price_team_annual",
+  },
+} as const;
+
+// ─── Create a Stripe Checkout session ───
+
+export function useCheckout() {
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      priceId,
+      planId,
+    }: {
+      priceId: string;
+      planId: "pro" | "team";
+    }): Promise<{ url: string }> => {
+      if (!isSupabaseConfigured() || !user) {
+        throw new Error("Not configured or not authenticated");
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("No active session");
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            priceId,
+            planId,
+            successUrl: `${window.location.origin}/dashboard?checkout=success`,
+            cancelUrl: `${window.location.origin}/pricing?checkout=canceled`,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Checkout failed" }));
+        throw new Error(err.error ?? "Failed to create checkout session");
+      }
+
+      return response.json();
+    },
+  });
+}
+
+// ─── Create a Stripe Customer Portal session ───
+
+export function useManageSubscription() {
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (): Promise<{ url: string }> => {
+      if (!isSupabaseConfigured() || !user) {
+        throw new Error("Not configured or not authenticated");
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
+      if (!accessToken) {
+        throw new Error("No active session");
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-portal`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            returnUrl: `${window.location.origin}/dashboard`,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: "Portal creation failed" }));
+        throw new Error(err.error ?? "Failed to create portal session");
+      }
+
+      return response.json();
+    },
+  });
+}
+
 // ─── Record a usage event ───
 
 export function useRecordUsage() {

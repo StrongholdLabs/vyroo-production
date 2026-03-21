@@ -6,8 +6,11 @@ import {
   ArrowUpRight,
   Crown,
   Check,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
-import { useSubscription, useUsage, usePlanLimits } from "@/hooks/useBilling";
+import { useSubscription, useUsage, usePlanLimits, useManageSubscription } from "@/hooks/useBilling";
+import { cn } from "@/lib/utils";
 
 // ─── Usage progress bar ───
 
@@ -40,13 +43,14 @@ function UsageBar({
       </div>
       <div className="h-1.5 rounded-full bg-accent overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${
+          className={cn(
+            "h-full rounded-full transition-all duration-500",
             isDanger
               ? "bg-red-500"
               : isWarning
                 ? "bg-amber-500"
                 : "bg-primary"
-          }`}
+          )}
           style={{ width: `${percentage}%` }}
         />
       </div>
@@ -67,6 +71,49 @@ const planFeatures = [
   { name: "SSO / SAML", free: false, pro: false, team: true, enterprise: true },
 ];
 
+// ─── Upgrade prompt for free users ───
+
+function UpgradePrompt() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="rounded-xl border border-primary/30 bg-primary/5 backdrop-blur p-5">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+          <Sparkles size={20} className="text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-foreground mb-1">
+            Unlock more with Pro
+          </h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Get 200 messages per day, access to mid-tier models like Sonnet 4 and GPT-4o,
+            10 connectors, smart model routing, and priority support.
+          </p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["200 msgs/day", "Mid-tier models", "10 connectors", "128K context"].map((item) => (
+              <span
+                key={item}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary border border-primary/20"
+              >
+                <Check size={10} />
+                {item}
+              </span>
+            ))}
+          </div>
+          <button
+            onClick={() => navigate("/pricing")}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            <Zap size={13} />
+            View Plans & Upgrade
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───
 
 export default function BillingSettings() {
@@ -74,6 +121,7 @@ export default function BillingSettings() {
   const { data: subscription, isLoading: subLoading } = useSubscription();
   const { data: usage, isLoading: usageLoading } = useUsage();
   const { data: limits, isLoading: limitsLoading } = usePlanLimits();
+  const manageSubscription = useManageSubscription();
 
   const isLoading = subLoading || usageLoading || limitsLoading;
 
@@ -90,6 +138,17 @@ export default function BillingSettings() {
     incomplete: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30",
   };
 
+  const handleManageSubscription = async () => {
+    try {
+      const result = await manageSubscription.mutateAsync();
+      if (result.url) {
+        window.location.href = result.url;
+      }
+    } catch {
+      // Error displayed inline below
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -102,6 +161,9 @@ export default function BillingSettings() {
 
   return (
     <div className="space-y-6">
+      {/* Upgrade prompt for free users */}
+      {plan === "free" && <UpgradePrompt />}
+
       {/* Current plan & status */}
       <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center justify-between mb-4">
@@ -113,7 +175,10 @@ export default function BillingSettings() {
               <h3 className="text-sm font-semibold text-foreground">{planLabel} Plan</h3>
               <div className="flex items-center gap-2 mt-0.5">
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border ${statusColors[status] ?? statusColors.active}`}
+                  className={cn(
+                    "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border",
+                    statusColors[status] ?? statusColors.active
+                  )}
                 >
                   {status}
                 </span>
@@ -139,25 +204,44 @@ export default function BillingSettings() {
           </p>
         )}
 
+        {/* Portal error */}
+        {manageSubscription.error && (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400 mb-4">
+            {manageSubscription.error instanceof Error
+              ? manageSubscription.error.message
+              : "Failed to open billing portal. Please try again."}
+          </div>
+        )}
+
         {/* Action buttons */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={() =>
-              window.open("https://billing.stripe.com/p/login/placeholder", "_blank")
-            }
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent text-foreground border border-border hover:bg-accent/80 transition-colors"
-          >
-            <CreditCard size={13} />
-            Manage Subscription
-            <ArrowUpRight size={11} />
-          </button>
+          {plan !== "free" && (
+            <button
+              onClick={handleManageSubscription}
+              disabled={manageSubscription.isPending}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-accent text-foreground border border-border transition-colors",
+                manageSubscription.isPending
+                  ? "cursor-wait opacity-70"
+                  : "hover:bg-accent/80"
+              )}
+            >
+              {manageSubscription.isPending ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <CreditCard size={13} />
+              )}
+              {manageSubscription.isPending ? "Opening..." : "Manage Subscription"}
+              {!manageSubscription.isPending && <ArrowUpRight size={11} />}
+            </button>
+          )}
           {plan !== "enterprise" && (
             <button
               onClick={() => navigate("/pricing")}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 transition-colors"
             >
               <Zap size={13} />
-              Upgrade
+              {plan === "free" ? "Upgrade" : "Change Plan"}
             </button>
           )}
         </div>
@@ -196,22 +280,34 @@ export default function BillingSettings() {
               <tr className="border-b border-border">
                 <th className="text-left py-2 pr-4 text-muted-foreground font-medium">Feature</th>
                 <th
-                  className={`text-center py-2 px-2 font-medium ${plan === "free" ? "text-primary" : "text-muted-foreground"}`}
+                  className={cn(
+                    "text-center py-2 px-2 font-medium",
+                    plan === "free" ? "text-primary" : "text-muted-foreground"
+                  )}
                 >
                   Free
                 </th>
                 <th
-                  className={`text-center py-2 px-2 font-medium ${plan === "pro" ? "text-primary" : "text-muted-foreground"}`}
+                  className={cn(
+                    "text-center py-2 px-2 font-medium",
+                    plan === "pro" ? "text-primary" : "text-muted-foreground"
+                  )}
                 >
                   Pro
                 </th>
                 <th
-                  className={`text-center py-2 px-2 font-medium ${plan === "team" ? "text-primary" : "text-muted-foreground"}`}
+                  className={cn(
+                    "text-center py-2 px-2 font-medium",
+                    plan === "team" ? "text-primary" : "text-muted-foreground"
+                  )}
                 >
                   Team
                 </th>
                 <th
-                  className={`text-center py-2 px-2 font-medium ${plan === "enterprise" ? "text-primary" : "text-muted-foreground"}`}
+                  className={cn(
+                    "text-center py-2 px-2 font-medium",
+                    plan === "enterprise" ? "text-primary" : "text-muted-foreground"
+                  )}
                 >
                   Enterprise
                 </th>
@@ -227,7 +323,10 @@ export default function BillingSettings() {
                     return (
                       <td
                         key={tier}
-                        className={`text-center py-2 px-2 ${isCurrentTier ? "text-foreground font-medium" : "text-muted-foreground"}`}
+                        className={cn(
+                          "text-center py-2 px-2",
+                          isCurrentTier ? "text-foreground font-medium" : "text-muted-foreground"
+                        )}
                       >
                         {typeof val === "boolean" ? (
                           val ? (

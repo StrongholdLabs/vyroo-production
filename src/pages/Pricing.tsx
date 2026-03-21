@@ -8,8 +8,11 @@ import {
   Users,
   Building2,
   Sparkles,
+  Loader2,
 } from "lucide-react";
-import { useSubscription } from "@/hooks/useBilling";
+import { useSubscription, useCheckout, PRICE_IDS } from "@/hooks/useBilling";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 interface PlanTier {
   id: "free" | "pro" | "team" | "enterprise";
@@ -107,20 +110,57 @@ const plans: PlanTier[] = [
 
 export default function Pricing() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: subscription } = useSubscription();
+  const checkout = useCheckout();
   const [isAnnual, setIsAnnual] = useState(false);
+  const [checkoutPlanId, setCheckoutPlanId] = useState<string | null>(null);
 
   const currentPlan = subscription?.plan ?? "free";
 
-  const handlePlanAction = (planId: string) => {
+  const handlePlanAction = async (planId: string) => {
     if (planId === "enterprise") {
-      window.open("mailto:sales@vyroo.com?subject=Enterprise%20Plan%20Inquiry", "_blank");
+      window.open("mailto:enterprise@vyroo.ai?subject=Enterprise%20Plan%20Inquiry", "_blank");
       return;
     }
+
     if (planId === currentPlan) return;
-    // In a real implementation, this would redirect to Stripe Checkout
-    console.log(`Upgrading to ${planId}...`);
+
+    if (planId === "free") {
+      if (user) {
+        navigate("/dashboard");
+      } else {
+        navigate("/signup");
+      }
+      return;
+    }
+
+    // Pro or Team — create Stripe checkout session
+    if (planId === "pro" || planId === "team") {
+      if (!user) {
+        navigate("/signup");
+        return;
+      }
+
+      const billing = isAnnual ? "annual" : "monthly";
+      const priceId = PRICE_IDS[planId][billing];
+
+      setCheckoutPlanId(planId);
+
+      try {
+        const result = await checkout.mutateAsync({ priceId, planId });
+        if (result.url) {
+          window.location.href = result.url;
+        }
+      } catch {
+        // Error is available via checkout.error for display
+      } finally {
+        setCheckoutPlanId(null);
+      }
+    }
   };
+
+  const isCheckingOut = (planId: string) => checkoutPlanId === planId;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "hsl(var(--background))" }}>
@@ -150,24 +190,32 @@ export default function Pricing() {
           {/* Annual toggle */}
           <div className="flex items-center justify-center gap-3 mt-6">
             <span
-              className={`text-sm font-medium ${!isAnnual ? "text-foreground" : "text-muted-foreground"}`}
+              className={cn(
+                "text-sm font-medium",
+                !isAnnual ? "text-foreground" : "text-muted-foreground"
+              )}
             >
               Monthly
             </span>
             <button
               onClick={() => setIsAnnual(!isAnnual)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              className={cn(
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
                 isAnnual ? "bg-primary" : "bg-muted"
-              }`}
+              )}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                className={cn(
+                  "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
                   isAnnual ? "translate-x-6" : "translate-x-1"
-                }`}
+                )}
               />
             </button>
             <span
-              className={`text-sm font-medium ${isAnnual ? "text-foreground" : "text-muted-foreground"}`}
+              className={cn(
+                "text-sm font-medium",
+                isAnnual ? "text-foreground" : "text-muted-foreground"
+              )}
             >
               Annual
             </span>
@@ -180,6 +228,17 @@ export default function Pricing() {
         </div>
       </div>
 
+      {/* Checkout error banner */}
+      {checkout.error && (
+        <div className="max-w-6xl mx-auto px-6 pt-4">
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+            {checkout.error instanceof Error
+              ? checkout.error.message
+              : "Something went wrong. Please try again."}
+          </div>
+        </div>
+      )}
+
       {/* Pricing grid */}
       <div className="max-w-6xl mx-auto px-6 py-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -187,20 +246,22 @@ export default function Pricing() {
             const isCurrent = currentPlan === plan.id;
             const price = isAnnual ? plan.annualPrice : plan.monthlyPrice;
             const isCustom = price === -1;
+            const loading = isCheckingOut(plan.id);
 
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-xl border transition-all duration-200 ${
+                className={cn(
+                  "relative rounded-xl border transition-all duration-200",
                   plan.popular
                     ? "border-primary/50 bg-primary/5 shadow-lg shadow-primary/10 scale-[1.02]"
                     : isCurrent
                       ? "border-emerald-500/40 bg-emerald-500/5"
                       : "border-border bg-card hover:border-muted-foreground/30"
-                }`}
+                )}
               >
                 {/* Popular badge */}
-                {plan.popular && (
+                {plan.popular && !isCurrent && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primary text-primary-foreground">
                       Most Popular
@@ -221,11 +282,12 @@ export default function Pricing() {
                   {/* Icon + Name */}
                   <div className="flex items-center gap-2 mb-2 mt-1">
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                      className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center",
                         plan.popular
                           ? "bg-primary/15 text-primary"
                           : "bg-accent text-muted-foreground"
-                      }`}
+                      )}
                     >
                       {plan.icon}
                     </div>
@@ -248,7 +310,7 @@ export default function Pricing() {
                     )}
                     {plan.id === "team" && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Minimum 3 seats{isAnnual ? ` • $${price * 12}/seat/year` : ""}
+                        Minimum 3 seats{isAnnual ? ` \u2022 $${price * 12}/seat/year` : ""}
                       </p>
                     )}
                     {isAnnual && !isCustom && price > 0 && plan.id !== "team" && (
@@ -261,16 +323,20 @@ export default function Pricing() {
                   {/* CTA Button */}
                   <button
                     onClick={() => handlePlanAction(plan.id)}
-                    disabled={isCurrent}
-                    className={`w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 mb-5 ${
+                    disabled={isCurrent || loading}
+                    className={cn(
+                      "w-full py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 mb-5 flex items-center justify-center gap-2",
                       isCurrent
                         ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 cursor-default"
-                        : plan.popular
-                          ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                          : "bg-accent text-foreground border border-border hover:bg-accent/80"
-                    }`}
+                        : loading
+                          ? "bg-accent text-muted-foreground border border-border cursor-wait"
+                          : plan.popular
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                            : "bg-accent text-foreground border border-border hover:bg-accent/80"
+                    )}
                   >
-                    {isCurrent ? "Current Plan" : plan.cta}
+                    {loading && <Loader2 size={14} className="animate-spin" />}
+                    {isCurrent ? "Current Plan" : loading ? "Redirecting..." : plan.cta}
                   </button>
 
                   {/* Features */}
@@ -279,9 +345,10 @@ export default function Pricing() {
                       <div key={feature} className="flex items-start gap-2">
                         <Check
                           size={14}
-                          className={`mt-0.5 shrink-0 ${
+                          className={cn(
+                            "mt-0.5 shrink-0",
                             plan.popular ? "text-primary" : "text-emerald-400"
-                          }`}
+                          )}
                         />
                         <span className="text-xs text-muted-foreground">{feature}</span>
                       </div>
@@ -302,7 +369,7 @@ export default function Pricing() {
           <p className="mt-1">
             Need help choosing?{" "}
             <a
-              href="mailto:support@vyroo.com"
+              href="mailto:support@vyroo.ai"
               className="text-primary hover:underline"
             >
               Contact our team
