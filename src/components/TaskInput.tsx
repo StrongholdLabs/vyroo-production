@@ -24,7 +24,14 @@ const defaultIntegrations: Integration[] = [
   { id: "ocal", name: "Outlook Calendar", icon: "📆", defaultStatus: "Connect" },
 ];
 
-const connectedIcons = ["🟢", "📘", "🔵", "💬", "🟣", "📎"];
+// Real tool logos as tiny colored dots with labels
+const connectedTools = [
+  { name: "Google", color: "#4285F4" },
+  { name: "GitHub", color: "#6e40c9" },
+  { name: "Slack", color: "#E01E5A" },
+  { name: "Notion", color: "#999" },
+  { name: "Shopify", color: "#96BF48" },
+];
 
 export function TaskInput() {
   const [value, setValue] = useState("");
@@ -182,9 +189,18 @@ export function TaskInput() {
           >
             <Link2 size={14} className="text-muted-foreground flex-shrink-0" />
             <span className="text-sm text-muted-foreground flex-1">Connect your tools to Vyroo</span>
-            <div className="flex items-center gap-0.5">
-              {connectedIcons.map((icon, i) => (
-                <span key={i} className="text-xs">{icon}</span>
+            <div className="flex items-center gap-1">
+              {connectedTools.map((tool) => (
+                <div
+                  key={tool.name}
+                  title={tool.name}
+                  className="w-4 h-4 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: tool.color }}
+                >
+                  <span className="text-[8px] font-bold text-white leading-none">
+                    {tool.name[0]}
+                  </span>
+                </div>
               ))}
             </div>
             <button

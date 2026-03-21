@@ -136,7 +136,7 @@ const Index = () => {
       </main>
 
       {/* ─── Footer ──────────────────────────────────────────────────── */}
-      <div className="py-3 px-4 text-center">
+      <div className="pt-16 pb-6 px-4 text-center">
         <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground/40">
           <Link to="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
           <span>&middot;</span>
