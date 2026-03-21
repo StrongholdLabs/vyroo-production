@@ -17,7 +17,7 @@ const Dashboard = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activeConversation, setActiveConversation] = useState(conversationId || "1");
+  const [activeConversation, setActiveConversation] = useState(conversationId || "");
   const [computerVisible, setComputerVisible] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileComputerOpen, setMobileComputerOpen] = useState(false);
