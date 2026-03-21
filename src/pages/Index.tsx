@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { LandingSidebar } from "@/components/LandingSidebar";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
 import { useAuth } from "@/contexts/AuthContext";
@@ -43,27 +42,12 @@ const verticalSlogans: Record<VerticalType, { headline: string; sub: string }> =
   },
 };
 
-// ── Greetings that rotate (for general workspace) ───────────────────────
-const timeGreetings = [
-  "Good morning",
-  "Good afternoon",
-  "Good evening",
-];
-
-function getTimeGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return timeGreetings[0];
-  if (hour < 18) return timeGreetings[1];
-  return timeGreetings[2];
-}
-
 // ── Page ─────────────────────────────────────────────────────────────────
 const Index = () => {
   const [visible, setVisible] = useState(false);
   const [workspace, setWorkspace] = useState<VerticalType>("general");
   const [transitioning, setTransitioning] = useState(false);
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const { loading } = useAuth();
 
   // Listen for workspace changes from WorkspaceSelector
   const handleWorkspaceChange = useCallback((e: Event) => {
@@ -78,19 +62,12 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    // Read initial workspace from localStorage
     const stored = localStorage.getItem("vyroo-workspace");
     if (stored) setWorkspace(stored as VerticalType);
 
     window.addEventListener("workspace-changed", handleWorkspaceChange);
     return () => window.removeEventListener("workspace-changed", handleWorkspaceChange);
   }, [handleWorkspaceChange]);
-
-  useEffect(() => {
-    if (!loading && user) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [user, loading, navigate]);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 100);
@@ -100,68 +77,61 @@ const Index = () => {
   if (loading) return null;
 
   const slogan = verticalSlogans[workspace] || verticalSlogans.general;
-  const isGeneral = workspace === "general";
 
   return (
-    <div className="h-screen flex bg-background overflow-hidden">
-      {/* ─── Sidebar ─────────────────────────────────────────────────── */}
-      <LandingSidebar />
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
 
-      {/* ─── Main area ───────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-
-        {/* ─── Centered Composer ────────────────────────────────────── */}
-        <main className="flex-1 flex flex-col items-center justify-center px-4 pb-24">
+      {/* ─── Centered Composer ──────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 pb-24 pt-16">
+        <div
+          className={`flex flex-col items-center gap-5 w-full max-w-2xl transition-all duration-700 ${
+            visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+          style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
+        >
+          {/* Dynamic headline */}
           <div
-            className={`flex flex-col items-center gap-5 w-full max-w-2xl transition-all duration-700 ${
-              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            className={`text-center transition-all duration-300 ${
+              transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+            }`}
+          >
+            <h1
+              className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight"
+              style={{ textWrap: "balance" as any }}
+            >
+              {slogan.headline}
+            </h1>
+            <p className="mt-3 text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
+              {slogan.sub}
+            </p>
+          </div>
+
+          {/* Composer */}
+          <div className="w-full">
+            <TaskInput />
+          </div>
+
+          {/* Action chips */}
+          <div
+            className={`transition-all duration-700 delay-200 ${
+              visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
             }`}
             style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
           >
-            {/* Dynamic headline — changes with workspace */}
-            <div
-              className={`text-center transition-all duration-300 ${
-                transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
-              }`}
-            >
-              <h1
-                className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight"
-                style={{ textWrap: "balance" as any }}
-              >
-                {slogan.headline}
-              </h1>
-              <p className="mt-3 text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
-                {slogan.sub}
-              </p>
-            </div>
-
-            {/* Composer */}
-            <div className="w-full">
-              <TaskInput />
-            </div>
-
-            {/* Action chips */}
-            <div
-              className={`transition-all duration-700 delay-200 ${
-                visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
-              }`}
-              style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
-            >
-              <ActionChips />
-            </div>
+            <ActionChips />
           </div>
-        </main>
+        </div>
+      </main>
 
-        {/* ─── Footer ─────────────────────────────────────────────────── */}
-        <div className="py-3 px-4 text-center">
-          <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground/40">
-            <Link to="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
-            <span>&middot;</span>
-            <Link to="/privacy" className="hover:text-muted-foreground transition-colors">Privacy</Link>
-            <span>&middot;</span>
-            <Link to="/cookies" className="hover:text-muted-foreground transition-colors">Cookies</Link>
-          </div>
+      {/* ─── Footer ──────────────────────────────────────────────────── */}
+      <div className="py-3 px-4 text-center">
+        <div className="flex items-center justify-center gap-3 text-[11px] text-muted-foreground/40">
+          <Link to="/terms" className="hover:text-muted-foreground transition-colors">Terms</Link>
+          <span>&middot;</span>
+          <Link to="/privacy" className="hover:text-muted-foreground transition-colors">Privacy</Link>
+          <span>&middot;</span>
+          <Link to="/cookies" className="hover:text-muted-foreground transition-colors">Cookies</Link>
         </div>
       </div>
     </div>

@@ -30,6 +30,7 @@ const Admin = lazy(() => import("./pages/Admin.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
 const Privacy = lazy(() => import("./pages/Privacy.tsx"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy.tsx"));
+const Features = lazy(() => import("./pages/Features.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -156,6 +157,7 @@ const App = () => (
                 }
               />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/features" element={<Features />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/cookies" element={<CookiePolicy />} />

@@ -88,7 +88,7 @@ export function TaskInput() {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Assign a task or ask anything"
+          placeholder={user ? "What can I help you with?" : "Ask anything..."}
           rows={2}
           className="w-full resize-none bg-transparent px-5 pt-4 pb-1 text-foreground placeholder:text-muted-foreground/60 text-[15px] leading-relaxed focus:outline-none font-body"
         />

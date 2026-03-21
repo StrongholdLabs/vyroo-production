@@ -5,6 +5,8 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import { ChatPanel } from "@/components/ChatPanel";
 import { ComputerPanel } from "@/components/ComputerPanel";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
+import { TaskInput } from "@/components/TaskInput";
+import { ActionChips } from "@/components/ActionChips";
 import { useConversation, useConversations, useSendMessage } from "@/hooks/useConversations";
 import { useRealtimeMessages } from "@/hooks/useRealtimeMessages";
 import { useRealtimeConversations } from "@/hooks/useRealtimeConversations";
@@ -136,19 +138,16 @@ const Dashboard = () => {
 
       <main className="flex-1 flex overflow-hidden relative">
         {!conversation ? (
-          /* Empty state — no conversation selected */
-          <div className="flex-1 flex flex-col items-center justify-center px-4">
-            <div className="text-center space-y-4 max-w-md">
-              <h2 className="text-2xl font-display text-foreground">Start a conversation</h2>
-              <p className="text-sm text-muted-foreground">
-                Select a conversation from the sidebar or start a new one.
-              </p>
-              <button
-                onClick={() => navigate("/")}
-                className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:opacity-90 transition-opacity"
-              >
-                New task
-              </button>
+          /* Empty state — composer like landing page */
+          <div className="flex-1 flex flex-col items-center justify-center px-4 pb-24">
+            <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
+              <h2 className="font-display text-3xl md:text-4xl text-foreground tracking-tight text-center">
+                What can I help you with?
+              </h2>
+              <div className="w-full">
+                <TaskInput />
+              </div>
+              <ActionChips />
             </div>
           </div>
         ) : !isMobile ? (
