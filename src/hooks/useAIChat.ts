@@ -45,10 +45,12 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
 
   const send = useCallback(
     async (message: string) => {
+      console.log("[useAIChat] send called:", message, "convId:", conversationId);
+      try {
       setIsStreaming(true);
       setStreamingContent("");
       setError(null);
-      setFollowUps([]); // Clear previous follow-ups
+      setFollowUps([]);
       setSteps([]);
       setReport(null);
       setTaskMode(null);
@@ -56,6 +58,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
       const controller = new AbortController();
       abortRef.current = controller;
 
+      console.log("[useAIChat] calling streamChat...");
       await streamChat({
         conversationId,
         message,
@@ -112,6 +115,12 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           broadcastEvent("message-created", conversationId);
         },
       });
+      console.log("[useAIChat] streamChat finished");
+      } catch (err) {
+        console.error("[useAIChat] CAUGHT ERROR:", err);
+        setError(String(err));
+        setIsStreaming(false);
+      }
     },
     [conversationId, provider, model, queryClient]
   );
