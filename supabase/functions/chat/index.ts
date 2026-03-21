@@ -3,6 +3,8 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveProvider, getFallbackChain } from "../_shared/provider-registry.ts";
+import { selectOptimalModel } from "../_shared/smart-router.ts";
+import { checkUsageGate } from "../_shared/usage-gate.ts";
 import { streamAnthropic } from "../_shared/providers/anthropic.ts";
 import { streamOpenAI } from "../_shared/providers/openai.ts";
 import { streamGemini } from "../_shared/providers/gemini.ts";
@@ -65,10 +67,54 @@ Deno.serve(async (req) => {
       });
     }
 
-    const selectedProvider = provider || "claude";
-    const selectedModel = model || (selectedProvider === "claude" ? "claude-sonnet-4-20250514" : "gpt-4o");
+    // --- Usage gate: check message limits before processing ---
+    const usageGate = await checkUsageGate(user.id, supabase);
+    if (!usageGate.allowed) {
+      // Return an SSE stream with a single error event so the frontend handles it uniformly
+      const encoder = new TextEncoder();
+      const errorStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(
+              `event: error\ndata: ${JSON.stringify({
+                error: "You've reached your message limit. Upgrade at vyroo.ai/pricing",
+                remaining: 0,
+                limit: usageGate.limit,
+                plan: usageGate.plan,
+              })}\n\n`
+            )
+          );
+          controller.close();
+        },
+      });
+      return new Response(errorStream, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
 
-    // Resolve the provider from the model prefix
+    // --- Smart model routing ---
+    // Detect which provider API keys are available via env vars
+    const availableKeys = {
+      anthropic: !!Deno.env.get("ANTHROPIC_API_KEY"),
+      openai: !!Deno.env.get("OPENAI_API_KEY"),
+      google: !!Deno.env.get("GOOGLE_API_KEY"),
+    };
+
+    // Let the smart router pick the optimal model
+    const selectedModel = selectOptimalModel({
+      userSelectedModel: model || null,
+      messageContent: message,
+      conversationLength: 0, // Will be populated after history load, but routing doesn't heavily depend on it
+      userPlan: usageGate.plan as "free" | "pro" | "team" | "enterprise",
+      availableKeys,
+    });
+
+    // Resolve the provider from the (potentially re-routed) model
     const { providerId, dbProvider } = resolveProvider(selectedModel);
 
     // Try to get user's API key for the resolved provider
@@ -151,6 +197,11 @@ Deno.serve(async (req) => {
     const outputStream = new ReadableStream({
       async start(controller) {
         try {
+          // Emit which model was selected (useful when smart router auto-routes)
+          controller.enqueue(
+            encoder.encode(`event: model\ndata: ${JSON.stringify({ model: selectedModel })}\n\n`)
+          );
+
           const reader = providerStream.getReader();
 
           while (true) {
