@@ -3,7 +3,7 @@ import { ArrowUp, Plus, Smile, X, Link2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { VoiceMicButton } from "@/components/VoiceMicButton";
-import { useCreateConversation, useSendMessage } from "@/hooks/useConversations";
+import { useCreateConversation } from "@/hooks/useConversations";
 
 interface Integration {
   id: string;
@@ -84,7 +84,6 @@ export function TaskInput() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const createConversation = useCreateConversation();
-  const sendMessage = useSendMessage();
 
   const handleSubmit = async () => {
     if (!value.trim()) return;
@@ -95,16 +94,13 @@ export function TaskInput() {
       return;
     }
 
-    // Create a new conversation and send the first message
+    // Create a new conversation — the chat edge function inserts the user message
     try {
       const conv = await createConversation.mutateAsync({
         title: value.slice(0, 60) + (value.length > 60 ? "..." : ""),
       });
-      await sendMessage.mutateAsync({
-        conversationId: conv.id,
-        content: value,
-      });
-      navigate(`/dashboard/${conv.id}`);
+      // Navigate with the message in state so ChatPanel can send it to the AI
+      navigate(`/dashboard/${conv.id}`, { state: { initialMessage: value } });
       setValue("");
     } catch {
       // Fallback for mock mode

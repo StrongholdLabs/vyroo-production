@@ -1,6 +1,8 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Crown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useModelSettings, AVAILABLE_MODELS, type AIProvider } from "@/hooks/useModelSettings";
+
+const FREE_MODELS = new Set(["claude-haiku-4-5-20251001", "gpt-4o-mini"]);
 
 const PROVIDER_LABELS: Record<AIProvider, string> = {
   claude: "Claude",
@@ -65,7 +67,15 @@ export function ModelSwitcher() {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{m.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>{m.name}</span>
+                      {!FREE_MODELS.has(m.id) && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-500/10 text-amber-500">
+                          <Crown size={9} />
+                          Pro
+                        </span>
+                      )}
+                    </div>
                     {m.description && (
                       <span className="text-[10px] text-muted-foreground/70 ml-2">{m.description}</span>
                     )}

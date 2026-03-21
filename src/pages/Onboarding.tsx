@@ -15,7 +15,6 @@ import {
   Puzzle,
   ArrowLeft,
   ArrowRight,
-  Check,
   Rocket,
 } from "lucide-react";
 
@@ -67,8 +66,7 @@ export default function Onboarding() {
   // Step 2 state
   const [selectedWorkspace, setSelectedWorkspace] = useState<VerticalType>("general");
 
-  // Step 3 state
-  const [connectedTools, setConnectedTools] = useState<Set<string>>(new Set());
+  // Step 3 — connectors are informational only (no local state)
 
   // Step 4 celebration
   const [showCelebration, setShowCelebration] = useState(false);
@@ -112,14 +110,6 @@ export default function Onboarding() {
     }, 300);
   }
 
-  function toggleConnector(id: string) {
-    setConnectedTools((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   // ── Derived ───────────────────────────────────────────────────
   const userName =
@@ -241,69 +231,50 @@ export default function Onboarding() {
           </div>
         );
 
-      // ── Step 3: Connect tools ───────────────────────────────
+      // ── Step 3: Available integrations (informational) ─────
       case 2:
         return (
           <div className="space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-semibold tracking-tight">
-                Connect your tools
+                Available integrations
               </h2>
               <p className="text-muted-foreground text-sm">
-                Link services you use daily. You can always do this later.
+                Vyroo connects to the tools you already use. You can set these
+                up any time from{" "}
+                <button
+                  onClick={() => navigate("/connectors")}
+                  className="text-purple-400 hover:text-purple-300 underline underline-offset-2 cursor-pointer"
+                >
+                  Settings &rarr; Connectors
+                </button>
+                .
               </p>
             </div>
 
             <div className="space-y-3">
-              {connectors.map((c) => {
-                const connected = connectedTools.has(c.id);
-                return (
-                  <div
-                    key={c.id}
-                    className={`flex items-center justify-between px-5 py-4 rounded-xl border transition-all duration-200 ${
-                      connected
-                        ? "border-green-500/40 bg-green-500/5"
-                        : "border-border/40 bg-white/[0.02]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={c.icon}
-                        alt={c.name}
-                        className="w-7 h-7 rounded"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                      <span className="text-sm font-medium">{c.name}</span>
-                    </div>
-                    <button
-                      onClick={() => toggleConnector(c.id)}
-                      className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer ${
-                        connected
-                          ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                          : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
-                      }`}
-                    >
-                      {connected ? (
-                        <span className="flex items-center gap-1.5">
-                          <Check size={12} /> Connected
-                        </span>
-                      ) : (
-                        "Connect"
-                      )}
-                    </button>
+              {connectors.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between px-5 py-4 rounded-xl border border-border/40 bg-white/[0.02] transition-all duration-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={c.icon}
+                      alt={c.name}
+                      className="w-7 h-7 rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                    <span className="text-sm font-medium">{c.name}</span>
                   </div>
-                );
-              })}
+                  <span className="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white/5 text-muted-foreground/60">
+                    Available
+                  </span>
+                </div>
+              ))}
             </div>
-
-            <button
-              onClick={goNext}
-              className="w-full text-center text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors cursor-pointer"
-            >
-              Skip for now
-            </button>
           </div>
         );
 
@@ -375,24 +346,6 @@ export default function Onboarding() {
                 })()}
               </div>
 
-              {connectedTools.size > 0 && (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border/40 bg-white/[0.02]">
-                  <div className="p-1.5 rounded-lg bg-white/5">
-                    <Check size={18} />
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground/60">
-                      Connected tools
-                    </div>
-                    <div className="text-sm font-medium">
-                      {connectors
-                        .filter((c) => connectedTools.has(c.id))
-                        .map((c) => c.name)
-                        .join(", ")}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             <button

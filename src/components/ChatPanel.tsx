@@ -30,6 +30,7 @@ import { ModelSwitcher } from "@/components/ModelSwitcher";
 import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { VoiceAgentOverlay } from "@/components/VoiceAgentOverlay";
 import { FollowUpPanel } from "@/components/FollowUpPanel";
+import { ShareConversation } from "@/components/ShareConversation";
 import { useAIChat } from "@/hooks/useAIChat";
 
 interface ChatPanelProps {
@@ -75,6 +76,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           <ModelSwitcher />
         </div>
         <div className="flex items-center gap-1">
+          <ShareConversation conversationId={conversation.id} />
           <button
             onClick={() => setVoiceAgentOpen(true)}
             className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"

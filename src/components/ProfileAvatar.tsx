@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   Settings,
-  Sparkles,
   Home,
   HelpCircle,
   FileText,
@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 export function ProfileAvatar() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const { data: profile } = useProfile();
 
   const displayName = profile?.display_name || "User";
@@ -107,12 +108,11 @@ export function ProfileAvatar() {
 
           {/* Menu items */}
           <div className="py-1">
-            <MenuItem icon={<Sparkles size={16} />} label="Personalization" />
-            <MenuItem icon={<User size={16} />} label="Account" />
-            <MenuItem icon={<Settings size={16} />} label="Settings" />
-            <MenuItem icon={<Home size={16} />} label="Homepage" external />
-            <MenuItem icon={<HelpCircle size={16} />} label="Get help" external />
-            <MenuItem icon={<FileText size={16} />} label="Docs" external />
+            <MenuItem icon={<User size={16} />} label="Account" onClick={() => { setOpen(false); navigate("/settings"); }} />
+            <MenuItem icon={<Settings size={16} />} label="Settings" onClick={() => { setOpen(false); navigate("/settings"); }} />
+            <MenuItem icon={<Home size={16} />} label="Homepage" onClick={() => { setOpen(false); navigate("/"); }} />
+            <MenuItem icon={<HelpCircle size={16} />} label="Get help" external onClick={() => { setOpen(false); window.open("https://vyroo.ai/features", "_blank"); }} />
+            <MenuItem icon={<FileText size={16} />} label="Docs" external onClick={() => { setOpen(false); window.open("https://vyroo.ai/features", "_blank"); }} />
           </div>
 
           {/* Sign out */}
@@ -131,9 +131,12 @@ export function ProfileAvatar() {
   );
 }
 
-function MenuItem({ icon, label, external }: { icon: React.ReactNode; label: string; external?: boolean }) {
+function MenuItem({ icon, label, external, onClick }: { icon: React.ReactNode; label: string; external?: boolean; onClick?: () => void }) {
   return (
-    <button className="w-full flex items-center justify-between px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors">
+    <button
+      onClick={onClick}
+      className="w-full flex items-center justify-between px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+    >
       <div className="flex items-center gap-3">
         <span className="text-muted-foreground">{icon}</span>
         <span>{label}</span>

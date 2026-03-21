@@ -10,6 +10,7 @@ import { streamAnthropic } from "../_shared/providers/anthropic.ts";
 import { streamOpenAI } from "../_shared/providers/openai.ts";
 import { streamGemini } from "../_shared/providers/gemini.ts";
 import { streamTogether } from "../_shared/providers/together.ts";
+import { getRelevantMemories, injectMemoryContext, extractMemories } from "../_shared/memory-manager.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,122 @@ const corsHeaders = {
 };
 
 const SYSTEM_PROMPT = `You are Vyroo, an advanced AI assistant. You help users with research, analysis, coding, design, and any task they need. Be helpful, concise, and thorough. When working on tasks, break them into clear steps and provide actionable results.`;
+
+const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 short follow-up questions or actions the user might want to take next. Return ONLY a JSON array of strings, no explanation. Each suggestion should be concise (under 60 characters). Example: ["How do I deploy this?","Can you add error handling?","Explain the architecture"]`;
+
+// Map provider IDs to lightweight/fast models for follow-up generation
+const FAST_MODELS: Record<string, string> = {
+  anthropic: "claude-3-5-haiku-latest",
+  openai: "gpt-4o-mini",
+  gemini: "gemini-2.0-flash",
+  together: "meta-llama/Llama-3.1-8B-Instruct-Turbo",
+};
+
+/**
+ * Generate follow-up suggestions using a lightweight LLM call.
+ * Uses the same provider/API key as the main response but with a fast model.
+ */
+async function generateFollowUps(
+  providerId: string,
+  apiKey: string,
+  userMessage: string,
+  assistantResponse: string
+): Promise<string[]> {
+  const fastModel = FAST_MODELS[providerId];
+  if (!fastModel) return [];
+
+  const condensedHistory = [
+    { role: "user" as const, content: userMessage },
+    { role: "assistant" as const, content: assistantResponse.slice(0, 500) },
+  ];
+
+  try {
+    if (providerId === "anthropic") {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: fastModel,
+          max_tokens: 256,
+          system: FOLLOWUP_PROMPT,
+          messages: condensedHistory.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const text = data.content?.[0]?.text || "";
+      return JSON.parse(text);
+    } else if (providerId === "openai") {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: fastModel,
+          max_tokens: 256,
+          messages: [
+            { role: "system", content: FOLLOWUP_PROMPT },
+            ...condensedHistory,
+          ],
+        }),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || "";
+      return JSON.parse(text);
+    } else if (providerId === "gemini") {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${fastModel}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              { role: "user", parts: [{ text: `${FOLLOWUP_PROMPT}\n\nUser: ${userMessage}\nAssistant: ${assistantResponse.slice(0, 500)}` }] },
+            ],
+            generationConfig: { maxOutputTokens: 256 },
+          }),
+        }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      // Extract JSON array from response (Gemini may wrap it in markdown)
+      const match = text.match(/\[[\s\S]*\]/);
+      return match ? JSON.parse(match[0]) : [];
+    } else if (providerId === "together") {
+      const res = await fetch("https://api.together.xyz/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: fastModel,
+          max_tokens: 256,
+          messages: [
+            { role: "system", content: FOLLOWUP_PROMPT },
+            ...condensedHistory,
+          ],
+        }),
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || "";
+      return JSON.parse(text);
+    }
+  } catch {
+    // Follow-up generation is non-critical
+  }
+
+  return [];
+}
 
 // Map provider IDs to their stream functions
 const STREAM_FUNCTIONS: Record<
@@ -203,8 +320,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Inject cross-conversation memory into the system prompt
+    let enrichedSystemPrompt = SYSTEM_PROMPT;
+    try {
+      const memories = await getRelevantMemories(user.id, message, supabase);
+      const memorySection = injectMemoryContext(memories);
+      if (memorySection) {
+        enrichedSystemPrompt = SYSTEM_PROMPT + memorySection;
+      }
+    } catch {
+      // Memory retrieval is non-critical — proceed without it
+    }
+
     // Create the provider stream (each adapter returns SSE-formatted ReadableStream)
-    const providerStream = streamFn(apiKey, messages, selectedModel, SYSTEM_PROMPT);
+    const providerStream = streamFn(apiKey, messages, selectedModel, enrichedSystemPrompt);
 
     // Wrap the provider stream to capture the full response and save it
     const encoder = new TextEncoder();
@@ -306,6 +435,41 @@ Deno.serve(async (req) => {
             } catch {
               // Title generation is non-critical, don't fail the stream
             }
+          }
+
+          // Generate follow-up suggestions using a lightweight model
+          if (fullResponse) {
+            try {
+              const followUps = await generateFollowUps(
+                actualProviderId,
+                apiKey!,
+                message,
+                fullResponse
+              );
+              if (followUps.length > 0) {
+                controller.enqueue(
+                  encoder.encode(
+                    `event: followups\ndata: ${JSON.stringify({ followUps })}\n\n`
+                  )
+                );
+              }
+            } catch {
+              // Follow-up generation is non-critical, don't fail the stream
+            }
+          }
+
+          // Extract memories in the background (non-blocking)
+          if (fullResponse) {
+            extractMemories(
+              actualProviderId,
+              apiKey!,
+              message,
+              fullResponse,
+              user.id,
+              supabase
+            ).catch(() => {
+              // Memory extraction is non-critical
+            });
           }
 
           controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`));

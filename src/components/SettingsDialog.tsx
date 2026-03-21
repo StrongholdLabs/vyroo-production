@@ -25,10 +25,12 @@ import {
   FileText,
   Eye,
   TrendingUp,
+  Brain,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { APIKeySettings } from "@/components/APIKeySettings";
+import { MemoryPanel } from "@/components/MemoryPanel";
 import { useConnectors } from "@/hooks/useConnectors";
 import {
   useAvailableSkills,
@@ -51,6 +53,7 @@ const navItems = [
   { id: "data", label: "Data controls", icon: Shield },
   { id: "browser", label: "Cloud browser", icon: Monitor },
   { id: "personalization", label: "Personalization", icon: Sparkles },
+  { id: "memory", label: "Memory", icon: Brain },
   { id: "skills", label: "Skills", icon: Puzzle },
   { id: "connectors", label: "Connectors", icon: Link2 },
   { id: "integrations", label: "Integrations", icon: Link2 },
@@ -371,8 +374,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               />
             )}
 
+            {/* Memory tab */}
+            {activeTab === "memory" && (
+              <div className="px-6 py-5">
+                <MemoryPanel />
+              </div>
+            )}
+
             {/* Placeholder for other tabs */}
-            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "api-keys" && activeTab !== "connectors" && activeTab !== "skills" && (
+            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "api-keys" && activeTab !== "connectors" && activeTab !== "skills" && activeTab !== "memory" && (
               <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-3">
                   {(() => {

@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CookieConsent } from "@/components/CookieConsent";
+import { CommandPalette } from "@/components/CommandPalette";
 import { lazy, Suspense } from "react";
 
 // Lazy-load all pages for optimal code splitting
@@ -31,6 +32,7 @@ const Terms = lazy(() => import("./pages/Terms.tsx"));
 const Privacy = lazy(() => import("./pages/Privacy.tsx"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy.tsx"));
 const Features = lazy(() => import("./pages/Features.tsx"));
+const SharedConversation = lazy(() => import("./pages/SharedConversation.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
@@ -161,6 +163,7 @@ const App = () => (
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/cookies" element={<CookiePolicy />} />
+              <Route path="/share/:shareId" element={<SharedConversation />} />
               <Route
                 path="/onboarding"
                 element={
@@ -173,6 +176,7 @@ const App = () => (
             </Routes>
             </Suspense>
             <CookieConsent />
+            <CommandPalette />
           </Router>
         </TooltipProvider>
       </ThemeProvider>
