@@ -52,7 +52,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps } = useAIChat({
+  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport } = useAIChat({
     conversationId: conversation.id,
   });
 
@@ -264,6 +264,19 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         ))}
 
+        {/* Streaming steps — shown during agentic execution */}
+        {streamingSteps.length > 0 && (
+          <div className="space-y-1">
+            {streamingSteps.map((step) => (
+              <ExpandableStep
+                key={step.id}
+                step={step}
+                isActive={step.status === "active"}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Expandable steps in chat */}
         <div className="space-y-3">
           {steps.map((step, i) => (
@@ -285,6 +298,39 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
             <div className="text-sm text-foreground leading-relaxed prose prose-sm dark:prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-code:text-foreground prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-secondary prose-pre:border prose-pre:border-border max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingContent}</ReactMarkdown>
               <span className="inline-block w-0.5 h-4 bg-foreground animate-pulse ml-0.5 align-text-bottom" />
+            </div>
+          </div>
+        )}
+
+        {/* Streaming report card */}
+        {streamingReport && (
+          <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+              <FileText size={16} className="text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground truncate">{streamingReport.title}</span>
+            </div>
+            <div className="px-4 py-3">
+              <p className="text-xs text-muted-foreground mb-3">{streamingReport.summary}</p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      {streamingReport.headers.map((h, i) => (
+                        <th key={i} className="text-left py-2 px-3 text-xs font-medium text-muted-foreground">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {streamingReport.rows.map((row, ri) => (
+                      <tr key={ri} className="border-b border-border/50 last:border-0">
+                        {row.map((cell, ci) => (
+                          <td key={ci} className="py-2 px-3 text-sm text-foreground">{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -348,7 +394,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
 
         {/* Inline computer card when panel is closed */}
         {!computerVisible && onOpenComputer && (
-          <InlineComputerCard steps={steps} onOpenComputer={onOpenComputer} />
+          <InlineComputerCard steps={streamingSteps.length > 0 ? streamingSteps : steps} onOpenComputer={onOpenComputer} />
         )}
 
         {/* Steps progress bar with code thumbnail */}

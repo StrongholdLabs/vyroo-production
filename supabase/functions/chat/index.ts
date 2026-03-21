@@ -21,6 +21,8 @@ const SYSTEM_PROMPT = `You are Vyroo, an advanced AI assistant. You help users w
 
 const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 short follow-up questions or actions the user might want to take next. Return ONLY a JSON array of strings, no explanation. Each suggestion should be concise (under 60 characters). Example: ["How do I deploy this?","Can you add error handling?","Explain the architecture"]`;
 
+const PLAN_PROMPT = `Analyze the user's message and break the task into 3-5 concrete steps. Return ONLY a JSON array of objects with "label" and "detail" fields. Each label should be 2-4 words. Example: [{"label":"Understanding task","detail":"Parsing requirements and planning approach"},{"label":"Researching topic","detail":"Gathering relevant information"},{"label":"Composing response","detail":"Writing comprehensive answer"}]`;
+
 // Map provider IDs to lightweight/fast models for follow-up generation
 const FAST_MODELS: Record<string, string> = {
   anthropic: "claude-3-5-haiku-latest",
@@ -133,6 +135,121 @@ async function generateFollowUps(
   }
 
   return [];
+}
+
+const DEFAULT_PLAN = [
+  { label: "Understanding task", detail: "Analyzing the request" },
+  { label: "Processing", detail: "Working on the response" },
+  { label: "Delivering results", detail: "Finalizing the output" },
+];
+
+/**
+ * Generate a task plan (3-5 steps) using a lightweight LLM call.
+ * Uses the same provider/API key as the main response but with a fast model.
+ */
+async function generatePlan(
+  providerId: string,
+  apiKey: string,
+  userMessage: string
+): Promise<Array<{ label: string; detail: string }>> {
+  const fastModel = FAST_MODELS[providerId];
+  if (!fastModel) return DEFAULT_PLAN;
+
+  const condensedMessages = [
+    { role: "user" as const, content: userMessage },
+  ];
+
+  try {
+    let text = "";
+
+    if (providerId === "anthropic") {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: fastModel,
+          max_tokens: 256,
+          system: PLAN_PROMPT,
+          messages: condensedMessages.map((m) => ({ role: m.role, content: m.content })),
+        }),
+      });
+      if (!res.ok) return DEFAULT_PLAN;
+      const data = await res.json();
+      text = data.content?.[0]?.text || "";
+    } else if (providerId === "openai") {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: fastModel,
+          max_tokens: 256,
+          messages: [
+            { role: "system", content: PLAN_PROMPT },
+            ...condensedMessages,
+          ],
+        }),
+      });
+      if (!res.ok) return DEFAULT_PLAN;
+      const data = await res.json();
+      text = data.choices?.[0]?.message?.content || "";
+    } else if (providerId === "gemini") {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${fastModel}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              { role: "user", parts: [{ text: `${PLAN_PROMPT}\n\nUser: ${userMessage}` }] },
+            ],
+            generationConfig: { maxOutputTokens: 256 },
+          }),
+        }
+      );
+      if (!res.ok) return DEFAULT_PLAN;
+      const data = await res.json();
+      text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } else if (providerId === "together") {
+      const res = await fetch("https://api.together.xyz/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: fastModel,
+          max_tokens: 256,
+          messages: [
+            { role: "system", content: PLAN_PROMPT },
+            ...condensedMessages,
+          ],
+        }),
+      });
+      if (!res.ok) return DEFAULT_PLAN;
+      const data = await res.json();
+      text = data.choices?.[0]?.message?.content || "";
+    }
+
+    // Extract JSON array from response (some models wrap in markdown)
+    const match = text.match(/\[[\s\S]*\]/);
+    if (match) {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed) && parsed.length >= 2 && parsed.every((s: any) => s.label && s.detail)) {
+        return parsed.slice(0, 5);
+      }
+    }
+    return DEFAULT_PLAN;
+  } catch {
+    // Plan generation is non-critical
+    return DEFAULT_PLAN;
+  }
 }
 
 // Map provider IDs to their stream functions
@@ -376,6 +493,24 @@ Deno.serve(async (req) => {
             encoder.encode(`event: model\ndata: ${JSON.stringify({ model: selectedModel })}\n\n`)
           );
 
+          // Generate task plan for agentic step visualization
+          const plan = await generatePlan(actualProviderId, apiKey!, message);
+          const startTime = Date.now();
+          const completedSteps = new Set<number>();
+
+          // Emit initial step events (first step active, rest pending)
+          for (let i = 0; i < plan.length; i++) {
+            controller.enqueue(
+              encoder.encode(`event: step\ndata: ${JSON.stringify({
+                id: i + 1,
+                label: plan[i].label,
+                detail: plan[i].detail,
+                status: i === 0 ? "active" : "pending",
+                logs: i === 0 ? [{ time: "0:00", text: "Starting...", type: "info" }] : [],
+              })}\n\n`)
+            );
+          }
+
           const reader = providerStream.getReader();
 
           while (true) {
@@ -402,6 +537,87 @@ Deno.serve(async (req) => {
 
             // Forward the chunk as-is to the client
             controller.enqueue(value);
+
+            // Update step progress based on response length
+            const progress = fullResponse.length;
+            const thresholds = plan.map((_, i) => Math.floor((i + 1) * (1500 / plan.length)));
+            for (let i = 0; i < plan.length; i++) {
+              if (progress > thresholds[i] && !completedSteps.has(i)) {
+                completedSteps.add(i);
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+                const mins = Math.floor(Number(elapsed) / 60);
+                const secs = Number(elapsed) % 60;
+                const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
+
+                // Complete this step
+                controller.enqueue(
+                  encoder.encode(`event: step\ndata: ${JSON.stringify({
+                    id: i + 1,
+                    label: plan[i].label,
+                    detail: plan[i].detail,
+                    status: "complete",
+                    logs: [
+                      { time: timeStr, text: plan[i].detail, type: "result" },
+                    ],
+                  })}\n\n`)
+                );
+
+                // Activate next step if exists
+                if (i + 1 < plan.length) {
+                  controller.enqueue(
+                    encoder.encode(`event: step\ndata: ${JSON.stringify({
+                      id: i + 2,
+                      label: plan[i + 1].label,
+                      detail: plan[i + 1].detail,
+                      status: "active",
+                      logs: [{ time: timeStr, text: "Starting...", type: "info" }],
+                    })}\n\n`)
+                  );
+                }
+              }
+            }
+          }
+
+          // Complete all remaining steps
+          for (let i = 0; i < plan.length; i++) {
+            if (!completedSteps.has(i)) {
+              const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+              const mins = Math.floor(Number(elapsed) / 60);
+              const secs = Number(elapsed) % 60;
+              const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
+              controller.enqueue(
+                encoder.encode(`event: step\ndata: ${JSON.stringify({
+                  id: i + 1,
+                  label: plan[i].label,
+                  detail: plan[i].detail,
+                  status: "complete",
+                  logs: [{ time: timeStr, text: "Complete", type: "result" }],
+                })}\n\n`)
+              );
+            }
+          }
+
+          // Check if response has table-like data (markdown tables)
+          if (fullResponse.includes('|') && fullResponse.includes('---')) {
+            try {
+              const tableLines = fullResponse.split('\n').filter(l => l.includes('|'));
+              if (tableLines.length >= 3) {
+                const headers = tableLines[0].split('|').map(h => h.trim()).filter(Boolean);
+                const rows = tableLines.slice(2).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
+                if (headers.length > 0 && rows.length > 0) {
+                  controller.enqueue(
+                    encoder.encode(`event: report\ndata: ${JSON.stringify({
+                      title: plan[plan.length - 1]?.label || "Report",
+                      summary: fullResponse.slice(0, 150),
+                      headers,
+                      rows: rows.slice(0, 20),
+                    })}\n\n`)
+                  );
+                }
+              }
+            } catch {
+              // Report generation is non-critical
+            }
           }
 
           // Save the complete assistant message
@@ -426,6 +642,21 @@ Deno.serve(async (req) => {
               await supabase.rpc("increment_message_count", { conv_id: conversationId });
             } catch {
               // Fallback if RPC doesn't exist yet
+            }
+
+            // Save steps to database for persistence
+            try {
+              for (let i = 0; i < plan.length; i++) {
+                await supabase.from("steps").insert({
+                  conversation_id: conversationId,
+                  step_number: i + 1,
+                  label: plan[i].label,
+                  detail: plan[i].detail,
+                  status: "complete",
+                });
+              }
+            } catch {
+              // Step persistence is non-critical
             }
 
             // Auto-title: check if this conversation needs a title
