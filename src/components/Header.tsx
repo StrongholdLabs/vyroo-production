@@ -4,6 +4,7 @@ import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import vyrooLogo from "@/assets/vyroo-icon.png";
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI;
 const isMacElectron = isElectron && (window as any).electronAPI?.platform === "darwin";
@@ -42,17 +43,13 @@ export function Header() {
           className="flex items-center gap-2 font-body font-semibold text-foreground text-sm tracking-tight group"
           style={isElectron ? { WebkitAppRegion: "no-drag" } as React.CSSProperties : undefined}
         >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            className="text-foreground group-hover:scale-110 transition-transform duration-200"
-          >
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-          </svg>
+          <img
+            src={vyrooLogo}
+            alt="Vyroo"
+            width={22}
+            height={22}
+            className="group-hover:scale-110 transition-transform duration-200"
+          />
           <span>Vyroo</span>
         </Link>
 

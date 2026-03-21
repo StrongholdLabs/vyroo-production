@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { useConversations, useDeleteConversation } from "@/hooks/useConversations";
+import vyrooLogo from "@/assets/vyroo-icon.png";
 import { useBroadcastSync } from "@/hooks/useBroadcastSync";
 import { groupConversationsByTime } from "@/lib/time-groups";
 
@@ -61,11 +62,7 @@ export function DashboardSidebar({
       <div className="flex items-center justify-between px-3 h-12 flex-shrink-0">
         {!collapsed && (
           <Link to="/" className="flex items-center gap-2 font-body font-semibold text-foreground text-sm tracking-tight">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-foreground">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-            </svg>
+            <img src={vyrooLogo} alt="Vyroo" width={20} height={20} />
             <span>Vyroo</span>
           </Link>
         )}
