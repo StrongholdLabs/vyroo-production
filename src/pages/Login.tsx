@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
+import { AsciiBackground } from "@/components/ui/ascii-background";
+import vyrooLogo from "@/assets/vyroo-icon.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -37,19 +39,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="relative min-h-screen flex items-center justify-center bg-black px-4">
+      <AsciiBackground className="fixed inset-0 z-0" />
+      <div className="relative z-10 w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
-          <Link to="/" className="inline-flex items-center gap-2 font-body font-semibold text-foreground text-lg">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-foreground">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-              <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-            </svg>
-            Vyroo
+          <Link to="/" className="inline-flex items-center gap-2 font-body font-semibold text-white text-lg">
+            <img src={vyrooLogo} alt="Vyroo" width={28} height={28} />
           </Link>
-          <p className="text-sm text-muted-foreground">Sign in to your account</p>
+          <p className="text-sm text-gray-400">Sign in to your account</p>
         </div>
 
         {/* OAuth buttons */}

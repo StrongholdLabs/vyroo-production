@@ -82,9 +82,9 @@ export function Header() {
       className={cn(
         "fixed top-6 left-1/2 -translate-x-1/2 z-50",
         "flex flex-col items-center",
-        "px-6 py-3 backdrop-blur-sm",
+        "px-6 py-3 backdrop-blur-md",
         headerShape,
-        "border border-[#333] bg-[#1f1f1f57]",
+        "bg-[#1f1f1f57]",
         "w-[calc(100%-2rem)] sm:w-auto",
         "transition-[border-radius] duration-0 ease-in-out"
       )}
@@ -227,24 +227,19 @@ function DropdownNav({
     <div className="relative">
       <button
         onClick={onToggle}
-        className="group relative inline-flex items-center gap-1 overflow-hidden h-5 text-sm"
+        className={cn(
+          "flex items-center gap-1 text-sm transition-colors duration-200",
+          isOpen ? "text-white" : "text-gray-300 hover:text-white"
+        )}
       >
-        <div className="flex flex-col transition-transform duration-300 ease-out group-hover:-translate-y-1/2">
-          <span className={cn("flex items-center gap-1", isOpen ? "text-white" : "text-gray-300")}>
-            {label}
-            <ChevronDown size={11} className={cn("transition-transform duration-200", isOpen && "rotate-180")} />
-          </span>
-          <span className="flex items-center gap-1 text-white">
-            {label}
-            <ChevronDown size={11} className={cn("transition-transform duration-200", isOpen && "rotate-180")} />
-          </span>
-        </div>
+        {label}
+        <ChevronDown size={11} className={cn("transition-transform duration-200", isOpen && "rotate-180")} />
       </button>
 
       {isOpen && (
         <div
           className={cn(
-            "absolute top-full left-1/2 -translate-x-1/2 mt-4 rounded-xl border border-[#333] bg-[#1a1a1a]/95 backdrop-blur-xl shadow-2xl p-2 animate-in fade-in slide-in-from-top-2 duration-150",
+            "absolute top-full left-1/2 -translate-x-1/2 mt-4 rounded-xl bg-[#1a1a1a]/95 backdrop-blur-xl shadow-2xl p-2 animate-in fade-in slide-in-from-top-2 duration-150",
             columns === 2 ? "w-[420px] grid grid-cols-2 gap-0.5" : "w-[240px]"
           )}
         >
