@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTheme } from "next-themes";
+import { useNavigate } from "react-router-dom";
 import {
   X,
   User,
@@ -14,9 +15,26 @@ import {
   Link2,
   ExternalLink,
   ChevronDown,
+  Key,
+  Plug,
+  Check,
+  ArrowRight,
+  Loader2,
+  Search,
+  Code,
+  FileText,
+  Eye,
+  TrendingUp,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { APIKeySettings } from "@/components/APIKeySettings";
+import { useConnectors } from "@/hooks/useConnectors";
+import {
+  useAvailableSkills,
+  useUserSkills,
+  useToggleSkill,
+} from "@/hooks/useSkills";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -26,6 +44,7 @@ interface SettingsDialogProps {
 const navItems = [
   { id: "account", label: "Account", icon: User },
   { id: "settings", label: "Settings", icon: SettingsIcon },
+  { id: "api-keys", label: "API Keys", icon: Key },
   { id: "usage", label: "Usage", icon: BarChart3 },
   { id: "scheduled", label: "Scheduled tasks", icon: CalendarClock },
   { id: "mail", label: "Mail Vyroo", icon: Mail },
@@ -43,6 +62,13 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [emailOnTask, setEmailOnTask] = useState(true);
   const [language, setLanguage] = useState("en");
   const { theme, setTheme } = useTheme();
+  const navigate = useNavigate();
+  const { data: connectors } = useConnectors();
+  const connectedCount = connectors?.filter((c) => c.status === "connected").length ?? 0;
+  const { data: allSkills } = useAvailableSkills();
+  const { data: enabledSkills } = useUserSkills();
+  const toggleSkill = useToggleSkill();
+  const enabledSkillSet = new Set(enabledSkills ?? []);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -270,8 +296,83 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </div>
             )}
 
+            {/* API Keys tab */}
+            {activeTab === "api-keys" && (
+              <div className="px-6 py-5">
+                <APIKeySettings />
+              </div>
+            )}
+
+            {/* Connectors tab */}
+            {activeTab === "connectors" && (
+              <div className="px-6 py-5 space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
+                    <Plug size={18} className="text-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {connectedCount > 0
+                        ? `${connectedCount} connector${connectedCount === 1 ? "" : "s"} connected`
+                        : "No connectors connected"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Integrate your favorite tools and services
+                    </p>
+                  </div>
+                </div>
+
+                {/* Connected list */}
+                {connectors && connectors.filter((c) => c.status === "connected").length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Active</h3>
+                    {connectors
+                      .filter((c) => c.status === "connected")
+                      .map((c) => (
+                        <div
+                          key={c.id}
+                          className="flex items-center gap-2.5 py-1.5 px-2 rounded-md"
+                          style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
+                        >
+                          <Check size={12} className="text-success flex-shrink-0" />
+                          <span className="text-sm text-foreground">{c.name}</span>
+                          <span className="text-[10px] text-muted-foreground ml-auto">
+                            {c.capabilities.join(", ")}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate("/connectors");
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border border-border rounded-lg text-foreground hover:bg-accent transition-colors"
+                >
+                  <span>Manage Connectors</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* Skills tab */}
+            {activeTab === "skills" && (
+              <SkillsTabContent
+                skills={allSkills}
+                enabledSet={enabledSkillSet}
+                onToggle={(id, enabled) => toggleSkill.mutate({ skillId: id, enabled })}
+                isToggling={toggleSkill.isPending}
+                onNavigate={() => {
+                  onOpenChange(false);
+                  navigate("/skills");
+                }}
+              />
+            )}
+
             {/* Placeholder for other tabs */}
-            {activeTab !== "settings" && activeTab !== "usage" && (
+            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "api-keys" && activeTab !== "connectors" && activeTab !== "skills" && (
               <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-3">
                   {(() => {
@@ -288,5 +389,83 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Skills Tab (compact) ───
+
+const settingsSkillIcons: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  search: Search,
+  code: Code,
+  "file-text": FileText,
+  eye: Eye,
+  "trending-up": TrendingUp,
+  "link-2": Link2,
+};
+
+function SkillsTabContent({
+  skills,
+  enabledSet,
+  onToggle,
+  isToggling,
+  onNavigate,
+}: {
+  skills: { id: string; name: string; icon_name: string; description: string }[] | undefined;
+  enabledSet: Set<string>;
+  onToggle: (id: string, enabled: boolean) => void;
+  isToggling: boolean;
+  onNavigate: () => void;
+}) {
+  if (!skills) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 size={20} className="animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-6 py-5 space-y-5">
+      <div className="text-xs text-muted-foreground">
+        <span className="text-foreground font-medium tabular-nums">{enabledSet.size}</span>
+        {" of "}
+        <span className="tabular-nums">{skills.length}</span>
+        {" skills enabled"}
+      </div>
+
+      <div className="space-y-1">
+        {skills.map((skill) => {
+          const Icon = settingsSkillIcons[skill.icon_name] ?? Sparkles;
+          const enabled = enabledSet.has(skill.id);
+          return (
+            <div
+              key={skill.id}
+              className="flex items-center justify-between gap-3 py-2 px-2 rounded-md hover:bg-accent/30 transition-colors"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Icon size={15} className={enabled ? "text-foreground" : "text-muted-foreground"} />
+                <div className="min-w-0">
+                  <p className="text-sm text-foreground truncate">{skill.name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{skill.description}</p>
+                </div>
+              </div>
+              <Switch
+                checked={enabled}
+                onCheckedChange={(checked) => onToggle(skill.id, checked)}
+                disabled={isToggling}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        onClick={onNavigate}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium border border-border rounded-lg text-foreground hover:bg-accent transition-colors"
+      >
+        <span>View All Skills</span>
+        <ArrowRight size={14} />
+      </button>
+    </div>
   );
 }

@@ -11,10 +11,25 @@ import {
   Zap,
   ChevronRight,
 } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/lib/supabase";
 
 export function ProfileAvatar() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { data: profile } = useProfile();
+
+  const displayName = profile?.display_name || "User";
+  const initials = displayName.slice(0, 2);
+  const email = profile?.email || "";
+  const credits = profile?.credits ?? 0;
+  const plan = profile?.plan || "free";
+
+  const handleSignOut = async () => {
+    setOpen(false);
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -30,13 +45,13 @@ export function ProfileAvatar() {
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <Zap size={14} />
-          <span className="tabular-nums font-medium">993</span>
+          <span className="tabular-nums font-medium">{credits}</span>
         </div>
         <button
           onClick={() => setOpen(!open)}
           className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-white text-xs font-semibold ring-2 ring-transparent hover:ring-muted-foreground/30 transition-all duration-150"
         >
-          Ru
+          {initials}
         </button>
       </div>
 
@@ -49,17 +64,17 @@ export function ProfileAvatar() {
           {/* User info */}
           <div className="px-4 py-3 border-b border-border flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-600 to-orange-800 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-              Ru
+              {initials}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">Ru</p>
-              <p className="text-xs text-muted-foreground truncate">roelmangal84@gmail.com</p>
+              <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{email}</p>
             </div>
           </div>
 
           {/* Plan */}
           <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
-            <span className="text-sm font-medium text-foreground">Free</span>
+            <span className="text-sm font-medium text-foreground capitalize">{plan}</span>
             <button className="text-xs font-medium px-2.5 py-1 rounded-md border border-border text-foreground hover:bg-accent transition-colors">
               Upgrade
             </button>
@@ -72,7 +87,7 @@ export function ProfileAvatar() {
               <span>Credits</span>
             </div>
             <div className="flex items-center gap-1 text-sm text-foreground">
-              <span className="tabular-nums font-medium">993</span>
+              <span className="tabular-nums font-medium">{credits}</span>
               <ChevronRight size={14} className="text-muted-foreground" />
             </div>
           </div>
@@ -89,7 +104,10 @@ export function ProfileAvatar() {
 
           {/* Sign out */}
           <div className="border-t border-border py-1">
-            <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-destructive hover:bg-accent transition-colors">
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-destructive hover:bg-accent transition-colors"
+            >
               <LogOut size={16} />
               <span>Sign out</span>
             </button>

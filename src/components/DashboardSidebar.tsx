@@ -4,6 +4,7 @@ import {
   Plus,
   Search,
   ChevronLeft,
+  ChevronDown,
   Settings,
   Bot,
   BookOpen,
@@ -12,32 +13,17 @@ import {
   MessageSquare,
   LayoutGrid,
   Users,
+  Loader2,
+  Trash2,
+  Plug,
+  Zap,
+  Store,
+  ShieldCheck,
 } from "lucide-react";
 import { SettingsDialog } from "@/components/SettingsDialog";
-
-interface Task {
-  id: string;
-  title: string;
-  icon?: string;
-}
-
-const mockTasks: Task[] = [
-  { id: "11", title: "2026 DTC Wellness Market Report...", icon: "✅" },
-  { id: "10", title: "Hottest DTC Nutrition and Fitness...", icon: "🔬" },
-  { id: "1", title: "Top 5 DTC Skincare Brands and P...", icon: "📊" },
-  { id: "2", title: "Hottest 2026 DTC Products to Re...", icon: "🔥" },
-  { id: "3", title: "Hello", icon: "👋" },
-  { id: "4", title: "Designing a Website for Vyroo.ai I...", icon: "🎨" },
-  { id: "5", title: "Using Meta Ads to Attract More C...", icon: "📱" },
-  { id: "6", title: "Waar komen katten vandaan?", icon: "🐱" },
-  { id: "7", title: "Minimalist Online Store for Specia...", icon: "🛒" },
-  { id: "8", title: "Designing a Website for Vyroo.ai I...", icon: "🌐" },
-  { id: "9", title: "Build a Landing Page", icon: "🚀" },
-  { id: "12", title: "Stock Analysis", icon: "📈" },
-  { id: "13", title: "Scheduling Tool with Event Creati...", icon: "📅" },
-  { id: "14", title: "How to Test a Product Before Selli...", icon: "🧪" },
-  { id: "15", title: "What Can I Do?", icon: "❓" },
-];
+import { useConversations, useDeleteConversation } from "@/hooks/useConversations";
+import { useBroadcastSync } from "@/hooks/useBroadcastSync";
+import { groupConversationsByTime } from "@/lib/time-groups";
 
 interface DashboardSidebarProps {
   collapsed: boolean;
@@ -53,6 +39,14 @@ export function DashboardSidebar({
   onSelect,
 }: DashboardSidebarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { data: conversations, isLoading } = useConversations();
+  const deleteConversation = useDeleteConversation();
+
+  // Enable cross-tab sync
+  useBroadcastSync();
+
+  // Group conversations by time
+  const groups = conversations ? groupConversationsByTime(conversations as any[]) : null;
 
   return (
     <>
@@ -72,7 +66,7 @@ export function DashboardSidebar({
               <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               <circle cx="12" cy="12" r="1.5" fill="currentColor" />
             </svg>
-            <span>manus</span>
+            <span>Vyroo</span>
           </Link>
         )}
         <button
@@ -88,9 +82,14 @@ export function DashboardSidebar({
           {/* Navigation items */}
           <div className="px-2 space-y-0.5">
             <SidebarNavItem icon={<Plus size={16} />} label="New task" to="/" />
-            <SidebarNavItem icon={<Bot size={16} />} label="Agents" badge="New" />
+            <SidebarNavItem icon={<Bot size={16} />} label="Agents" to="/agents" badge="New" />
+            <SidebarNavItem icon={<Zap size={16} />} label="Skills" to="/skills" />
+            <SidebarNavItem icon={<Plug size={16} />} label="Connectors" to="/connectors" />
+            <SidebarNavItem icon={<Store size={16} />} label="Plugins" to="/plugins" badge="New" />
             <SidebarNavItem icon={<Search size={16} />} label="Search" />
             <SidebarNavItem icon={<BookOpen size={16} />} label="Library" />
+            <SidebarNavItem icon={<Settings size={16} />} label="Settings" to="/settings" />
+            <SidebarNavItem icon={<ShieldCheck size={16} />} label="Admin" to="/admin" />
           </div>
 
           {/* Projects section */}
@@ -109,35 +108,47 @@ export function DashboardSidebar({
             </button>
           </div>
 
-          {/* All tasks */}
-          <div className="px-3 mt-2 mb-1">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">All tasks</span>
-              <button className="p-0.5 text-muted-foreground hover:text-foreground transition-colors">
-                <Settings size={12} />
-              </button>
-            </div>
+          {/* Time-grouped conversations */}
+          <div className="flex-1 overflow-y-auto px-2 space-y-1">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={16} className="animate-spin text-muted-foreground" />
+              </div>
+            ) : groups ? (
+              <>
+                <TimeGroup
+                  title="Today"
+                  conversations={groups.today}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  onDelete={(id) => deleteConversation.mutate(id)}
+                />
+                <TimeGroup
+                  title="Yesterday"
+                  conversations={groups.yesterday}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  onDelete={(id) => deleteConversation.mutate(id)}
+                />
+                <TimeGroup
+                  title="Last 7 Days"
+                  conversations={groups.lastWeek}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  onDelete={(id) => deleteConversation.mutate(id)}
+                />
+                <TimeGroup
+                  title="Older"
+                  conversations={groups.older}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  onDelete={(id) => deleteConversation.mutate(id)}
+                />
+              </>
+            ) : null}
           </div>
 
-          {/* Task list */}
-          <div className="flex-1 overflow-y-auto px-2 space-y-px">
-            {mockTasks.map((task) => (
-              <button
-                key={task.id}
-                onClick={() => onSelect(task.id)}
-                className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors duration-150 group text-sm ${
-                  activeId === task.id
-                    ? "bg-accent text-foreground"
-                    : "text-sidebar-foreground hover:bg-accent/50 hover:text-foreground"
-                }`}
-              >
-                <span className="text-xs flex-shrink-0">{task.icon}</span>
-                <span className="truncate">{task.title}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Bottom referral + icons */}
+          {/* Bottom icons */}
           <div className="flex-shrink-0 border-t border-sidebar-border">
             <div className="flex items-center justify-between px-3 pb-2">
               <div className="flex items-center gap-1">
@@ -151,7 +162,6 @@ export function DashboardSidebar({
                   <MessageSquare size={16} />
                 </button>
               </div>
-              
             </div>
           </div>
         </>
@@ -163,9 +173,9 @@ export function DashboardSidebar({
           <Link to="/" className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Plus size={18} />
           </Link>
-          <button className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+          <Link to="/agents" className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Bot size={18} />
-          </button>
+          </Link>
           <button className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
             <Search size={18} />
           </button>
@@ -178,6 +188,78 @@ export function DashboardSidebar({
     </>
   );
 }
+
+// ─── Time Group Section ───
+
+interface TimeGroupProps {
+  title: string;
+  conversations: any[];
+  activeId: string;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function TimeGroup({ title, conversations, activeId, onSelect, onDelete }: TimeGroupProps) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  if (conversations.length === 0) return null;
+
+  return (
+    <div className="mb-1">
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="flex items-center gap-1.5 w-full px-2 py-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
+      >
+        <ChevronDown
+          size={10}
+          className={`transition-transform duration-200 ${collapsed ? "-rotate-90" : ""}`}
+        />
+        <span>{title}</span>
+        <span className="ml-auto text-[10px] font-normal tabular-nums opacity-60">{conversations.length}</span>
+      </button>
+      {!collapsed && (
+        <div className="space-y-px mt-0.5">
+          {conversations.map((conv) => (
+            <div
+              key={conv.id}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors duration-150 group text-sm ${
+                activeId === conv.id
+                  ? "bg-accent text-foreground"
+                  : "text-sidebar-foreground hover:bg-accent/50 hover:text-foreground"
+              }`}
+            >
+              <button
+                onClick={() => onSelect(conv.id)}
+                className="flex-1 min-w-0 text-left flex flex-col gap-0.5"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs flex-shrink-0">{conv.icon}</span>
+                  <span className="truncate text-sm">{conv.title}</span>
+                </div>
+                {conv.last_message_preview && (
+                  <span className="text-[11px] text-muted-foreground/60 truncate pl-5">
+                    {conv.last_message_preview}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(conv.id);
+                }}
+                className="p-0.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Nav Item ───
 
 function SidebarNavItem({ icon, label, badge, to }: { icon: React.ReactNode; label: string; badge?: string; to?: string }) {
   const content = (

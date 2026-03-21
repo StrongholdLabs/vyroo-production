@@ -1,28 +1,44 @@
 import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ChatPanel } from "@/components/ChatPanel";
 import { ComputerPanel } from "@/components/ComputerPanel";
 import { ComputerThumbnail } from "@/components/ComputerThumbnail";
-import { getConversation } from "@/data/conversations";
+import { useConversation, useConversations, useSendMessage } from "@/hooks/useConversations";
+import { useRealtimeMessages } from "@/hooks/useRealtimeMessages";
+import { useRealtimeConversations } from "@/hooks/useRealtimeConversations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
-import { Menu } from "lucide-react";
+import { Menu, Loader2 } from "lucide-react";
 
 const Dashboard = () => {
+  const { conversationId } = useParams();
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activeConversation, setActiveConversation] = useState("1");
+  const [activeConversation, setActiveConversation] = useState(conversationId || "1");
   const [computerVisible, setComputerVisible] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileComputerOpen, setMobileComputerOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  const conversation = getConversation(activeConversation);
+  const { data: conversation, isLoading, isError } = useConversation(activeConversation);
+  const sendMessage = useSendMessage();
+
+  // Real-time subscriptions for multi-tab sync
+  useRealtimeMessages(activeConversation);
+  useRealtimeConversations();
 
   const handleSelectConversation = (id: string) => {
     setActiveConversation(id);
+    navigate(`/dashboard/${id}`, { replace: true });
     if (isMobile) setMobileSidebarOpen(false);
+  };
+
+  const handleSendMessage = (msg: string) => {
+    if (!conversation) return;
+    sendMessage.mutate({ conversationId: activeConversation, content: msg });
   };
 
   const handleOpenComputer = () => {
@@ -40,6 +56,35 @@ const Dashboard = () => {
       setComputerVisible(false);
     }
   };
+
+  // Loading state
+  if (isLoading || !conversation) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={24} className="animate-spin text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Loading conversation...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-2">
+          <p className="text-sm text-destructive">Failed to load conversation</p>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="text-sm text-muted-foreground hover:text-foreground underline"
+          >
+            Go back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex overflow-hidden">
@@ -59,7 +104,7 @@ const Dashboard = () => {
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           activeId={activeConversation}
-          onSelect={setActiveConversation}
+          onSelect={handleSelectConversation}
         />
       )}
 
@@ -86,6 +131,7 @@ const Dashboard = () => {
                   conversation={conversation}
                   computerVisible={computerVisible}
                   onOpenComputer={handleOpenComputer}
+                  onSendMessage={handleSendMessage}
                 />
               </div>
             </ResizablePanel>
@@ -115,6 +161,7 @@ const Dashboard = () => {
               conversation={conversation}
               computerVisible={false}
               onOpenComputer={handleOpenComputer}
+              onSendMessage={handleSendMessage}
             />
           </div>
         )}

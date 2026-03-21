@@ -1,0 +1,40 @@
+appId: com.vyroo.app
+productName: Vyroo
+copyright: Copyright © 2026 Vyroo
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - electron/**/*.js
+  - package.json
+
+mac:
+  category: public.app-category.productivity
+  target:
+    - dmg
+    - zip
+  icon: build/icon.icns
+  darkModeSupport: true
+
+win:
+  target:
+    - nsis
+  icon: build/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+
+linux:
+  target:
+    - AppImage
+  category: Utility
+  icon: build/icons
+
+publish:
+  provider: github
+  owner: vyroo
+  repo: vyroo-app
