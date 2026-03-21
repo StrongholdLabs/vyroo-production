@@ -13,14 +13,14 @@ import { useRealtimeConversations } from "@/hooks/useRealtimeConversations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
-import { Menu, Loader2 } from "lucide-react";
+import { Menu, Loader2, Monitor } from "lucide-react";
 
 const Dashboard = () => {
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeConversation, setActiveConversation] = useState(conversationId || "");
-  const [computerVisible, setComputerVisible] = useState(true);
+  const [computerVisible, setComputerVisible] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileComputerOpen, setMobileComputerOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -148,6 +148,14 @@ const Dashboard = () => {
                 <TaskInput />
               </div>
               <ActionChips />
+
+              {/* Computer panel hint */}
+              <div className="flex items-center gap-2 mt-4 px-3 py-2 rounded-lg bg-secondary/30 border border-border/30">
+                <Monitor size={14} className="text-muted-foreground flex-shrink-0" />
+                <p className="text-[11px] text-muted-foreground">
+                  <span className="font-medium text-foreground/70">Computer Panel</span> — code editor, browser, terminal & research timeline appear alongside your chat when needed.
+                </p>
+              </div>
             </div>
           </div>
         ) : !isMobile ? (
