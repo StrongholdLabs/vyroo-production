@@ -62,8 +62,7 @@ export function DashboardSidebar({
       <div className="flex items-center justify-between px-3 h-12 flex-shrink-0">
         {!collapsed && (
           <Link to="/" className="flex items-center gap-2 font-body font-semibold text-foreground text-sm tracking-tight">
-            <img src={vyrooLogo} alt="Vyroo" width={20} height={20} />
-            <span>Vyroo</span>
+            <img src={vyrooLogo} alt="Vyroo" width={24} height={24} />
           </Link>
         )}
         <button

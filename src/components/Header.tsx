@@ -46,11 +46,10 @@ export function Header() {
           <img
             src={vyrooLogo}
             alt="Vyroo"
-            width={22}
-            height={22}
+            width={28}
+            height={28}
             className="group-hover:scale-110 transition-transform duration-200"
           />
-          <span>Vyroo</span>
         </Link>
 
         {/* ─── Center: Nav links ──────────────────────────────────── */}
