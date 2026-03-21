@@ -1,22 +1,91 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
 import { useAuth } from "@/contexts/AuthContext";
+import type { VerticalType } from "@/lib/plugins/types";
+
+// ── Dynamic slogans per workspace vertical ──────────────────────────────
+const verticalSlogans: Record<VerticalType, { headline: string; sub: string }> = {
+  general: {
+    headline: "What can I help you with?",
+    sub: "Research, code, analyze, create — your AI for everything.",
+  },
+  ecommerce: {
+    headline: "Grow your store with AI",
+    sub: "Manage products, track orders, optimize inventory — all in one place.",
+  },
+  healthcare: {
+    headline: "Smarter healthcare workflows",
+    sub: "Patient scheduling, clinical notes, compliance — AI that understands care.",
+  },
+  education: {
+    headline: "Transform how you teach",
+    sub: "Curriculum planning, student analytics, grading — your AI teaching assistant.",
+  },
+  finance: {
+    headline: "Your AI financial analyst",
+    sub: "Portfolio tracking, risk analysis, reports — make smarter decisions.",
+  },
+  marketing: {
+    headline: "Create campaigns that convert",
+    sub: "Content creation, analytics, A/B testing — marketing on autopilot.",
+  },
+  devtools: {
+    headline: "Ship faster with AI",
+    sub: "Code review, CI/CD, debugging, docs — your AI engineering teammate.",
+  },
+  custom: {
+    headline: "Build your own AI workspace",
+    sub: "Custom plugins, tailored workflows — make Vyroo truly yours.",
+  },
+};
+
+// ── Greetings that rotate (for general workspace) ───────────────────────
+const timeGreetings = [
+  "Good morning",
+  "Good afternoon",
+  "Good evening",
+];
+
+function getTimeGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return timeGreetings[0];
+  if (hour < 18) return timeGreetings[1];
+  return timeGreetings[2];
+}
 
 // ── Page ─────────────────────────────────────────────────────────────────
-// Manus / Perplexity style: the landing page IS the app.
-// Authenticated users → redirect to dashboard.
-// Non-authenticated → clean composer-first experience.
-
 const Index = () => {
   const [visible, setVisible] = useState(false);
+  const [workspace, setWorkspace] = useState<VerticalType>("general");
+  const [transitioning, setTransitioning] = useState(false);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
+  // Listen for workspace changes from WorkspaceSelector
+  const handleWorkspaceChange = useCallback((e: Event) => {
+    const detail = (e as CustomEvent).detail;
+    if (detail?.workspace) {
+      setTransitioning(true);
+      setTimeout(() => {
+        setWorkspace(detail.workspace as VerticalType);
+        setTransitioning(false);
+      }, 300);
+    }
+  }, []);
+
   useEffect(() => {
-    // Authenticated users go straight to the dashboard
+    // Read initial workspace from localStorage
+    const stored = localStorage.getItem("vyroo-workspace");
+    if (stored) setWorkspace(stored as VerticalType);
+
+    window.addEventListener("workspace-changed", handleWorkspaceChange);
+    return () => window.removeEventListener("workspace-changed", handleWorkspaceChange);
+  }, [handleWorkspaceChange]);
+
+  useEffect(() => {
     if (!loading && user) {
       navigate("/dashboard", { replace: true });
     }
@@ -27,8 +96,10 @@ const Index = () => {
     return () => clearTimeout(t);
   }, []);
 
-  // Don't flash the landing page while checking auth
   if (loading) return null;
+
+  const slogan = verticalSlogans[workspace] || verticalSlogans.general;
+  const isGeneral = workspace === "general";
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -42,13 +113,22 @@ const Index = () => {
           }`}
           style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
         >
-          {/* Greeting */}
-          <h1
-            className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight text-center"
-            style={{ textWrap: "balance" as any }}
+          {/* Dynamic headline — changes with workspace */}
+          <div
+            className={`text-center transition-all duration-300 ${
+              transitioning ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+            }`}
           >
-            What can I help you with?
-          </h1>
+            <h1
+              className="font-display text-3xl md:text-4xl lg:text-5xl text-foreground leading-[1.15] tracking-tight"
+              style={{ textWrap: "balance" as any }}
+            >
+              {slogan.headline}
+            </h1>
+            <p className="mt-3 text-muted-foreground text-sm md:text-base max-w-lg mx-auto">
+              {slogan.sub}
+            </p>
+          </div>
 
           {/* Composer */}
           <div className="w-full">
@@ -72,24 +152,15 @@ const Index = () => {
             visible ? "opacity-100" : "opacity-0"
           }`}
         >
-          <Link
-            to="/login"
-            className="hover:text-foreground transition-colors"
-          >
+          <Link to="/login" className="hover:text-foreground transition-colors">
             Sign in
           </Link>
           <span className="text-border">|</span>
-          <Link
-            to="/signup"
-            className="hover:text-foreground transition-colors"
-          >
+          <Link to="/signup" className="hover:text-foreground transition-colors">
             Create account
           </Link>
           <span className="text-border">|</span>
-          <Link
-            to="/pricing"
-            className="hover:text-foreground transition-colors"
-          >
+          <Link to="/pricing" className="hover:text-foreground transition-colors">
             Pricing
           </Link>
         </div>
