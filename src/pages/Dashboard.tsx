@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { ComputerViewState } from "@/data/conversations";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -22,6 +23,18 @@ const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeConversation, setActiveConversation] = useState(conversationId || "");
   const [computerVisible, setComputerVisible] = useState(false);
+  const [liveComputerView, setLiveComputerView] = useState<ComputerViewState | undefined>();
+
+  // Callback for ChatPanel to update computer view with live tool data
+  const handleComputerViewUpdate = useCallback((view: ComputerViewState) => {
+    setLiveComputerView(view);
+  }, []);
+
+  // Sync activeConversation with URL params
+  useEffect(() => {
+    setActiveConversation(conversationId || "");
+    if (!conversationId) setComputerVisible(false);
+  }, [conversationId]);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileComputerOpen, setMobileComputerOpen] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
@@ -35,13 +48,14 @@ const Dashboard = () => {
   const sendMessage = useSendMessage();
 
   // Auto-select the most recent conversation if none is active
+  // BUT only if we're not explicitly on /dashboard (new task mode)
   useEffect(() => {
-    if (!activeConversation && conversations && conversations.length > 0) {
+    if (!conversationId && !activeConversation && conversations && conversations.length > 0) {
       const firstId = (conversations as any[])[0].id;
       setActiveConversation(firstId);
       navigate(`/dashboard/${firstId}`, { replace: true });
     }
-  }, [activeConversation, conversations, navigate]);
+  }, [conversationId, activeConversation, conversations, navigate]);
 
   // Pick up initial message from TaskInput navigation
   useEffect(() => {
@@ -64,9 +78,9 @@ const Dashboard = () => {
     if (isMobile) setMobileSidebarOpen(false);
   };
 
-  const handleSendMessage = (msg: string) => {
-    if (!conversation) return;
-    sendMessage.mutate({ conversationId: activeConversation, content: msg });
+  const handleSendMessage = (_msg: string) => {
+    // Message insertion is handled by the chat edge function — no need to insert here
+    // This callback is kept for side effects (e.g., triggering conversation refresh)
   };
 
   const handleOpenComputer = () => {
@@ -181,6 +195,7 @@ const Dashboard = () => {
                   computerVisible={computerVisible}
                   onOpenComputer={handleOpenComputer}
                   onSendMessage={handleSendMessage}
+                  onComputerViewUpdate={handleComputerViewUpdate}
                   initialMessage={pendingMessage}
                   onInitialMessageSent={() => setPendingMessage(null)}
                 />
@@ -199,7 +214,7 @@ const Dashboard = () => {
                     fileName={conversation.fileName}
                     editorLabel={conversation.editorLabel}
                     fileTree={conversation.fileTree}
-                    computerView={conversation.computerView}
+                    computerView={liveComputerView || conversation.computerView}
                     researchTasks={conversation.researchTasks}
                   />
                 </ResizablePanel>

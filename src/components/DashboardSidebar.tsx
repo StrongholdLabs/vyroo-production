@@ -77,7 +77,7 @@ export function DashboardSidebar({
         <>
           {/* Navigation items */}
           <div className="px-2 space-y-0.5">
-            <SidebarNavItem icon={<Plus size={16} />} label="New task" to="/" />
+            <SidebarNavItem icon={<Plus size={16} />} label="New task" to="/dashboard" />
             <SidebarNavItem icon={<Bot size={16} />} label="Agents" to="/agents" badge="New" />
             <SidebarNavItem icon={<Zap size={16} />} label="Skills" to="/skills" />
             <SidebarNavItem icon={<Plug size={16} />} label="Connectors" to="/connectors" />

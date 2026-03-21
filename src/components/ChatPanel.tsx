@@ -39,11 +39,12 @@ interface ChatPanelProps {
   computerVisible?: boolean;
   onOpenComputer?: () => void;
   onSendMessage?: (msg: string) => void;
+  onComputerViewUpdate?: (view: any) => void;
   initialMessage?: string | null;
   onInitialMessageSent?: () => void;
 }
 
-export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage, initialMessage, onInitialMessageSent }: ChatPanelProps) {
+export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSendMessage, onComputerViewUpdate, initialMessage, onInitialMessageSent }: ChatPanelProps) {
   const [message, setMessage] = useState("");
   const [reportMenuOpen, setReportMenuOpen] = useState<string | null>(null);
   const [previewMsg, setPreviewMsg] = useState<ChatMsg | null>(null);
@@ -62,6 +63,50 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
       onOpenComputer();
     }
   }, [isUsingTools]);
+
+  // Push live tool data to Computer Panel
+  useEffect(() => {
+    if (!onComputerViewUpdate) return;
+    if (searchResults.length > 0 || browseData.length > 0) {
+      const latestSearch = searchResults[searchResults.length - 1];
+      const latestBrowse = browseData[browseData.length - 1];
+      onComputerViewUpdate({
+        type: latestBrowse ? "browser" : "search",
+        searchQuery: latestSearch?.query,
+        searchResults: latestSearch?.results?.map((r: any, i: number) => ({
+          title: r.title,
+          url: r.url,
+          date: "",
+          snippet: r.snippet || "",
+          faviconColor: ["hsl(210 80% 55%)", "hsl(150 60% 45%)", "hsl(45 80% 50%)", "hsl(340 65% 50%)"][i % 4],
+        })),
+        browserUrl: latestBrowse?.url,
+        browserContent: latestBrowse ? {
+          type: "website" as const,
+          pageTitle: latestBrowse.title,
+          sections: [{ type: "text" as const, content: latestBrowse.content.substring(0, 3000) }],
+        } : undefined,
+        timeline: [
+          ...searchResults.map((s, i) => ({
+            id: i + 1,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: "search" as const,
+            title: `Searched: "${s.query}"`,
+            snippet: `Found ${s.results.length} results`,
+          })),
+          ...browseData.map((b, i) => ({
+            id: 100 + i,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: "browse" as const,
+            title: b.title || "Browsed page",
+            url: b.url,
+            domain: new URL(b.url).hostname,
+            snippet: b.content.substring(0, 150),
+          })),
+        ],
+      });
+    }
+  }, [searchResults, browseData, onComputerViewUpdate]);
 
   // Auto-scroll to bottom on initial load
   useEffect(() => {
