@@ -760,7 +760,7 @@ Deno.serve(async (req) => {
               }));
 
               let toolIterations = 0;
-              const MAX_TOOL_ITERATIONS = 5;
+              const MAX_TOOL_ITERATIONS = 15;
               let finalTextContent = "";
               let hasUsedTools = false;
 
@@ -994,9 +994,9 @@ Deno.serve(async (req) => {
                       controller.enqueue(encoder.encode(`event: step\ndata: ${JSON.stringify({
                         id: stepIdx + 1,
                         label: plan[stepIdx].label,
-                        detail: `Used ${toolCall.name}: ${JSON.stringify(toolCall.input).substring(0, 100)}`,
+                        detail: plan[stepIdx].detail,
                         status: "complete",
-                        logs: [{ time: timeStr, text: `${toolCall.name} completed`, type: "result" }],
+                        logs: [{ time: timeStr, text: plan[stepIdx].detail, type: "result" }],
                       })}\n\n`));
 
                       // Activate next step if exists

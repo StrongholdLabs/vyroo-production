@@ -417,28 +417,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         </div>
         )}
 
-        {/* Tool execution logs */}
-        {toolCalls.length > 0 && (
-          <div className="space-y-2">
-            {toolCalls.map((tool, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className={tool.status === "executing" ? "animate-spin" : ""}>
-                  {tool.status === "executing" ? "\u{1F504}" : "\u{2705}"}
-                </span>
-                <span className="font-medium text-foreground">{tool.name}</span>
-                <span className="text-xs">
-                  {tool.name === "web_search" ? `"${tool.args.query}"` :
-                   tool.name === "browse_url" ? tool.args.url :
-                   JSON.stringify(tool.args).substring(0, 50)}
-                </span>
-                {tool.duration && <span className="text-xs text-muted-foreground/60">{(tool.duration/1000).toFixed(1)}s</span>}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Sources with favicons — Perplexity style */}
-        {sources.length > 0 && (
+        {/* Sources with favicons — shown after steps complete */}
+        {sources.length > 0 && !isStreaming && (
           <div className="space-y-2">
             <span className="text-xs font-medium text-muted-foreground">Sources</span>
             <div className="flex flex-wrap gap-2">
@@ -456,21 +436,6 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                 </a>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Inline search results when Computer Panel is closed */}
-        {!computerVisible && searchResults.length > 0 && sources.length === 0 && (
-          <div className="rounded-lg border border-border p-3 space-y-2" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Globe size={12} />
-              <span>Sources found</span>
-            </div>
-            {searchResults.flatMap(s => s.results).slice(0, 5).map((r, i) => (
-              <a key={i} href={r.url} target="_blank" rel="noopener noreferrer" className="block text-xs text-foreground hover:text-primary truncate">
-                {r.title}
-              </a>
-            ))}
           </div>
         )}
 
