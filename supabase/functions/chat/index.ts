@@ -143,7 +143,7 @@ function parseJsonArray(text: string): string[] {
 
 // Map provider IDs to lightweight/fast models for follow-up generation
 const FAST_MODELS: Record<string, string> = {
-  anthropic: "claude-3-5-haiku-latest",
+  anthropic: "claude-haiku-4-5-20251001",
   openai: "gpt-4o-mini",
   gemini: "gemini-2.0-flash",
   together: "meta-llama/Llama-3.1-8B-Instruct-Turbo",
@@ -172,6 +172,7 @@ async function generateFollowUps(
   ];
 
   try {
+    console.log("[generateFollowUps] provider:", providerId, "model:", fastModel, "contextLength:", contextText.length);
     if (providerId === "anthropic") {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -1510,21 +1511,28 @@ Deno.serve(async (req) => {
           }
 
           // Follow-ups MUST come before done (frontend exits stream loop on done)
-          // Use strict 6s timeout so done always fires
+          // Use strict 8s timeout so done always fires
           if (fullResponse || lastReportContent) {
             try {
+              console.log("[followups] Starting generation, fullResponse length:", fullResponse.length, "reportContent length:", (lastReportContent || "").length);
               const followUps = await Promise.race([
-                generateFollowUps(actualProviderId, apiKey!, message, fullResponse, lastReportContent || undefined),
-                new Promise<string[]>(resolve => setTimeout(() => resolve([]), 6000)),
+                generateFollowUps(actualProviderId, apiKey!, message, fullResponse || "No response yet", lastReportContent || undefined),
+                new Promise<string[]>(resolve => setTimeout(() => { console.log("[followups] Timed out after 8s"); resolve([]); }, 8000)),
               ]) as string[];
+              console.log("[followups] Got results:", JSON.stringify(followUps));
               if (followUps.length > 0) {
                 // Convert string[] to {text, category}[] for FollowUpPanel
                 const typedFollowUps = followUps.map(f => typeof f === 'string' ? { text: f, category: "default" } : f);
                 controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps: typedFollowUps })}\n\n`));
+                console.log("[followups] Emitted", typedFollowUps.length, "follow-ups");
+              } else {
+                console.log("[followups] Empty results, no follow-ups emitted");
               }
-            } catch {
-              // Follow-up generation is non-critical
+            } catch (followUpErr) {
+              console.error("[followups] Error:", followUpErr);
             }
+          } else {
+            console.log("[followups] Skipped: no fullResponse or lastReportContent");
           }
 
           controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`));
