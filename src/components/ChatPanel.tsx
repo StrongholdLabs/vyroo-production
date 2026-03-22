@@ -108,6 +108,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           date: r.domain || "",
           snippet: r.snippet || "",
           faviconColor: faviconColors[i % faviconColors.length],
+          favicon: r.favicon || "",
         })),
         browserUrl: latestBrowse?.url,
         // Use structured sections from backend if available, fallback to raw text

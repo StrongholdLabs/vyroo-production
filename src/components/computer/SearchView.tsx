@@ -4,6 +4,7 @@ export interface SearchResult {
   date: string;
   snippet: string;
   faviconColor: string;
+  favicon?: string;
 }
 
 interface SearchViewProps {
@@ -32,12 +33,16 @@ export function SearchView({ query, results }: SearchViewProps) {
             className="px-3 py-3 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer group"
           >
             <div className="flex items-start gap-3">
-              <div
-                className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-[9px] font-bold"
-                style={{ backgroundColor: result.faviconColor }}
-              >
-                {result.title.charAt(0)}
-              </div>
+              {result.favicon ? (
+                <img src={result.favicon} alt="" className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5" />
+              ) : (
+                <div
+                  className="w-5 h-5 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center text-white text-[9px] font-bold"
+                  style={{ backgroundColor: result.faviconColor }}
+                >
+                  {result.title.charAt(0)}
+                </div>
+              )}
               <div className="flex-1 min-w-0 space-y-0.5">
                 <h3 className="text-sm font-medium text-foreground leading-snug group-hover:underline">
                   {result.title}

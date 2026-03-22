@@ -184,6 +184,8 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           setIsStreaming(false);
         },
         onDone: async () => {
+          // Mark all steps as complete (fixes stuck spinners)
+          setSteps(prev => prev.map(s => ({ ...s, status: "complete" as const })));
           setIsStreaming(false);
           // Refetch conversation BEFORE clearing streaming content
           // so the DB messages are loaded and visible before we remove the stream
@@ -191,8 +193,8 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
             queryKey: ["conversation", conversationId],
           });
           await queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          // Now safe to clear — DB messages include the new response
-          setStreamingContent("");
+          // Delay clearing streaming content so follow-ups panel has time to render
+          setTimeout(() => setStreamingContent(""), 150);
           // Broadcast to other tabs
           broadcastEvent("message-created", conversationId);
         },
