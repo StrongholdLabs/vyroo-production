@@ -58,6 +58,17 @@ Your final response MUST:
 - Don't summarize search snippets — browse the actual pages for real content
 - Don't hedge excessively — be confident when the evidence supports a conclusion`;
 
+const DIRECT_SYSTEM_PROMPT = `You are Vyroo, a knowledgeable AI assistant. You provide clear, well-structured answers using your training knowledge.
+
+## Response Quality Standards
+- **Lead with a direct answer** — don't beat around the bush
+- **Be specific** — include data, numbers, names, and facts where possible
+- **Structure well** — use ## headings, bullet points, and markdown formatting
+- **Use bold** for key terms, metrics, and important figures
+- **Keep it concise** — 2-3 sentence paragraphs max
+
+You do NOT have access to tools or web search in this mode. Answer from your knowledge.`;
+
 const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 short follow-up questions or actions the user might want to take next. Return ONLY a JSON array of strings, no explanation. Each suggestion should be concise (under 60 characters). Example: ["How do I deploy this?","Can you add error handling?","Explain the architecture"]`;
 
 const PLAN_PROMPT = `Analyze the user's message and break the task into 3-5 concrete steps. Return ONLY a JSON array of objects with "label" and "detail" fields.
@@ -332,8 +343,8 @@ async function classifyTask(
   apiKey: string,
   userMessage: string
 ): Promise<"direct" | "agentic"> {
-  // Short messages are almost always direct — skip the LLM call
-  if (userMessage.trim().length < 50) return "direct";
+  // Very short messages (greetings, one-word) are direct — skip the LLM call
+  if (userMessage.trim().length < 20) return "direct";
 
   const fastModel = FAST_MODELS[providerId];
   if (!fastModel) return "agentic";
@@ -642,7 +653,8 @@ Deno.serve(async (req) => {
     }
 
     // Inject cross-conversation memory into the system prompt
-    let enrichedSystemPrompt = SYSTEM_PROMPT;
+    // (Use direct prompt for simple questions to prevent raw tool XML in responses)
+    let enrichedSystemPrompt = SYSTEM_PROMPT; // Will be replaced for direct mode after classification
     try {
       const memories = await getRelevantMemories(user.id, message, supabase);
       const memorySection = injectMemoryContext(memories);
@@ -670,6 +682,18 @@ Deno.serve(async (req) => {
 
           // Classify whether this needs the full agentic flow or a direct answer
           const taskMode = await classifyTask(actualProviderId, apiKey!, message);
+
+          // Use the correct system prompt based on mode
+          // Direct mode must NOT include tool references or Claude will emit raw XML
+          if (taskMode === "direct") {
+            enrichedSystemPrompt = DIRECT_SYSTEM_PROMPT;
+            // Re-inject memory if we had it
+            try {
+              const memories = await getRelevantMemories(user.id, message, supabase);
+              const memorySection = injectMemoryContext(memories);
+              if (memorySection) enrichedSystemPrompt += memorySection;
+            } catch {}
+          }
 
           // Emit task mode so frontend knows whether to show steps UI
           controller.enqueue(
