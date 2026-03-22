@@ -137,16 +137,6 @@ const Dashboard = () => {
         </button>
       )}
 
-      {/* Desktop sidebar */}
-      {!isMobile && (
-        <DashboardSidebar
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-          activeId={activeConversation}
-          onSelect={handleSelectConversation}
-        />
-      )}
-
       {/* Mobile sidebar as sheet */}
       {isMobile && (
         <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
@@ -161,31 +151,61 @@ const Dashboard = () => {
         </Sheet>
       )}
 
-      <main className="flex-1 flex overflow-hidden relative">
-        {!conversation ? (
-          /* Empty state — composer like landing page */
-          <div className="flex-1 flex flex-col items-center justify-center px-4 pb-24">
-            <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
-              <h2 className="font-display text-3xl md:text-4xl text-foreground tracking-tight text-center">
-                What can I help you with?
-              </h2>
-              <div className="w-full">
-                <TaskInput />
-              </div>
-              <ActionChips />
+      {!isMobile ? (
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Resizable Sidebar */}
+          {!sidebarCollapsed && (
+            <>
+              <ResizablePanel
+                defaultSize={18}
+                minSize={14}
+                maxSize={28}
+                className="min-w-0"
+              >
+                <DashboardSidebar
+                  collapsed={false}
+                  onToggle={() => setSidebarCollapsed(true)}
+                  activeId={activeConversation}
+                  onSelect={handleSelectConversation}
+                />
+              </ResizablePanel>
+              <ResizableHandle className="w-px bg-border hover:bg-primary/30 transition-colors data-[resize-handle-active]:bg-primary/50" />
+            </>
+          )}
 
-              {/* Computer panel hint */}
-              <div className="flex items-center gap-2 mt-4 px-3 py-2 rounded-lg bg-secondary/30 border border-border/30">
-                <Monitor size={14} className="text-muted-foreground flex-shrink-0" />
-                <p className="text-[11px] text-muted-foreground">
-                  <span className="font-medium text-foreground/70">Computer Panel</span> — code editor, browser, terminal & research timeline appear alongside your chat when needed.
-                </p>
-              </div>
+          {/* Collapsed mini sidebar (not in resizable flow) */}
+          {sidebarCollapsed && (
+            <div className="flex-shrink-0">
+              <DashboardSidebar
+                collapsed={true}
+                onToggle={() => setSidebarCollapsed(false)}
+                activeId={activeConversation}
+                onSelect={handleSelectConversation}
+              />
             </div>
-          </div>
-        ) : !isMobile ? (
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={computerVisible ? 55 : 100} minSize={30}>
+          )}
+
+          {/* Main content area */}
+          <ResizablePanel defaultSize={!conversation || !computerVisible ? 82 : 45} minSize={30}>
+            {!conversation ? (
+              <div className="flex-1 flex flex-col items-center justify-center px-4 pb-24 h-full">
+                <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
+                  <h2 className="font-display text-3xl md:text-4xl text-foreground tracking-tight text-center">
+                    What can I help you with?
+                  </h2>
+                  <div className="w-full">
+                    <TaskInput />
+                  </div>
+                  <ActionChips />
+                  <div className="flex items-center gap-2 mt-4 px-3 py-2 rounded-lg bg-secondary/30 border border-border/30">
+                    <Monitor size={14} className="text-muted-foreground flex-shrink-0" />
+                    <p className="text-[11px] text-muted-foreground">
+                      <span className="font-medium text-foreground/70">Computer Panel</span> — code editor, browser, terminal & research timeline appear alongside your chat when needed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
               <div className="flex flex-col h-full min-w-0">
                 <ChatPanel
                   conversation={conversation}
@@ -197,57 +217,81 @@ const Dashboard = () => {
                   onInitialMessageSent={() => setPendingMessage(null)}
                 />
               </div>
-            </ResizablePanel>
-
-            {computerVisible && (
-              <>
-                <ResizableHandle />
-                <ResizablePanel defaultSize={45} minSize={25} maxSize={65}>
-                  <ComputerPanel
-                    visible={true}
-                    onClose={handleCloseComputer}
-                    codeLines={conversation.codeLines}
-                    steps={conversation.steps}
-                    fileName={conversation.fileName}
-                    editorLabel={conversation.editorLabel}
-                    fileTree={conversation.fileTree}
-                    computerView={liveComputerView || conversation.computerView}
-                    researchTasks={conversation.researchTasks}
-                  />
-                </ResizablePanel>
-              </>
             )}
-          </ResizablePanelGroup>
-        ) : (
-          <div className="flex-1 flex flex-col min-w-0">
-            <ChatPanel
-              conversation={conversation}
-              computerVisible={false}
-              onOpenComputer={handleOpenComputer}
-              onSendMessage={handleSendMessage}
-            />
-          </div>
-        )}
+          </ResizablePanel>
 
-        {/* Mobile computer panel as bottom drawer */}
-        {isMobile && conversation && (
-          <Drawer open={mobileComputerOpen} onOpenChange={setMobileComputerOpen}>
-            <DrawerContent className="h-[85vh] p-0 border-t border-border rounded-t-2xl" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
-              <ComputerPanel
-                visible={true}
-                onClose={() => setMobileComputerOpen(false)}
-                codeLines={conversation.codeLines}
-                steps={conversation.steps}
-                fileName={conversation.fileName}
-                editorLabel={conversation.editorLabel}
-                fileTree={conversation.fileTree}
-                computerView={conversation.computerView}
-                researchTasks={conversation.researchTasks}
+          {/* Computer panel */}
+          {conversation && computerVisible && (
+            <>
+              <ResizableHandle />
+              <ResizablePanel defaultSize={37} minSize={25} maxSize={55}>
+                <ComputerPanel
+                  visible={true}
+                  onClose={handleCloseComputer}
+                  codeLines={conversation.codeLines}
+                  steps={conversation.steps}
+                  fileName={conversation.fileName}
+                  editorLabel={conversation.editorLabel}
+                  fileTree={conversation.fileTree}
+                  computerView={liveComputerView || conversation.computerView}
+                  researchTasks={conversation.researchTasks}
+                />
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
+      ) : (
+        /* Mobile layout */
+        <main className="flex-1 flex overflow-hidden relative">
+          {!conversation ? (
+            <div className="flex-1 flex flex-col items-center justify-center px-4 pb-24">
+              <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
+                <h2 className="font-display text-3xl md:text-4xl text-foreground tracking-tight text-center">
+                  What can I help you with?
+                </h2>
+                <div className="w-full">
+                  <TaskInput />
+                </div>
+                <ActionChips />
+                <div className="flex items-center gap-2 mt-4 px-3 py-2 rounded-lg bg-secondary/30 border border-border/30">
+                  <Monitor size={14} className="text-muted-foreground flex-shrink-0" />
+                  <p className="text-[11px] text-muted-foreground">
+                    <span className="font-medium text-foreground/70">Computer Panel</span> — code editor, browser, terminal & research timeline appear alongside your chat when needed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col min-w-0">
+              <ChatPanel
+                conversation={conversation}
+                computerVisible={false}
+                onOpenComputer={handleOpenComputer}
+                onSendMessage={handleSendMessage}
               />
-            </DrawerContent>
-          </Drawer>
-        )}
-      </main>
+            </div>
+          )}
+
+          {/* Mobile computer panel as bottom drawer */}
+          {conversation && (
+            <Drawer open={mobileComputerOpen} onOpenChange={setMobileComputerOpen}>
+              <DrawerContent className="h-[85vh] p-0 border-t border-border rounded-t-2xl" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
+                <ComputerPanel
+                  visible={true}
+                  onClose={() => setMobileComputerOpen(false)}
+                  codeLines={conversation.codeLines}
+                  steps={conversation.steps}
+                  fileName={conversation.fileName}
+                  editorLabel={conversation.editorLabel}
+                  fileTree={conversation.fileTree}
+                  computerView={conversation.computerView}
+                  researchTasks={conversation.researchTasks}
+                />
+              </DrawerContent>
+            </Drawer>
+          )}
+        </main>
+      )}
     </div>
   );
 };
