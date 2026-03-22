@@ -119,6 +119,21 @@ Examples:
 "Research nutrition trends in 2026" → agentic
 "Thanks!" → direct`;
 
+/** Parse a JSON array from text that might be wrapped in markdown code blocks */
+function parseJsonArray(text: string): string[] {
+  try {
+    // Try direct parse first
+    const direct = JSON.parse(text);
+    if (Array.isArray(direct)) return direct;
+  } catch {}
+  // Extract JSON array from markdown wrapping (```json ... ```)
+  const match = text.match(/\[[\s\S]*?\]/);
+  if (match) {
+    try { return JSON.parse(match[0]); } catch {}
+  }
+  return [];
+}
+
 // Map provider IDs to lightweight/fast models for follow-up generation
 const FAST_MODELS: Record<string, string> = {
   anthropic: "claude-3-5-haiku-latest",
@@ -135,14 +150,18 @@ async function generateFollowUps(
   providerId: string,
   apiKey: string,
   userMessage: string,
-  assistantResponse: string
+  assistantResponse: string,
+  reportContent?: string
 ): Promise<string[]> {
   const fastModel = FAST_MODELS[providerId];
   if (!fastModel) return [];
 
+  // Use report content for better context (the text response may be just a short summary)
+  const contextText = reportContent ? reportContent.slice(0, 1500) : assistantResponse.slice(0, 500);
+
   const condensedHistory = [
     { role: "user" as const, content: userMessage },
-    { role: "assistant" as const, content: assistantResponse.slice(0, 500) },
+    { role: "assistant" as const, content: contextText },
   ];
 
   try {
@@ -164,7 +183,7 @@ async function generateFollowUps(
       if (!res.ok) return [];
       const data = await res.json();
       const text = data.content?.[0]?.text || "";
-      return JSON.parse(text);
+      return parseJsonArray(text);
     } else if (providerId === "openai") {
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -184,7 +203,7 @@ async function generateFollowUps(
       if (!res.ok) return [];
       const data = await res.json();
       const text = data.choices?.[0]?.message?.content || "";
-      return JSON.parse(text);
+      return parseJsonArray(text);
     } else if (providerId === "gemini") {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${fastModel}:generateContent?key=${apiKey}`,
@@ -224,7 +243,7 @@ async function generateFollowUps(
       if (!res.ok) return [];
       const data = await res.json();
       const text = data.choices?.[0]?.message?.content || "";
-      return JSON.parse(text);
+      return parseJsonArray(text);
     }
   } catch {
     // Follow-up generation is non-critical
@@ -674,6 +693,7 @@ Deno.serve(async (req) => {
     // Inject cross-conversation memory into the system prompt
     // (Use direct prompt for simple questions to prevent raw tool XML in responses)
     let enrichedSystemPrompt = SYSTEM_PROMPT; // Will be replaced for direct mode after classification
+    let lastReportContent = ""; // Track report content for follow-up generation
     try {
       const memories = await getRelevantMemories(user.id, message, supabase);
       const memorySection = injectMemoryContext(memories);
@@ -842,6 +862,7 @@ Deno.serve(async (req) => {
                           hasWrittenReport = true;
                           // Emit report SSE event
                           const reportContent = (tcResult as any).content || "";
+                          lastReportContent = reportContent;
                           const reportFormat = (tcResult as any).format || "markdown";
                           // Extract table from report
                           let tableHeaders: string[] = [];
@@ -1052,6 +1073,7 @@ Deno.serve(async (req) => {
                   } else if (toolCall.name === "write_report") {
                     // Emit report event so Computer Panel Document tab renders the content
                     const reportContent = (toolResult as any).content || "";
+                    lastReportContent = reportContent;
                     const reportFormat = (toolResult as any).format || "markdown";
 
                     // Extract first markdown table for the report card in chat
@@ -1411,13 +1433,14 @@ Deno.serve(async (req) => {
           }
 
           // Generate follow-up suggestions using a lightweight model
-          if (fullResponse) {
+          if (fullResponse || lastReportContent) {
             try {
               const followUps = await generateFollowUps(
                 actualProviderId,
                 apiKey!,
                 message,
-                fullResponse
+                fullResponse,
+                lastReportContent || undefined
               );
               if (followUps.length > 0) {
                 controller.enqueue(
