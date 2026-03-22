@@ -40,7 +40,6 @@ const Dashboard = () => {
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const initialMessageHandled = useRef(false);
-  const isInitialLoad = useRef(true);
 
   // Fetch all conversations to auto-select first when none specified
   const { data: conversations } = useConversations();
@@ -52,18 +51,8 @@ const Dashboard = () => {
   const isError = activeConversation ? conversationQuery.isError : false;
   const _sendMessage = useSendMessage(); // kept for future use
 
-  // Auto-select the most recent conversation when landing on /dashboard
-  // with a conversationId param that is set. Skip if no param (new task mode).
-  // Only auto-select on first mount when no conversation is specified.
-  useEffect(() => {
-    if (!conversationId && !activeConversation && conversations && conversations.length > 0 && isInitialLoad.current) {
-      isInitialLoad.current = false;
-      const firstId = (conversations as any[])[0].id;
-      setActiveConversation(firstId);
-      navigate(`/dashboard/${firstId}`, { replace: true });
-    }
-    if (conversationId) isInitialLoad.current = false;
-  }, [conversationId, activeConversation, conversations, navigate]);
+  // No auto-select — /dashboard shows the empty "new task" composer.
+  // Users pick conversations from the sidebar.
 
   // Pick up initial message from TaskInput navigation
   useEffect(() => {
