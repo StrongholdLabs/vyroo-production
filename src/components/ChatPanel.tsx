@@ -525,12 +525,13 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
-        {/* Inline computer card when panel is closed (hide in direct mode) */}
-        {taskMode !== "direct" && !computerVisible && onOpenComputer && (
+        {/* Inline computer card when panel is closed (hide in direct mode and when no steps) */}
+        {taskMode !== "direct" && !computerVisible && onOpenComputer && (streamingSteps.length > 0 || steps.length > 0) && (
           <InlineComputerCard steps={streamingSteps.length > 0 ? streamingSteps : steps} onOpenComputer={onOpenComputer} />
         )}
 
-        {/* Steps progress bar with code thumbnail */}
+        {/* Steps progress bar with code thumbnail — only show when there are steps */}
+        {totalSteps > 0 && (
         <div className="sticky bottom-0 pt-4">
           <div className="rounded-xl border border-border px-3 py-2.5 flex items-center gap-3" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
             {/* Mini code thumbnail */}
@@ -555,6 +556,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
             <ChevronDown size={16} className="text-muted-foreground" />
           </div>
         </div>
+        )}
 
         <div ref={messagesEndRef} />
         </div>

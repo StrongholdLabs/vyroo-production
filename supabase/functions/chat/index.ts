@@ -312,7 +312,7 @@ async function classifyTask(
   userMessage: string
 ): Promise<"direct" | "agentic"> {
   // Short messages are almost always direct — skip the LLM call
-  if (userMessage.trim().length < 30) return "direct";
+  if (userMessage.trim().length < 50) return "direct";
 
   const fastModel = FAST_MODELS[providerId];
   if (!fastModel) return "agentic";
