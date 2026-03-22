@@ -78,7 +78,7 @@ export function DashboardSidebar({
           {/* Navigation items */}
           <div className="px-2 space-y-0.5">
             <button
-              onClick={() => onSelect("")}
+              onClick={() => { window.location.href = "/dashboard"; }}
               className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-sidebar-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors duration-150"
             >
               <span className="text-muted-foreground"><Plus size={16} /></span>
