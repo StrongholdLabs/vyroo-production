@@ -1423,28 +1423,34 @@ Deno.serve(async (req) => {
               );
             }
 
-            // Follow-up suggestions task
-            if (fullResponse || lastReportContent) {
-              postTasks.push(
-                generateFollowUps(actualProviderId, apiKey!, message, fullResponse, lastReportContent || undefined)
-                  .then((followUps) => {
-                    if (followUps.length > 0) {
-                      controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps })}\n\n`));
-                    }
-                  }).catch(() => {})
-              );
+            // Wait for title with 5s timeout
+            if (postTasks.length > 0) {
+              await Promise.race([
+                Promise.allSettled(postTasks),
+                new Promise(resolve => setTimeout(resolve, 5000)),
+              ]);
             }
-
-            // Wait for both with 8s timeout — don't let them block done event
-            await Promise.race([
-              Promise.allSettled(postTasks),
-              new Promise(resolve => setTimeout(resolve, 8000)),
-            ]);
           }
 
-          // Extract memories in the background (fire-and-forget, don't block done)
+          // Extract memories in the background (fire-and-forget)
           if (fullResponse) {
             extractMemories(actualProviderId, apiKey!, message, fullResponse, user.id, supabase).catch(() => {});
+          }
+
+          // Follow-ups MUST come before done (frontend exits stream loop on done)
+          // Use strict 6s timeout so done always fires
+          if (fullResponse || lastReportContent) {
+            try {
+              const followUps = await Promise.race([
+                generateFollowUps(actualProviderId, apiKey!, message, fullResponse, lastReportContent || undefined),
+                new Promise<string[]>(resolve => setTimeout(() => resolve([]), 6000)),
+              ]) as string[];
+              if (followUps.length > 0) {
+                controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps })}\n\n`));
+              }
+            } catch {
+              // Follow-up generation is non-critical
+            }
           }
 
           controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`));
