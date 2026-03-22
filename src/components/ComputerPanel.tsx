@@ -17,6 +17,8 @@ import { BrowserView } from "@/components/computer/BrowserView";
 import { SearchView } from "@/components/computer/SearchView";
 import { TaskProgressPanel } from "@/components/computer/TaskProgressPanel";
 import { ResearchTimeline } from "@/components/computer/ResearchTimeline";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ComputerPanelProps {
   visible: boolean;
@@ -178,8 +180,22 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
       handleTabChange("preview");
     } else if (entry.type === "search") {
       handleTabChange("terminal");
+    } else if (entry.type === "save") {
+      handleTabChange("code");
     }
   }, [handleTabChange]);
+
+  // Auto-switch to the right tab when new data arrives in the Computer Panel
+  useEffect(() => {
+    if (!computerView) return;
+    if (computerView.document?.content && activeTab !== "code") {
+      handleTabChange("code");
+    } else if (computerView.browserContent && !computerView.document?.content && activeTab !== "preview") {
+      handleTabChange("preview");
+    } else if (computerView.searchResults && !computerView.browserContent && !computerView.document?.content && activeTab !== "terminal") {
+      handleTabChange("terminal");
+    }
+  }, [computerView?.document?.content, computerView?.browserContent, computerView?.searchResults]);
 
   // Keyboard shortcuts: Cmd/Ctrl+1-4 for tabs, Escape exits fullscreen
   useEffect(() => {
@@ -229,8 +245,10 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const viewType = computerView?.type || "editor";
 
   // Determine status bar label based on view
-  const statusLabel = viewType === "browser" ? "Browser" : viewType === "search" ? "Search" : editorLabel;
-  const statusAction = viewType === "browser"
+  const statusLabel = viewType === "document" ? "Document" : viewType === "browser" ? "Browser" : viewType === "search" ? "Search" : editorLabel;
+  const statusAction = viewType === "document"
+    ? `${computerView?.document?.title || "Generating document..."}`
+    : viewType === "browser"
     ? `Browsing ${computerView?.browserUrl || ""}`
     : viewType === "search"
     ? `Searching ${computerView?.searchQuery || ""}...`
@@ -238,7 +256,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
 
   const tabs = isResearch
     ? [
-        { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
+        { key: "code" as const, icon: FileText, label: "Document" },
         { key: "preview" as const, icon: Globe, label: "Browser" },
         { key: "terminal" as const, icon: SearchIcon, label: "Search" },
         ...(computerView?.timeline ? [{ key: "timeline" as const, icon: Clock, label: "Timeline" }] : []),
@@ -352,7 +370,26 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           className="flex-1 flex flex-col overflow-hidden"
         >
       {activeTab === "code" ? (
-        isCode ? (
+        isResearch && computerView?.document?.content ? (
+          /* Document view — render report/document markdown */
+          <div className="flex-1 overflow-y-auto" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
+            <div className="max-w-3xl mx-auto px-8 py-8">
+              <div className="mb-6 pb-4 border-b border-border">
+                <h1 className="text-xl font-bold text-foreground mb-2">{computerView.document.title}</h1>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span>{computerView.document.wordCount?.toLocaleString()} words</span>
+                  <span>•</span>
+                  <span>{computerView.document.format === "html" ? "HTML" : "Markdown"}</span>
+                  <span>•</span>
+                  <span>Generated just now</span>
+                </div>
+              </div>
+              <div className="prose prose-sm dark:prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-code:text-foreground prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-secondary prose-pre:border prose-pre:border-border max-w-none text-sm leading-relaxed">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{computerView.document.content}</ReactMarkdown>
+              </div>
+            </div>
+          </div>
+        ) : isCode ? (
           /* Code editor view */
           <div className="flex-1 flex overflow-hidden">
             {/* File tree */}
@@ -439,9 +476,9 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           />
         )
       ) : activeTab === "preview" ? (
-        isResearch && computerView?.browserTabs && computerView?.browserContent ? (
+        isResearch && computerView?.browserContent ? (
           <BrowserView
-            tabs={computerView.browserTabs}
+            tabs={computerView.browserTabs || [{ id: "1", title: computerView.browserContent.pageTitle || "Page", url: computerView.browserUrl || "", active: true }]}
             url={computerView.browserUrl || ""}
             pageContent={computerView.browserContent}
           />

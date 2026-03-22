@@ -805,7 +805,26 @@ Deno.serve(async (req) => {
                     controller.enqueue(encoder.encode(`event: browse\ndata: ${JSON.stringify({
                       url: toolCall.input.url,
                       title: (toolResult as any).title || "",
-                      content: ((toolResult as any).content || "").substring(0, 2000),
+                      content: ((toolResult as any).content || "").substring(0, 8000),
+                    })}\n\n`));
+                  } else if (toolCall.name === "write_report") {
+                    // Emit report event so Computer Panel Document tab renders the content
+                    const reportContent = (toolResult as any).content || "";
+                    const reportFormat = (toolResult as any).format || "markdown";
+                    controller.enqueue(encoder.encode(`event: report\ndata: ${JSON.stringify({
+                      title: toolCall.input.topic || "Report",
+                      content: reportContent,
+                      format: reportFormat,
+                      word_count: (toolResult as any).word_count || 0,
+                      summary: reportContent.substring(0, 200),
+                      headers: [],
+                      rows: [],
+                    })}\n\n`));
+                  } else if (toolCall.name === "generate_code" || toolCall.name === "review_code") {
+                    // Emit code event for Computer Panel Code tab
+                    controller.enqueue(encoder.encode(`event: code\ndata: ${JSON.stringify({
+                      name: toolCall.name,
+                      result: toolResult,
                     })}\n\n`));
                   }
 
@@ -867,15 +886,18 @@ Deno.serve(async (req) => {
 
               // Emit collected sources with favicons for Perplexity-style display
               const allSources: Array<{title: string; url: string; favicon: string; domain: string}> = [];
+              const seenUrls = new Set<string>();
               for (const msg of loopMessages) {
                 if (Array.isArray(msg.content)) {
                   for (const block of msg.content) {
                     if (block.type === "tool_result") {
                       try {
                         const data = JSON.parse(block.content);
+                        // Extract sources from web_search results
                         if (data.results && Array.isArray(data.results)) {
                           for (const r of data.results) {
-                            if (r.url) {
+                            if (r.url && !seenUrls.has(r.url)) {
+                              seenUrls.add(r.url);
                               const domain = new URL(r.url).hostname.replace("www.", "");
                               allSources.push({
                                 title: r.title || domain,
@@ -885,6 +907,17 @@ Deno.serve(async (req) => {
                               });
                             }
                           }
+                        }
+                        // Extract sources from browse_url results
+                        if (data.url && !seenUrls.has(data.url)) {
+                          seenUrls.add(data.url);
+                          const domain = new URL(data.url).hostname.replace("www.", "");
+                          allSources.push({
+                            title: data.title || domain,
+                            url: data.url,
+                            favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+                            domain,
+                          });
                         }
                       } catch {}
                     }

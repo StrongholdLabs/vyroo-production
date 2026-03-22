@@ -29,6 +29,9 @@ export interface StreamingReport {
   summary: string;
   headers: string[];
   rows: string[][];
+  content?: string;
+  format?: string;
+  word_count?: number;
 }
 
 export interface ToolCall {

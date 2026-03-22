@@ -86,11 +86,17 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   // Push live tool data to Computer Panel
   useEffect(() => {
     if (!onComputerViewUpdate) return;
-    if (searchResults.length > 0 || browseData.length > 0) {
+    if (searchResults.length > 0 || browseData.length > 0 || streamingReport) {
       const latestSearch = searchResults[searchResults.length - 1];
       const latestBrowse = browseData[browseData.length - 1];
+
+      // Determine which tab to show based on latest activity
+      let viewType: "browser" | "search" | "document" = "search";
+      if (streamingReport?.content) viewType = "document";
+      else if (latestBrowse) viewType = "browser";
+
       onComputerViewUpdate({
-        type: latestBrowse ? "browser" : "search",
+        type: viewType,
         searchQuery: latestSearch?.query,
         searchResults: latestSearch?.results?.map((r: any, i: number) => ({
           title: r.title,
@@ -103,7 +109,20 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         browserContent: latestBrowse ? {
           type: "website" as const,
           pageTitle: latestBrowse.title,
-          sections: [{ type: "text" as const, content: latestBrowse.content.substring(0, 3000) }],
+          sections: [{ type: "text" as const, content: latestBrowse.content.substring(0, 5000) }],
+        } : undefined,
+        browserTabs: browseData.length > 0 ? browseData.map((b, i) => ({
+          id: String(i),
+          title: b.title || new URL(b.url).hostname,
+          url: b.url,
+          active: i === browseData.length - 1,
+        })) : undefined,
+        // Document/report data for the Document tab
+        document: streamingReport?.content ? {
+          title: streamingReport.title,
+          content: streamingReport.content,
+          format: streamingReport.format || "markdown",
+          wordCount: streamingReport.word_count || 0,
         } : undefined,
         timeline: [
           ...searchResults.map((s, i) => ({
@@ -122,10 +141,17 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
             domain: new URL(b.url).hostname,
             snippet: b.content.substring(0, 150),
           })),
+          ...(streamingReport?.content ? [{
+            id: 200,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            type: "save" as const,
+            title: `Report: ${streamingReport.title}`,
+            snippet: `${streamingReport.word_count || 0} words`,
+          }] : []),
         ],
       });
     }
-  }, [searchResults, browseData, onComputerViewUpdate]);
+  }, [searchResults, browseData, streamingReport, onComputerViewUpdate]);
 
   // Auto-focus composer on conversation switch
   useEffect(() => {
