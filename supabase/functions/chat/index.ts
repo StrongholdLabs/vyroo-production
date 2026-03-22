@@ -820,16 +820,98 @@ Deno.serve(async (req) => {
                   })}\n\n`));
 
                   // Emit specialized events for Computer Panel
+                  const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+                  const elapsedStr = `${Math.floor(elapsedSec / 60)}:${String(elapsedSec % 60).padStart(2, '0')}`;
+
                   if (toolCall.name === "web_search") {
+                    // Enrich search results with favicon URLs and domain
+                    const rawResults = (toolResult as any).results || [];
+                    const enrichedResults = rawResults.map((r: any) => {
+                      let domain = "";
+                      try { domain = new URL(r.url).hostname.replace("www.", ""); } catch {}
+                      return {
+                        title: r.title || "",
+                        url: r.url || "",
+                        snippet: r.snippet || r.description || "",
+                        domain,
+                        favicon: domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : "",
+                      };
+                    });
                     controller.enqueue(encoder.encode(`event: search\ndata: ${JSON.stringify({
                       query: toolCall.input.query,
-                      results: (toolResult as any).results || [],
+                      results: enrichedResults,
+                      elapsed: elapsedStr,
                     })}\n\n`));
                   } else if (toolCall.name === "browse_url") {
+                    // Parse content into structured BrowserSections for BrowserView
+                    const rawContent = ((toolResult as any).content || "").substring(0, 10000);
+                    const pageTitle = (toolResult as any).title || "";
+                    let domain = "";
+                    try { domain = new URL(toolCall.input.url).hostname.replace("www.", ""); } catch {}
+
+                    // Split content into sections by headings/paragraphs
+                    const sections: Array<{type: string; content: string; items?: string[]; tableHeaders?: string[]; tableRows?: string[][]}> = [];
+                    const lines = rawContent.split('\n').filter((l: string) => l.trim());
+
+                    let currentText = "";
+                    for (const line of lines) {
+                      const trimmed = line.trim();
+                      // Detect markdown tables
+                      if (trimmed.includes('|') && trimmed.startsWith('|')) {
+                        if (currentText) { sections.push({ type: "text", content: currentText.trim() }); currentText = ""; }
+                        // Collect table lines
+                        const tableLines = [trimmed];
+                        const idx = lines.indexOf(line);
+                        for (let j = idx + 1; j < lines.length && lines[j].trim().startsWith('|'); j++) {
+                          tableLines.push(lines[j].trim());
+                        }
+                        if (tableLines.length >= 2) {
+                          const headers = tableLines[0].split('|').map(h => h.trim()).filter(Boolean);
+                          const dataRows = tableLines.slice(2).map(r => r.split('|').map(c => c.trim()).filter(Boolean));
+                          if (headers.length > 0) sections.push({ type: "table", content: "", tableHeaders: headers, tableRows: dataRows });
+                        }
+                      }
+                      // Detect lists
+                      else if (trimmed.match(/^[-•*]\s/) || trimmed.match(/^\d+\.\s/)) {
+                        if (currentText) { sections.push({ type: "text", content: currentText.trim() }); currentText = ""; }
+                        const items = [trimmed.replace(/^[-•*\d.]+\s*/, '')];
+                        const idx = lines.indexOf(line);
+                        for (let j = idx + 1; j < lines.length; j++) {
+                          const nextTrimmed = lines[j].trim();
+                          if (nextTrimmed.match(/^[-•*]\s/) || nextTrimmed.match(/^\d+\.\s/)) {
+                            items.push(nextTrimmed.replace(/^[-•*\d.]+\s*/, ''));
+                          } else break;
+                        }
+                        sections.push({ type: "list", content: "", items });
+                      }
+                      // Detect headings as nav/hero
+                      else if (trimmed.startsWith('#')) {
+                        if (currentText) { sections.push({ type: "text", content: currentText.trim() }); currentText = ""; }
+                        sections.push({ type: "hero", content: trimmed.replace(/^#+\s*/, '') });
+                      }
+                      else {
+                        currentText += trimmed + "\n\n";
+                        // Flush every ~500 chars into a text section
+                        if (currentText.length > 500) {
+                          sections.push({ type: "text", content: currentText.trim() });
+                          currentText = "";
+                        }
+                      }
+                    }
+                    if (currentText.trim()) sections.push({ type: "text", content: currentText.trim() });
+
+                    // Ensure at least one section
+                    if (sections.length === 0) sections.push({ type: "text", content: rawContent.substring(0, 3000) });
+
                     controller.enqueue(encoder.encode(`event: browse\ndata: ${JSON.stringify({
                       url: toolCall.input.url,
-                      title: (toolResult as any).title || "",
-                      content: ((toolResult as any).content || "").substring(0, 8000),
+                      title: pageTitle,
+                      domain,
+                      favicon: domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : "",
+                      content: rawContent.substring(0, 5000),
+                      sections,
+                      elapsed: elapsedStr,
+                      durationMs,
                     })}\n\n`));
                   } else if (toolCall.name === "write_report") {
                     // Emit report event so Computer Panel Document tab renders the content

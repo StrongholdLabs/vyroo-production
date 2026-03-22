@@ -83,7 +83,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     }
   }, [isUsingTools]);
 
-  // Push live tool data to Computer Panel
+  // Push live tool data to Computer Panel — using enriched data from backend
   useEffect(() => {
     if (!onComputerViewUpdate) return;
     if (searchResults.length > 0 || browseData.length > 0 || streamingReport) {
@@ -95,26 +95,42 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
       if (streamingReport?.content) viewType = "document";
       else if (latestBrowse) viewType = "browser";
 
+      // Favicon color palette for search results
+      const faviconColors = ["hsl(210 80% 55%)", "hsl(150 60% 45%)", "hsl(45 80% 50%)", "hsl(340 65% 50%)", "hsl(280 60% 55%)", "hsl(20 80% 50%)"];
+
       onComputerViewUpdate({
         type: viewType,
         searchQuery: latestSearch?.query,
+        // Map search results with enriched data (favicon, domain)
         searchResults: latestSearch?.results?.map((r: any, i: number) => ({
           title: r.title,
           url: r.url,
-          date: "",
+          date: r.domain || "",
           snippet: r.snippet || "",
-          faviconColor: ["hsl(210 80% 55%)", "hsl(150 60% 45%)", "hsl(45 80% 50%)", "hsl(340 65% 50%)"][i % 4],
+          faviconColor: faviconColors[i % faviconColors.length],
         })),
         browserUrl: latestBrowse?.url,
+        // Use structured sections from backend if available, fallback to raw text
         browserContent: latestBrowse ? {
           type: "website" as const,
-          pageTitle: latestBrowse.title,
-          sections: [{ type: "text" as const, content: latestBrowse.content.substring(0, 5000) }],
+          siteName: latestBrowse.domain || "",
+          pageTitle: latestBrowse.title || "Page",
+          sections: (latestBrowse.sections && latestBrowse.sections.length > 0)
+            ? latestBrowse.sections.map((s: any) => ({
+                type: s.type as "nav" | "hero" | "text" | "table" | "tags" | "list",
+                content: s.content || "",
+                items: s.items,
+                tableHeaders: s.tableHeaders,
+                tableRows: s.tableRows,
+              }))
+            : [{ type: "text" as const, content: latestBrowse.content?.substring(0, 5000) || "" }],
         } : undefined,
+        // Browser tabs from all browsed URLs
         browserTabs: browseData.length > 0 ? browseData.map((b, i) => ({
           id: String(i),
-          title: b.title || new URL(b.url).hostname,
+          title: b.title || b.domain || "Page",
           url: b.url,
+          favicon: b.favicon,
           active: i === browseData.length - 1,
         })) : undefined,
         // Document/report data for the Document tab
@@ -124,23 +140,30 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           format: streamingReport.format || "markdown",
           wordCount: streamingReport.word_count || 0,
         } : undefined,
+        // Timeline with elapsed timestamps and enriched data
         timeline: [
-          ...searchResults.map((s, i) => ({
+          ...searchResults.map((s: any, i: number) => ({
             id: i + 1,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: s.elapsed || "0:00",
             type: "search" as const,
             title: `Searched: "${s.query}"`,
             snippet: `Found ${s.results.length} results`,
           })),
-          ...browseData.map((b, i) => ({
-            id: 100 + i,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            type: "browse" as const,
-            title: b.title || "Browsed page",
-            url: b.url,
-            domain: new URL(b.url).hostname,
-            snippet: b.content.substring(0, 150),
-          })),
+          ...browseData.map((b: any, i: number) => {
+            const domain = b.domain || (() => { try { return new URL(b.url).hostname; } catch { return ""; } })();
+            const durationSec = b.durationMs ? Math.round(b.durationMs / 1000) : 0;
+            return {
+              id: 100 + i,
+              timestamp: b.elapsed || "0:00",
+              type: "browse" as const,
+              title: b.title || "Browsed page",
+              url: b.url,
+              domain,
+              faviconColor: faviconColors[i % faviconColors.length],
+              snippet: b.content?.substring(0, 150) || "",
+              duration: durationSec > 0 ? `${durationSec}s` : undefined,
+            };
+          }),
           ...(streamingReport?.content ? [{
             id: 200,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),

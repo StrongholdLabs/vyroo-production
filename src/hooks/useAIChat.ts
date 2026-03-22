@@ -44,13 +44,19 @@ export interface ToolCall {
 
 export interface SearchData {
   query: string;
-  results: Array<{ title: string; url: string; snippet?: string }>;
+  results: Array<{ title: string; url: string; snippet?: string; domain?: string; favicon?: string }>;
+  elapsed?: string;
 }
 
 export interface BrowseData {
   url: string;
   title: string;
   content: string;
+  domain?: string;
+  favicon?: string;
+  sections?: Array<{ type: string; content: string; items?: string[]; tableHeaders?: string[]; tableRows?: string[][] }>;
+  elapsed?: string;
+  durationMs?: number;
 }
 
 export interface ApprovalRequest {
@@ -142,12 +148,17 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         onTool: (tool) => {
           setIsUsingTools(true);
           setToolCalls(prev => {
-            const existing = prev.findIndex(t => t.name === tool.name && t.status === "executing");
-            if (existing >= 0 && tool.status === "complete") {
-              const updated = [...prev];
-              updated[existing] = tool;
-              return updated;
+            if (tool.status === "complete") {
+              // Find the LAST executing tool with the same name (handles multiple calls)
+              const lastExecutingIdx = prev.reduce((lastIdx, t, i) =>
+                t.name === tool.name && t.status === "executing" ? i : lastIdx, -1);
+              if (lastExecutingIdx >= 0) {
+                const updated = [...prev];
+                updated[lastExecutingIdx] = tool;
+                return updated;
+              }
             }
+            // New tool or no match — add it
             return [...prev, tool];
           });
         },
