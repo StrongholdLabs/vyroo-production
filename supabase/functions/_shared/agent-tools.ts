@@ -152,7 +152,28 @@ const webSearch: AgentToolDefinition = {
     const query = String(args.query ?? "");
     if (!query) return { error: "No query provided", results: [] };
 
-    // Try Brave Search first
+    // 1. Tavily Search (purpose-built for AI, best quality)
+    const tavilyKey = Deno.env.get("TAVILY_API_KEY");
+    if (tavilyKey) {
+      try {
+        const resp = await fetch("https://api.tavily.com/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ api_key: tavilyKey, query, max_results: 5, include_answer: false }),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          const results = (data.results ?? []).map(
+            (r: { title?: string; url?: string; content?: string }) => ({
+              title: r.title ?? "", url: r.url ?? "", snippet: r.content ?? "",
+            })
+          );
+          return { results, source: "tavily" };
+        }
+      } catch { /* fall through */ }
+    }
+
+    // 2. Brave Search
     const braveKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
     if (braveKey) {
       try {
@@ -164,20 +185,15 @@ const webSearch: AgentToolDefinition = {
           const data = await resp.json();
           const results = (data.web?.results ?? []).map(
             (r: { title?: string; url?: string; description?: string }) => ({
-              title: r.title ?? "",
-              url: r.url ?? "",
-              snippet: r.description ?? "",
+              title: r.title ?? "", url: r.url ?? "", snippet: r.description ?? "",
             })
           );
           return { results, source: "brave" };
         }
-        // If Brave fails (rate limit, etc.), fall through to DuckDuckGo
-      } catch {
-        // fall through
-      }
+      } catch { /* fall through */ }
     }
 
-    // Fallback: DuckDuckGo HTML scrape
+    // 3. DuckDuckGo HTML scrape (fallback)
     try {
       const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
       const resp = await fetch(ddgUrl, {
