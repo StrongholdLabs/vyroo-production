@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Check,
   ChevronDown,
@@ -34,6 +34,24 @@ import { FollowUpPanel } from "@/components/FollowUpPanel";
 import { ShareConversation } from "@/components/ShareConversation";
 import { useAIChat } from "@/hooks/useAIChat";
 
+/** Render inline markdown (bold + code) within table cells */
+function renderInlineMarkdown(text: string): React.ReactNode {
+  if (!text || (!text.includes("**") && !text.includes("`"))) return text;
+  const parts: React.ReactNode[] = [];
+  const regex = /\*\*(.+?)\*\*|`(.+?)`/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    if (match[1]) parts.push(<strong key={key++} className="font-semibold text-foreground">{match[1]}</strong>);
+    else if (match[2]) parts.push(<code key={key++} className="px-1 py-0.5 rounded bg-secondary text-xs">{match[2]}</code>);
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return <>{parts}</>;
+}
+
 interface ChatPanelProps {
   conversation: Conversation;
   computerVisible?: boolean;
@@ -52,6 +70,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const [voiceAiResponse, setVoiceAiResponse] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, taskMode, toolCalls, searchResults, browseData, isUsingTools, sources } = useAIChat({
     conversationId: conversation.id,
@@ -108,6 +127,12 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     }
   }, [searchResults, browseData, onComputerViewUpdate]);
 
+  // Auto-focus composer on conversation switch
+  useEffect(() => {
+    const timer = setTimeout(() => textareaRef.current?.focus(), 300);
+    return () => clearTimeout(timer);
+  }, [conversation.id]);
+
   // Auto-scroll to bottom on initial load
   useEffect(() => {
     setTimeout(() => {
@@ -141,6 +166,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const totalSteps = steps.length;
   const completedSteps = steps.filter((s) => s.status === "complete").length;
   const isThinking = isStreaming;
+  const isAgentic = taskMode === "agentic" || steps.length > 1;
+  const lastAssistantId = useMemo(() => messages.filter(m => m.role === "assistant").pop()?.id, [messages]);
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -280,7 +307,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                             {msg.tableData.rows.map((row, ri) => (
                               <tr key={ri} className="border-b border-border/50">
                                 {row.map((cell, ci) => (
-                                  <td key={ci} className={`py-1.5 pr-4 ${ci === 0 ? "font-medium text-foreground" : ""}`}>{cell}</td>
+                                  <td key={ci} className={`py-1.5 pr-4 ${ci === 0 ? "font-medium text-foreground" : ""}`}>{renderInlineMarkdown(cell)}</td>
                                 ))}
                               </tr>
                             ))}
@@ -296,7 +323,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                   <ProjectInitCard project={conversation.project} onView={onOpenComputer} />
                 )}
 
-                {/* Task completed */}
+                {/* Task completed — only for agentic, complete tasks, on the last assistant message */}
+                {isAgentic && isComplete && msg.id === lastAssistantId && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Check size={16} className="text-success" />
@@ -311,6 +339,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                     ))}
                   </div>
                 </div>
+                )}
               </div>
             )}
           </div>
@@ -331,11 +360,13 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
 
         {/* Upgrade banner — disabled for now */}
 
-        {/* Continue working status */}
+        {/* Continue working status — only during active agentic streaming */}
+        {isAgentic && !isComplete && isStreaming && (
         <div className="flex items-center gap-2">
           <Sparkles size={14} className="text-muted-foreground" />
           <span className="text-sm text-muted-foreground font-medium">Vyroo will continue working after your reply</span>
         </div>
+        )}
 
         {/* Tool execution logs */}
         {toolCalls.length > 0 && (
@@ -426,7 +457,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                     {streamingReport.rows.map((row, ri) => (
                       <tr key={ri} className="border-b border-border/50 last:border-0">
                         {row.map((cell, ci) => (
-                          <td key={ci} className="py-2 px-3 text-sm text-foreground">{cell}</td>
+                          <td key={ci} className="py-2 px-3 text-sm text-foreground">{renderInlineMarkdown(cell)}</td>
                         ))}
                       </tr>
                     ))}
@@ -534,6 +565,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         <div className={`mx-auto px-4 md:px-8 transition-all duration-300 ${computerVisible ? "max-w-none lg:px-12" : "max-w-3xl"}`}>
         <div className="input-main rounded-2xl overflow-hidden">
           <textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {

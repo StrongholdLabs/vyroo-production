@@ -17,36 +17,32 @@ export interface StreamOptions {
   onSearch?: (data: { query: string; results: Array<{ title: string; url: string; snippet?: string }> }) => void;
   onBrowse?: (data: { url: string; title: string; content: string }) => void;
   onSources?: (data: { sources: Array<{ title: string; url: string; favicon: string; domain: string }> }) => void;
+  onApprovalRequired?: (data: { step_number: number; tool_name: string; tool_description?: string; args: Record<string, any>; approval_id: string }) => void;
   signal?: AbortSignal;
 }
 
 export async function streamChat(options: StreamOptions) {
-  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, onTool, onSearch, onBrowse, onSources, signal } = options;
-
-  console.log("[ai-stream] streamChat called for:", message);
+  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, onTool, onSearch, onBrowse, onSources, onApprovalRequired, signal } = options;
 
   // Get a valid session — try cached first (faster), refresh only if needed
   let accessToken: string | undefined;
   try {
     const { data: { session: cachedSession } } = await supabase.auth.getSession();
     accessToken = cachedSession?.access_token;
-    console.log("[ai-stream] cached session:", !!cachedSession, "token:", accessToken?.length);
-  } catch (e) {
-    console.error("[ai-stream] getSession error:", e);
+  } catch {
+    // fallthrough
   }
 
   if (!accessToken) {
     try {
       const { data: { session: freshSession } } = await supabase.auth.refreshSession();
       accessToken = freshSession?.access_token;
-      console.log("[ai-stream] refreshed session:", !!freshSession, "token:", accessToken?.length);
-    } catch (e) {
-      console.error("[ai-stream] refreshSession error:", e);
+    } catch {
+      // fallthrough
     }
   }
 
   if (!accessToken) {
-    console.error("[ai-stream] No access token available");
     onError("Not authenticated — please sign in again");
     return;
   }
@@ -54,8 +50,6 @@ export async function streamChat(options: StreamOptions) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const url = `${supabaseUrl}/functions/v1/chat`;
-
-  console.log("[ai-stream] Calling chat with token length:", accessToken.length, "apikey length:", supabaseAnonKey?.length);
 
   try {
     const response = await fetch(url, {
@@ -76,7 +70,6 @@ export async function streamChat(options: StreamOptions) {
         const err = await response.json();
         errorMsg = err.error || err.message || errorMsg;
       } catch {}
-      console.error("[ai-stream] Chat error:", response.status, errorMsg);
       onError(errorMsg);
       return;
     }
@@ -121,6 +114,8 @@ export async function streamChat(options: StreamOptions) {
               onBrowse?.(parsed);
             } else if (eventType === "sources" && parsed) {
               onSources?.(parsed);
+            } else if (eventType === "approval_required" && parsed) {
+              onApprovalRequired?.(parsed);
             } else if (eventType === "error") {
               onError(parsed.error || "Unknown error");
               return;
@@ -138,7 +133,53 @@ export async function streamChat(options: StreamOptions) {
     onDone();
   } catch (error) {
     if (signal?.aborted) return;
-    console.error("[ai-stream] Fetch error:", error);
     onError(String(error));
   }
+}
+
+/**
+ * Send an approval/denial response for a tool execution request.
+ * Called when the user clicks Approve or Deny on the AgentApprovalCard.
+ */
+export async function respondToApproval(options: {
+  conversationId: string;
+  approvalId: string;
+  approved: boolean;
+  alwaysApprove?: boolean;
+}): Promise<void> {
+  const { conversationId, approvalId, approved, alwaysApprove } = options;
+
+  let accessToken: string | undefined;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    accessToken = session?.access_token;
+  } catch { /* fallthrough */ }
+
+  if (!accessToken) {
+    try {
+      const { data: { session } } = await supabase.auth.refreshSession();
+      accessToken = session?.access_token;
+    } catch { /* fallthrough */ }
+  }
+
+  if (!accessToken) return;
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  await fetch(`${supabaseUrl}/functions/v1/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}`,
+      "apikey": supabaseAnonKey,
+    },
+    body: JSON.stringify({
+      action: "approval_response",
+      conversationId,
+      approvalId,
+      approved,
+      alwaysApprove: alwaysApprove || false,
+    }),
+  });
 }

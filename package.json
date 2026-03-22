@@ -14,7 +14,9 @@
     "test:watch": "vitest",
     "electron:dev": "ELECTRON=1 vite",
     "electron:build": "ELECTRON=1 vite build && electron-builder",
-    "electron:preview": "ELECTRON=1 vite build && electron ."
+    "electron:preview": "ELECTRON=1 vite build && electron .",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

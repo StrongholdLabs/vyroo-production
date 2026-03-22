@@ -701,6 +701,135 @@ const writeReport: AgentToolDefinition = {
   },
 };
 
+const executeCode: AgentToolDefinition = {
+  id: "execute_code",
+  name: "Execute Code",
+  description:
+    "Execute Python or JavaScript code in a sandboxed environment and return the output.",
+  parameters: {
+    code: { type: "string", description: "The code to execute", required: true },
+    language: {
+      type: "string",
+      description: 'Programming language: "python" or "javascript"',
+      required: true,
+    },
+    timeout: {
+      type: "number",
+      description: "Max execution time in milliseconds (default 5000)",
+    },
+  },
+  async execute(args) {
+    const code = String(args.code ?? "");
+    const language = String(args.language ?? "javascript").toLowerCase();
+    const timeout = Math.min(Math.max(Number(args.timeout ?? 5000), 100), 30000);
+    const MAX_OUTPUT = 10000;
+
+    if (!code) return { error: "No code provided" };
+
+    if (language !== "javascript" && language !== "python") {
+      return {
+        error: `Unsupported language: "${language}". Supported: "javascript", "python".`,
+      };
+    }
+
+    // -----------------------------------------------------------------------
+    // Python — cannot run natively on Deno; delegate to client-side Pyodide
+    // -----------------------------------------------------------------------
+    if (language === "python") {
+      return {
+        execute_on_client: true,
+        language: "python",
+        code,
+        timeout,
+        message:
+          "Python execution is not available server-side. The frontend should execute this code using Pyodide (client-side Python runtime).",
+      };
+    }
+
+    // -----------------------------------------------------------------------
+    // JavaScript — run in a sandboxed Function with console capture
+    // -----------------------------------------------------------------------
+    try {
+      const logs: string[] = [];
+
+      // Build a fake console that captures output
+      const fakeConsole = {
+        log: (...a: unknown[]) => logs.push(a.map(String).join(" ")),
+        warn: (...a: unknown[]) => logs.push(`[warn] ${a.map(String).join(" ")}`),
+        error: (...a: unknown[]) => logs.push(`[error] ${a.map(String).join(" ")}`),
+        info: (...a: unknown[]) => logs.push(`[info] ${a.map(String).join(" ")}`),
+        debug: (...a: unknown[]) => logs.push(`[debug] ${a.map(String).join(" ")}`),
+      };
+
+      // Wrap the user code in an async IIFE so `await` works, and inject
+      // our fake console as the `console` binding.
+      const wrappedCode = `
+        return (async () => {
+          ${code}
+        })();
+      `;
+
+      // deno-lint-ignore no-new-func
+      const fn = new Function("console", wrappedCode);
+
+      // Execute with a timeout using AbortController + Promise.race
+      let returnValue: unknown;
+      const execPromise = (async () => {
+        returnValue = await fn(fakeConsole);
+      })();
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(
+          () => reject(new Error(`Execution timed out after ${timeout}ms`)),
+          timeout
+        );
+      });
+
+      await Promise.race([execPromise, timeoutPromise]);
+
+      // Serialize the return value
+      let returnStr: string | undefined;
+      if (returnValue !== undefined) {
+        try {
+          returnStr =
+            typeof returnValue === "string"
+              ? returnValue
+              : JSON.stringify(returnValue, null, 2);
+        } catch {
+          returnStr = String(returnValue);
+        }
+      }
+
+      // Build stdout string and truncate if needed
+      let stdout = logs.join("\n");
+      let truncated = false;
+      if (stdout.length > MAX_OUTPUT) {
+        stdout = stdout.slice(0, MAX_OUTPUT);
+        truncated = true;
+      }
+      if (returnStr && returnStr.length > MAX_OUTPUT) {
+        returnStr = returnStr.slice(0, MAX_OUTPUT);
+        truncated = true;
+      }
+
+      return {
+        language: "javascript",
+        stdout: stdout || undefined,
+        return_value: returnStr,
+        truncated,
+        success: true,
+      };
+    } catch (err) {
+      const message = String(err instanceof Error ? err.message : err);
+      return {
+        language: "javascript",
+        error: message,
+        success: false,
+      };
+    }
+  },
+};
+
 // ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
@@ -715,6 +844,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
   analyze_csv: analyzeCsv,
   create_chart: createChart,
   write_report: writeReport,
+  execute_code: executeCode,
 };
 
 /**

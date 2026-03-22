@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import React from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { streamChat } from "@/lib/ai-stream";
+import { streamChat, respondToApproval } from "@/lib/ai-stream";
 import { useModelSettings } from "@/hooks/useModelSettings";
 import { broadcastEvent } from "@/hooks/useBroadcastSync";
 
@@ -50,6 +50,14 @@ export interface BrowseData {
   content: string;
 }
 
+export interface ApprovalRequest {
+  step_number: number;
+  tool_name: string;
+  tool_description?: string;
+  args: Record<string, any>;
+  approval_id: string;
+}
+
 export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
@@ -63,13 +71,13 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [browseData, setBrowseData] = useState<BrowseData[]>([]);
   const [isUsingTools, setIsUsingTools] = useState(false);
   const [sources, setSources] = useState<Array<{ title: string; url: string; favicon: string; domain: string }>>([]);
+  const [pendingApproval, setPendingApproval] = useState<ApprovalRequest | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
   const { provider, model } = useModelSettings();
 
   const send = useCallback(
     async (message: string) => {
-      console.log("[useAIChat] send called:", message, "convId:", conversationId);
       try {
       setIsStreaming(true);
       setStreamingContent("");
@@ -83,11 +91,11 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
       setBrowseData([]);
       setIsUsingTools(false);
       setSources([]);
+      setPendingApproval(null);
 
       const controller = new AbortController();
       abortRef.current = controller;
 
-      console.log("[useAIChat] calling streamChat...");
       await streamChat({
         conversationId,
         message,
@@ -149,6 +157,9 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         onSources: (data) => {
           setSources(data.sources || []);
         },
+        onApprovalRequired: (data) => {
+          setPendingApproval(data);
+        },
         onError: (err) => {
           setError(err);
           setIsStreaming(false);
@@ -165,9 +176,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           broadcastEvent("message-created", conversationId);
         },
       });
-      console.log("[useAIChat] streamChat finished");
       } catch (err) {
-        console.error("[useAIChat] CAUGHT ERROR:", err);
         setError(String(err));
         setIsStreaming(false);
       }
@@ -181,9 +190,24 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
     setStreamingContent("");
   }, []);
 
+  const handleApproval = useCallback(
+    async (approved: boolean, alwaysApprove = false) => {
+      if (!pendingApproval) return;
+      setPendingApproval(null);
+      await respondToApproval({
+        conversationId,
+        approvalId: pendingApproval.approval_id,
+        approved,
+        alwaysApprove,
+      });
+    },
+    [conversationId, pendingApproval]
+  );
+
   return {
     send,
     abort,
+    handleApproval,
     isStreaming,
     streamingContent,
     error,
@@ -196,5 +220,6 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
     browseData,
     isUsingTools,
     sources,
+    pendingApproval,
   };
 }
