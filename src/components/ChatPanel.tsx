@@ -411,27 +411,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
 
         {/* Continue working status removed — not in original Manus design */}
 
-        {/* Sources with favicons — shown after steps complete */}
-        {sources.length > 0 && !isStreaming && (
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">Sources</span>
-            <div className="flex flex-wrap gap-2">
-              {sources.slice(0, 8).map((s, i) => (
-                <a
-                  key={i}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border hover:bg-accent/50 transition-colors group"
-                  style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
-                >
-                  <img src={s.favicon} alt="" width={16} height={16} className="rounded-sm flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground truncate max-w-[120px]">{s.domain}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Sources removed — not in original Manus design */}
 
         {/* Streaming response */}
         {isStreaming && streamingContent && (
