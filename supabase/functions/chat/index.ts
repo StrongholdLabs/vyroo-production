@@ -917,14 +917,48 @@ Deno.serve(async (req) => {
                     // Emit report event so Computer Panel Document tab renders the content
                     const reportContent = (toolResult as any).content || "";
                     const reportFormat = (toolResult as any).format || "markdown";
+
+                    // Extract first markdown table for the report card in chat
+                    let tableHeaders: string[] = [];
+                    let tableRows: string[][] = [];
+                    const reportLines = reportContent.split('\n');
+                    for (let li = 0; li < reportLines.length; li++) {
+                      const line = reportLines[li].trim();
+                      if (line.startsWith('|') && line.endsWith('|')) {
+                        // Found a potential table header
+                        const nextLine = (reportLines[li + 1] || "").trim();
+                        if (nextLine.match(/^\|[\s\-:|]+\|$/)) {
+                          // Confirmed markdown table
+                          tableHeaders = line.split('|').map((h: string) => h.trim()).filter(Boolean);
+                          // Collect data rows
+                          for (let ri = li + 2; ri < reportLines.length; ri++) {
+                            const rowLine = reportLines[ri].trim();
+                            if (!rowLine.startsWith('|') || !rowLine.endsWith('|')) break;
+                            tableRows.push(rowLine.split('|').map((c: string) => c.trim()).filter(Boolean));
+                          }
+                          break; // Only first table
+                        }
+                      }
+                    }
+
+                    // Generate a summary from first paragraph (skip headings)
+                    let reportSummary = "";
+                    for (const line of reportLines) {
+                      const trimmed = line.trim();
+                      if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('|') && !trimmed.startsWith('---')) {
+                        reportSummary = trimmed.substring(0, 300);
+                        break;
+                      }
+                    }
+
                     controller.enqueue(encoder.encode(`event: report\ndata: ${JSON.stringify({
                       title: toolCall.input.topic || "Report",
                       content: reportContent,
                       format: reportFormat,
                       word_count: (toolResult as any).word_count || 0,
-                      summary: reportContent.substring(0, 200),
-                      headers: [],
-                      rows: [],
+                      summary: reportSummary || reportContent.substring(0, 200),
+                      headers: tableHeaders,
+                      rows: tableRows.slice(0, 10), // Max 10 rows in card
                     })}\n\n`));
                   } else if (toolCall.name === "generate_code" || toolCall.name === "review_code") {
                     // Emit code event for Computer Panel Code tab
