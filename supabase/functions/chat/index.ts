@@ -49,15 +49,21 @@ Your final response MUST:
 - Use **bold** for key terms, metrics, brand names, and important figures
 - Use markdown tables for comparisons (always include headers)
 - Keep paragraphs to 2-3 sentences max
-- Use numbered citations [1], [2] with full URLs at the end
+- Do NOT include URLs or links in your text response — no [text](url) patterns, no raw URLs
 - For long responses, use a table of contents with plain text section names
 - NEVER use HTML tags (<a>, <div>, <span>, <br>, etc.) — use ONLY pure Markdown syntax
 
 ## Tool Efficiency
 - Keep searches focused: max 3-4 web_search calls, max 2-3 browse_url calls
-- When the user asks for a report, document, or analysis: ALWAYS use write_report as your FINAL tool call
 - Don't over-research — gather enough data then synthesize immediately
-- Tool order: search → browse best results → write_report (if requested)
+- Tool order: search → browse best results → write_report
+
+## CRITICAL: Always Use write_report
+For ANY research, analysis, or complex question: you MUST call write_report as your FINAL tool call before responding. This is mandatory. The write_report tool generates the document that appears in the user's Computer Panel.
+- Pass ALL your research findings as the "data" parameter
+- The report should contain tables, key findings, and structured analysis
+- After write_report completes, give a SHORT 1-2 sentence summary as your text response (do NOT repeat the full report in your response)
+- Do NOT write long inline responses — put the detailed content in write_report instead
 
 ## What NOT to Do
 - Don't give vague, generic answers when specific data is available
@@ -227,11 +233,16 @@ async function generateFollowUps(
   return [];
 }
 
-const DEFAULT_PLAN = [
-  { label: "Analyzing your request", detail: "Breaking down the task and identifying key requirements" },
-  { label: "Researching and gathering data", detail: "Collecting relevant information from available sources" },
-  { label: "Compiling final response", detail: "Synthesizing findings into a structured answer" },
-];
+function getDefaultPlan(userMessage: string) {
+  // Extract topic from user message for better fallback labels
+  const topic = userMessage.replace(/^(can you |please |help me |I want to |I need to )/i, "").substring(0, 60).trim();
+  const shortTopic = topic.split(/[,.!?]/)[0].trim();
+  return [
+    { label: `Analyzing your request`, detail: `Breaking down the task and identifying key requirements` },
+    { label: `Researching ${shortTopic}`, detail: `Searching multiple sources and gathering relevant data` },
+    { label: `Compiling final report`, detail: `Synthesizing findings into a structured report with key insights` },
+  ];
+}
 
 /**
  * Generate a task plan (3-5 steps) using a lightweight LLM call.
@@ -243,7 +254,7 @@ async function generatePlan(
   userMessage: string
 ): Promise<Array<{ label: string; detail: string }>> {
   const fastModel = FAST_MODELS[providerId];
-  if (!fastModel) return DEFAULT_PLAN;
+  if (!fastModel) return getDefaultPlan(userMessage);
 
   const condensedMessages = [
     { role: "user" as const, content: userMessage },
@@ -267,7 +278,7 @@ async function generatePlan(
           messages: condensedMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
-      if (!res.ok) return DEFAULT_PLAN;
+      if (!res.ok) return getDefaultPlan(userMessage);
       const data = await res.json();
       text = data.content?.[0]?.text || "";
     } else if (providerId === "openai") {
@@ -286,7 +297,7 @@ async function generatePlan(
           ],
         }),
       });
-      if (!res.ok) return DEFAULT_PLAN;
+      if (!res.ok) return getDefaultPlan(userMessage);
       const data = await res.json();
       text = data.choices?.[0]?.message?.content || "";
     } else if (providerId === "gemini") {
@@ -303,7 +314,7 @@ async function generatePlan(
           }),
         }
       );
-      if (!res.ok) return DEFAULT_PLAN;
+      if (!res.ok) return getDefaultPlan(userMessage);
       const data = await res.json();
       text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } else if (providerId === "together") {
@@ -322,7 +333,7 @@ async function generatePlan(
           ],
         }),
       });
-      if (!res.ok) return DEFAULT_PLAN;
+      if (!res.ok) return getDefaultPlan(userMessage);
       const data = await res.json();
       text = data.choices?.[0]?.message?.content || "";
     }
@@ -335,10 +346,10 @@ async function generatePlan(
         return parsed.slice(0, 5);
       }
     }
-    return DEFAULT_PLAN;
+    return getDefaultPlan(userMessage);
   } catch {
     // Plan generation is non-critical
-    return DEFAULT_PLAN;
+    return getDefaultPlan(userMessage);
   }
 }
 
@@ -796,10 +807,10 @@ Deno.serve(async (req) => {
               while (toolIterations < MAX_TOOL_ITERATIONS) {
                 toolIterations++;
 
-                // Safeguard: if we've done 10+ iterations without write_report, force it
+                // Safeguard: after 5+ iterations, strongly push write_report
                 let extraPrompt = enrichedSystemPrompt;
-                if (toolIterations >= 10 && !hasWrittenReport && hasUsedTools) {
-                  extraPrompt += "\n\nIMPORTANT: You have gathered enough data. If the user requested a report or document, use write_report NOW as your next tool call. Do not make any more web_search or browse_url calls.";
+                if (toolIterations >= 5 && !hasWrittenReport && hasUsedTools) {
+                  extraPrompt += "\n\nCRITICAL: You have gathered enough research data. You MUST call write_report NOW as your next tool call. Pass all your gathered data/findings as the 'data' parameter and the topic as 'topic'. Do NOT make any more web_search or browse_url calls. Do NOT respond with text yet — call write_report first.";
                 }
 
                 const result = await callAnthropicWithTools(
@@ -807,22 +818,86 @@ Deno.serve(async (req) => {
                 );
 
                 if (result.toolCalls.length === 0) {
-                  // If we used tools, but the model's response seems thin, inject a synthesis prompt
-                  if (hasUsedTools && result.textContent.length < 300) {
-                    // Response is too short after research — ask for deeper synthesis
+                  // If we used tools but never called write_report, force it now
+                  if (hasUsedTools && !hasWrittenReport) {
                     loopMessages.push({
                       role: "assistant",
                       content: result.textContent,
                     });
                     loopMessages.push({
                       role: "user",
-                      content: "Your response is too brief given the research you conducted. Please provide a comprehensive, well-structured response that synthesizes ALL the information you gathered from your research. Include specific data, numbers, and facts. Use markdown headings, bullet points, and tables. Cite sources with inline links.",
+                      content: "You must call write_report now with all your research findings before responding. Pass the full topic and all data you gathered.",
                     });
-                    // One more call for a proper synthesis
-                    const synthResult = await callAnthropicWithTools(
-                      apiKey!, loopMessages, selectedModel, anthropicTools, enrichedSystemPrompt
+                    const reportResult = await callAnthropicWithTools(
+                      apiKey!, loopMessages, selectedModel, anthropicTools,
+                      enrichedSystemPrompt + "\n\nYou MUST call write_report now. Do not respond with text — call the tool first."
                     );
-                    finalTextContent = synthResult.textContent;
+                    // Process any tool calls from the forced report
+                    if (reportResult.toolCalls.length > 0) {
+                      for (const tc of reportResult.toolCalls) {
+                        const tcStart = Date.now();
+                        const tcResult = await executeTool(tc.name, tc.input);
+                        const tcDuration = Date.now() - tcStart;
+                        if (tc.name === "write_report") {
+                          hasWrittenReport = true;
+                          // Emit report SSE event
+                          const reportContent = (tcResult as any).content || "";
+                          const reportFormat = (tcResult as any).format || "markdown";
+                          // Extract table from report
+                          let tableHeaders: string[] = [];
+                          let tableRows: string[][] = [];
+                          const reportLines = reportContent.split('\n');
+                          for (let li = 0; li < reportLines.length; li++) {
+                            const line = reportLines[li].trim();
+                            if (line.startsWith('|') && line.endsWith('|')) {
+                              const nextLine = (reportLines[li + 1] || "").trim();
+                              if (nextLine.match(/^\|[\s\-:|]+\|$/)) {
+                                tableHeaders = line.split('|').map((h: string) => h.trim()).filter(Boolean);
+                                for (let ri = li + 2; ri < reportLines.length; ri++) {
+                                  const rowLine = reportLines[ri].trim();
+                                  if (!rowLine.startsWith('|') || !rowLine.endsWith('|')) break;
+                                  tableRows.push(rowLine.split('|').map((c: string) => c.trim()).filter(Boolean));
+                                }
+                                break;
+                              }
+                            }
+                          }
+                          let reportSummary = "";
+                          for (const rLine of reportLines) {
+                            const trimmed = rLine.trim();
+                            if (trimmed && !trimmed.startsWith('#') && !trimmed.startsWith('|') && !trimmed.startsWith('---')) {
+                              reportSummary = trimmed.substring(0, 300);
+                              break;
+                            }
+                          }
+                          controller.enqueue(encoder.encode(`event: report\ndata: ${JSON.stringify({
+                            title: tc.input.topic || "Report",
+                            content: reportContent,
+                            format: reportFormat,
+                            word_count: (tcResult as any).word_count || 0,
+                            summary: reportSummary || reportContent.substring(0, 200),
+                            headers: tableHeaders,
+                            rows: tableRows.slice(0, 10),
+                          })}\n\n`));
+                        }
+                        // Emit tool events
+                        controller.enqueue(encoder.encode(`event: tool\ndata: ${JSON.stringify({
+                          name: tc.name, args: tc.input, result: tcResult, duration: tcDuration, status: "complete",
+                        })}\n\n`));
+                        if (plan.length > 0) {
+                          const stepIdx = Math.min(plan.length - 1, plan.length - 1);
+                          addStepLog(stepIdx, tc.name === "write_report" ? `Report complete (${(tcResult as any).word_count || 0} words)` : "Complete", "result");
+                        }
+                        loopMessages.push({ role: "assistant", content: [{ type: "tool_use", id: tc.id, name: tc.name, input: tc.input }] });
+                        loopMessages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: tc.id, content: JSON.stringify(tcResult) }] });
+                      }
+                    }
+                    // Now get the final short summary
+                    const summaryResult = await callAnthropicWithTools(
+                      apiKey!, loopMessages, selectedModel, anthropicTools,
+                      enrichedSystemPrompt + "\n\nThe report has been generated. Now give a SHORT 1-2 sentence summary of the key findings. Do not repeat the report content."
+                    );
+                    finalTextContent = summaryResult.textContent || result.textContent;
                   } else {
                     finalTextContent = result.textContent;
                   }
