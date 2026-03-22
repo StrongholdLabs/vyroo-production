@@ -83,10 +83,7 @@ const Dashboard = () => {
 
   const handleSelectConversation = (id: string) => {
     setActiveConversation(id);
-    if (id) {
-      navigate(`/dashboard/${id}`, { replace: true });
-    }
-    // Empty id = "New task" — navigation handled by sidebar
+    navigate(id ? `/dashboard/${id}` : "/dashboard", { replace: true });
     if (isMobile) setMobileSidebarOpen(false);
   };
 
