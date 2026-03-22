@@ -4,11 +4,10 @@ import { toStep } from "@/types/domain";
 import type { Conversation, ChatMessage, Step } from "@/types/domain";
 import { conversations as mockConversations, getConversation as getMockConversation } from "@/data/conversations";
 
-// Check if Supabase is configured
-const isSupabaseConfigured = () => {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  return url && url.length > 0 && url !== "undefined";
-};
+// Check if Supabase is configured — evaluate once at module load
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const IS_SUPABASE_CONFIGURED = !!(SUPABASE_URL && SUPABASE_URL.length > 0 && SUPABASE_URL !== "undefined");
+const isSupabaseConfigured = () => IS_SUPABASE_CONFIGURED;
 
 // ─── List all conversations for sidebar ───
 

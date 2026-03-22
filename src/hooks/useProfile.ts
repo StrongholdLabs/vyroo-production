@@ -10,10 +10,9 @@ export interface Profile {
   credits: number;
 }
 
-const isSupabaseConfigured = () => {
-  const url = import.meta.env.VITE_SUPABASE_URL;
-  return url && url.length > 0 && url !== "undefined";
-};
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const IS_SUPABASE_CONFIGURED = !!(SUPABASE_URL && SUPABASE_URL.length > 0 && SUPABASE_URL !== "undefined");
+const isSupabaseConfigured = () => IS_SUPABASE_CONFIGURED;
 
 export function useProfile() {
   return useQuery({
