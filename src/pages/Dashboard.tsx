@@ -40,6 +40,7 @@ const Dashboard = () => {
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const initialMessageHandled = useRef(false);
+  const isInitialLoad = useRef(true);
 
   // Fetch all conversations to auto-select first when none specified
   const { data: conversations } = useConversations();
@@ -47,13 +48,17 @@ const Dashboard = () => {
   const { data: conversation, isLoading, isError } = useConversation(activeConversation);
   const sendMessage = useSendMessage();
 
-  // Auto-select the most recent conversation if none is active
-  // BUT only if we're not explicitly on /dashboard (new task mode)
+  // Auto-select the most recent conversation ONLY on initial page load
+  // (not when user clicks "New task" to go to /dashboard)
   useEffect(() => {
-    if (!conversationId && !activeConversation && conversations && conversations.length > 0) {
+    if (isInitialLoad.current && !conversationId && !activeConversation && conversations && conversations.length > 0) {
+      isInitialLoad.current = false;
       const firstId = (conversations as any[])[0].id;
       setActiveConversation(firstId);
       navigate(`/dashboard/${firstId}`, { replace: true });
+    }
+    if (conversationId) {
+      isInitialLoad.current = false;
     }
   }, [conversationId, activeConversation, conversations, navigate]);
 
