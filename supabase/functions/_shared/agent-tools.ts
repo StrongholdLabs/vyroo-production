@@ -701,7 +701,7 @@ const writeReport: AgentToolDefinition = {
     try {
       const content = await callAnthropic(
         "claude-sonnet-4-20250514",
-        `You are a professional report writer. Write a well-structured ${format === "html" ? "HTML" : "Markdown"} report on the given topic. Include: Executive Summary, Key Findings, Analysis, and Recommendations sections. Be thorough but concise.`,
+        `You are a professional report writer. Write a well-structured ${format === "html" ? "HTML" : "Markdown"} report on the given topic. Include: Executive Summary, Key Findings, Analysis, and Recommendations sections. Be thorough but concise.\n\nIMPORTANT: Use ONLY pure Markdown. Never use HTML tags like <a>, <div>, <span>, <br>, etc. For section headers, use ## headings only. Do not add HTML anchor tags to headings.`,
         `Write a report on: ${topic}${data ? `\n\nIncorporate these data/findings:\n${data.slice(0, 10000)}` : ""}`,
         4096
       );

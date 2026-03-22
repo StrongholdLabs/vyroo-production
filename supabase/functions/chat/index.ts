@@ -50,7 +50,8 @@ Your final response MUST:
 - Use markdown tables for comparisons (always include headers)
 - Keep paragraphs to 2-3 sentences max
 - Use numbered citations [1], [2] with full URLs at the end
-- For long responses, use a table of contents with anchor links
+- For long responses, use a table of contents with plain text section names
+- NEVER use HTML tags (<a>, <div>, <span>, <br>, etc.) — use ONLY pure Markdown syntax
 
 ## What NOT to Do
 - Don't give vague, generic answers when specific data is available
@@ -1027,37 +1028,37 @@ Deno.serve(async (req) => {
               // Emit collected sources with favicons for Perplexity-style display
               const allSources: Array<{title: string; url: string; favicon: string; domain: string}> = [];
               const seenUrls = new Set<string>();
+
+              const addSource = (url: string, title?: string) => {
+                try {
+                  if (!url || seenUrls.has(url)) return;
+                  seenUrls.add(url);
+                  const domain = new URL(url).hostname.replace("www.", "");
+                  allSources.push({
+                    title: title || domain,
+                    url,
+                    favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+                    domain,
+                  });
+                } catch {}
+              };
+
               for (const msg of loopMessages) {
                 if (Array.isArray(msg.content)) {
                   for (const block of msg.content) {
                     if (block.type === "tool_result") {
                       try {
-                        const data = JSON.parse(block.content);
+                        // Handle both string and object content
+                        const data = typeof block.content === "string" ? JSON.parse(block.content) : block.content;
                         // Extract sources from web_search results
                         if (data.results && Array.isArray(data.results)) {
                           for (const r of data.results) {
-                            if (r.url && !seenUrls.has(r.url)) {
-                              seenUrls.add(r.url);
-                              const domain = new URL(r.url).hostname.replace("www.", "");
-                              allSources.push({
-                                title: r.title || domain,
-                                url: r.url,
-                                favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
-                                domain,
-                              });
-                            }
+                            addSource(r.url, r.title);
                           }
                         }
                         // Extract sources from browse_url results
-                        if (data.url && !seenUrls.has(data.url)) {
-                          seenUrls.add(data.url);
-                          const domain = new URL(data.url).hostname.replace("www.", "");
-                          allSources.push({
-                            title: data.title || domain,
-                            url: data.url,
-                            favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
-                            domain,
-                          });
+                        if (data.url) {
+                          addSource(data.url, data.title);
                         }
                       } catch {}
                     }
