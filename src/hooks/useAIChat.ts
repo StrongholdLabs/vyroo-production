@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { streamChat, respondToApproval } from "@/lib/ai-stream";
 import { useModelSettings } from "@/hooks/useModelSettings";
 import { broadcastEvent } from "@/hooks/useBroadcastSync";
+import { detectCategory } from "@/lib/follow-up-icons";
 
 interface UseAIChatOptions {
   conversationId: string;
@@ -120,7 +121,11 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           broadcastEvent("title-updated", conversationId);
         },
         onFollowUps: (newFollowUps) => {
-          setFollowUps(newFollowUps);
+          // Convert string[] from backend to {text, category}[] for FollowUpPanel
+          const typed = (newFollowUps || []).map((f: any) =>
+            typeof f === 'string' ? { text: f, category: detectCategory(f) } : f
+          );
+          setFollowUps(typed);
         },
         onStep: (stepData) => {
           setSteps(prev => {
@@ -178,14 +183,16 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           setError(err);
           setIsStreaming(false);
         },
-        onDone: () => {
+        onDone: async () => {
           setIsStreaming(false);
-          setStreamingContent("");
-          // Invalidate to refetch conversation with the new messages
-          queryClient.invalidateQueries({
+          // Refetch conversation BEFORE clearing streaming content
+          // so the DB messages are loaded and visible before we remove the stream
+          await queryClient.invalidateQueries({
             queryKey: ["conversation", conversationId],
           });
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          await queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          // Now safe to clear — DB messages include the new response
+          setStreamingContent("");
           // Broadcast to other tabs
           broadcastEvent("message-created", conversationId);
         },

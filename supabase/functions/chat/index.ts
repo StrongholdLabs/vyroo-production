@@ -1236,6 +1236,24 @@ Deno.serve(async (req) => {
                   }
                 }
               }
+              // Mark ALL remaining steps as complete (fixes stuck spinners)
+              for (let i = 0; i < plan.length; i++) {
+                if (!completedSteps.has(i)) {
+                  completedSteps.add(i);
+                  const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+                  const mins = Math.floor(Number(elapsed) / 60);
+                  const secs = Number(elapsed) % 60;
+                  const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
+                  controller.enqueue(encoder.encode(`event: step\ndata: ${JSON.stringify({
+                    id: i + 1,
+                    label: plan[i].label,
+                    detail: plan[i].detail,
+                    status: "complete",
+                    logs: [{ time: timeStr, text: plan[i].detail || "Complete", type: "result" }],
+                  })}\n\n`));
+                }
+              }
+
               if (allSources.length > 0) {
                 controller.enqueue(encoder.encode(`event: sources\ndata: ${JSON.stringify({
                   sources: allSources.slice(0, 10),
@@ -1380,13 +1398,42 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Save the complete assistant message
+          // Save the complete assistant message (with report metadata if available)
           if (fullResponse) {
-            await supabase.from("messages").insert({
+            const messageData: any = {
               conversation_id: conversationId,
               role: "assistant",
               content: fullResponse,
-            });
+            };
+            // Persist report card data so it survives page reload
+            if (lastReportContent) {
+              // Extract table from report for the card
+              let rptHeaders: string[] = [];
+              let rptRows: string[][] = [];
+              const rptLines = lastReportContent.split('\n');
+              for (let li = 0; li < rptLines.length; li++) {
+                const line = rptLines[li].trim();
+                if (line.startsWith('|') && line.endsWith('|')) {
+                  const nextLine = (rptLines[li + 1] || "").trim();
+                  if (nextLine.match(/^\|[\s\-:|]+\|$/)) {
+                    rptHeaders = line.split('|').map((h: string) => h.trim()).filter(Boolean);
+                    for (let ri = li + 2; ri < rptLines.length; ri++) {
+                      const rowLine = rptLines[ri].trim();
+                      if (!rowLine.startsWith('|') || !rowLine.endsWith('|')) break;
+                      rptRows.push(rowLine.split('|').map((c: string) => c.trim()).filter(Boolean));
+                    }
+                    break;
+                  }
+                }
+              }
+              messageData.metadata = {
+                hasReport: true,
+                reportTitle: plan[plan.length - 1]?.label || "Report",
+                reportSummary: lastReportContent.split('\n').find((l: string) => l.trim() && !l.startsWith('#') && !l.startsWith('|'))?.substring(0, 300) || "",
+                tableData: rptHeaders.length > 0 ? { headers: rptHeaders, rows: rptRows.slice(0, 10) } : undefined,
+              };
+            }
+            await supabase.from("messages").insert(messageData);
 
             // Update conversation timestamp and message count
             await supabase
@@ -1471,7 +1518,9 @@ Deno.serve(async (req) => {
                 new Promise<string[]>(resolve => setTimeout(() => resolve([]), 6000)),
               ]) as string[];
               if (followUps.length > 0) {
-                controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps })}\n\n`));
+                // Convert string[] to {text, category}[] for FollowUpPanel
+                const typedFollowUps = followUps.map(f => typeof f === 'string' ? { text: f, category: "default" } : f);
+                controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps: typedFollowUps })}\n\n`));
               }
             } catch {
               // Follow-up generation is non-critical

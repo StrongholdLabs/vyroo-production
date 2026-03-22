@@ -55,8 +55,8 @@ export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
           {/* Summary text */}
           <p className="text-sm text-muted-foreground leading-relaxed">{step.detail}</p>
 
-          {/* Project initialization card - for first step */}
-          {step.id === 1 && step.status === "complete" && (
+          {/* Project initialization card - only for website/code tasks, not research */}
+          {step.id === 1 && step.status === "complete" && /build|create|design|website|page|app|code/i.test(step.label) && (
             <div className="rounded-xl overflow-hidden max-w-md border border-border" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
               <div className="flex items-center gap-3 px-4 py-3">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "hsl(var(--success-soft))" }}>
