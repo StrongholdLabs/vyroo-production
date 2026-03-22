@@ -180,9 +180,14 @@ async function generateFollowUps(
           messages: condensedHistory.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
-      if (!res.ok) return [];
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        console.error("[followups] Anthropic API error:", res.status, errText.substring(0, 200));
+        return [];
+      }
       const data = await res.json();
       const text = data.content?.[0]?.text || "";
+      console.log("[followups] Anthropic raw response:", text.substring(0, 200));
       return parseJsonArray(text);
     } else if (providerId === "openai") {
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -245,8 +250,8 @@ async function generateFollowUps(
       const text = data.choices?.[0]?.message?.content || "";
       return parseJsonArray(text);
     }
-  } catch {
-    // Follow-up generation is non-critical
+  } catch (e) {
+    console.error("[followups] generateFollowUps error:", String(e));
   }
 
   return [];
@@ -1392,80 +1397,54 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Auto-title: check if this conversation needs a title
-            try {
-              const { data: conv } = await supabase
-                .from("conversations")
-                .select("auto_titled")
-                .eq("id", conversationId)
-                .single();
+            // Run title + follow-ups IN PARALLEL with a 8s timeout
+            // (agentic flow already uses 30-40s of the 60s edge function limit)
+            const postTasks: Promise<void>[] = [];
 
-              if (conv && !conv.auto_titled) {
-                // Call auto-title edge function inline
-                const titleResponse = await fetch(
-                  `${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-title`,
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: authHeader!,
-                    },
-                    body: JSON.stringify({
-                      conversationId,
-                      userMessage: message,
-                      assistantMessage: fullResponse.slice(0, 300),
-                    }),
+            // Auto-title task
+            const { data: conv } = await supabase
+              .from("conversations")
+              .select("auto_titled")
+              .eq("id", conversationId)
+              .single();
+
+            if (conv && !conv.auto_titled) {
+              postTasks.push(
+                fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-title`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: authHeader! },
+                  body: JSON.stringify({ conversationId, userMessage: message, assistantMessage: fullResponse.slice(0, 300) }),
+                }).then(async (r) => {
+                  if (r.ok) {
+                    const { title } = await r.json();
+                    if (title) controller.enqueue(encoder.encode(`event: title\ndata: ${JSON.stringify({ title })}\n\n`));
                   }
-                );
-
-                if (titleResponse.ok) {
-                  const { title } = await titleResponse.json();
-                  if (title) {
-                    controller.enqueue(
-                      encoder.encode(`event: title\ndata: ${JSON.stringify({ title })}\n\n`)
-                    );
-                  }
-                }
-              }
-            } catch {
-              // Title generation is non-critical, don't fail the stream
-            }
-          }
-
-          // Generate follow-up suggestions using a lightweight model
-          if (fullResponse || lastReportContent) {
-            try {
-              const followUps = await generateFollowUps(
-                actualProviderId,
-                apiKey!,
-                message,
-                fullResponse,
-                lastReportContent || undefined
+                }).catch(() => {})
               );
-              if (followUps.length > 0) {
-                controller.enqueue(
-                  encoder.encode(
-                    `event: followups\ndata: ${JSON.stringify({ followUps })}\n\n`
-                  )
-                );
-              }
-            } catch {
-              // Follow-up generation is non-critical, don't fail the stream
             }
+
+            // Follow-up suggestions task
+            if (fullResponse || lastReportContent) {
+              postTasks.push(
+                generateFollowUps(actualProviderId, apiKey!, message, fullResponse, lastReportContent || undefined)
+                  .then((followUps) => {
+                    if (followUps.length > 0) {
+                      controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps })}\n\n`));
+                    }
+                  }).catch(() => {})
+              );
+            }
+
+            // Wait for both with 8s timeout — don't let them block done event
+            await Promise.race([
+              Promise.allSettled(postTasks),
+              new Promise(resolve => setTimeout(resolve, 8000)),
+            ]);
           }
 
-          // Extract memories in the background (non-blocking)
+          // Extract memories in the background (fire-and-forget, don't block done)
           if (fullResponse) {
-            extractMemories(
-              actualProviderId,
-              apiKey!,
-              message,
-              fullResponse,
-              user.id,
-              supabase
-            ).catch(() => {
-              // Memory extraction is non-critical
-            });
+            extractMemories(actualProviderId, apiKey!, message, fullResponse, user.id, supabase).catch(() => {});
           }
 
           controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`));
