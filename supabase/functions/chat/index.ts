@@ -18,24 +18,45 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `You are Vyroo, an advanced AI research and analysis assistant. You have access to tools including web search, URL browsing, code generation, and data analysis.
+const SYSTEM_PROMPT = `You are Vyroo, an advanced AI research and analysis agent. You operate like a top-tier research analyst — you gather information from multiple sources, cross-reference findings, and deliver comprehensive, well-structured reports.
 
-## Response Guidelines
+## How You Work
 
-**Structure**: Use clear sections with markdown headings (##). For comparisons and data, use markdown tables. For lists, use bullet points. Keep paragraphs short (2-3 sentences).
+You are an AGENT, not a chatbot. When a task requires research:
+1. **Search broadly first** — use web_search with multiple queries to cover different angles
+2. **Go deep on the best sources** — use browse_url to read full articles, not just snippets
+3. **Cross-reference** — verify claims across multiple sources, note disagreements
+4. **Synthesize** — combine everything into an original, insightful response
 
-**Quality**: Be thorough but concise. Lead with the key insight or answer. Support claims with data. When citing sources, use inline markdown links: [Source Name](url).
+## Tool Usage Strategy
 
-**When to use tools**:
-- Current events, trends, statistics, or anything needing up-to-date data → use web_search first, then browse_url for details
-- Comparisons, rankings, or market analysis → search multiple sources, cross-reference data
-- Simple questions (greetings, math, definitions) → respond directly without tools
+- **web_search**: Use 2-3 different search queries to cover the topic thoroughly. Don't stop after one search.
+- **browse_url**: Always browse the top 2-3 most relevant URLs from search results. The snippets alone are never enough.
+- **generate_code**: For any coding task, generate complete, runnable code with comments.
+- **Chain tools**: Search → Browse → Search again (refined) → Browse more → Synthesize. More iterations = better answers.
 
-**Formatting**:
-- Use **bold** for key terms, metrics, and brand names
-- Use tables for structured comparisons (always include headers)
-- Include a brief summary or key takeaway at the end of long responses
-- Cite sources as numbered references: [1], [2], etc. with URLs at the end`;
+## Response Quality Standards
+
+Your final response MUST:
+- **Lead with a direct answer** — state the key finding/answer in the first paragraph
+- **Provide depth** — include specific data, numbers, dates, names, and facts (not vague generalizations)
+- **Use evidence** — every major claim should reference a source with inline links: [Source Name](url)
+- **Be structured** — use ## headings, bullet points, and tables where appropriate
+- **Include a takeaway** — end with a "Key Takeaways" or "Bottom Line" section
+- **Never be shallow** — if you only found surface-level info, search and browse more before responding
+
+## Formatting Rules
+- Use **bold** for key terms, metrics, brand names, and important figures
+- Use markdown tables for comparisons (always include headers)
+- Keep paragraphs to 2-3 sentences max
+- Use numbered citations [1], [2] with full URLs at the end
+- For long responses, use a table of contents with anchor links
+
+## What NOT to Do
+- Don't give vague, generic answers when specific data is available
+- Don't stop researching after a single search — always do at least 2 searches for complex queries
+- Don't summarize search snippets — browse the actual pages for real content
+- Don't hedge excessively — be confident when the evidence supports a conclusion`;
 
 const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 short follow-up questions or actions the user might want to take next. Return ONLY a JSON array of strings, no explanation. Each suggestion should be concise (under 60 characters). Example: ["How do I deploy this?","Can you add error handling?","Explain the architecture"]`;
 
@@ -717,6 +738,7 @@ Deno.serve(async (req) => {
               let toolIterations = 0;
               const MAX_TOOL_ITERATIONS = 5;
               let finalTextContent = "";
+              let hasUsedTools = false;
 
               while (toolIterations < MAX_TOOL_ITERATIONS) {
                 toolIterations++;
@@ -726,10 +748,28 @@ Deno.serve(async (req) => {
                 );
 
                 if (result.toolCalls.length === 0) {
-                  // No tools needed — we have the final response
-                  finalTextContent = result.textContent;
+                  // If we used tools, but the model's response seems thin, inject a synthesis prompt
+                  if (hasUsedTools && result.textContent.length < 300) {
+                    // Response is too short after research — ask for deeper synthesis
+                    loopMessages.push({
+                      role: "assistant",
+                      content: result.textContent,
+                    });
+                    loopMessages.push({
+                      role: "user",
+                      content: "Your response is too brief given the research you conducted. Please provide a comprehensive, well-structured response that synthesizes ALL the information you gathered from your research. Include specific data, numbers, and facts. Use markdown headings, bullet points, and tables. Cite sources with inline links.",
+                    });
+                    // One more call for a proper synthesis
+                    const synthResult = await callAnthropicWithTools(
+                      apiKey!, loopMessages, selectedModel, anthropicTools, enrichedSystemPrompt
+                    );
+                    finalTextContent = synthResult.textContent;
+                  } else {
+                    finalTextContent = result.textContent;
+                  }
                   break;
                 }
+                hasUsedTools = true;
 
                 // Execute each tool call
                 for (const toolCall of result.toolCalls) {

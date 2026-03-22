@@ -269,7 +269,7 @@ const browseUrl: AgentToolDefinition = {
 
       const html = await resp.text();
       const title = extractTitle(html);
-      const content = stripHtml(html).slice(0, 5000);
+      const content = stripHtml(html).slice(0, 15000);
 
       return {
         url,
@@ -359,7 +359,7 @@ const extractContent: AgentToolDefinition = {
       if (sections.length === 0) {
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         const bodyText = bodyMatch ? stripHtml(bodyMatch[1]) : stripHtml(html);
-        sections.push({ tag: "body", content: bodyText.slice(0, 5000) });
+        sections.push({ tag: "body", content: bodyText.slice(0, 15000) });
       }
 
       const totalWords = sections.reduce(
