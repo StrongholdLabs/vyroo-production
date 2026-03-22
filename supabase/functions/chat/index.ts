@@ -53,11 +53,18 @@ Your final response MUST:
 - For long responses, use a table of contents with plain text section names
 - NEVER use HTML tags (<a>, <div>, <span>, <br>, etc.) — use ONLY pure Markdown syntax
 
+## Tool Efficiency
+- Keep searches focused: max 3-4 web_search calls, max 2-3 browse_url calls
+- When the user asks for a report, document, or analysis: ALWAYS use write_report as your FINAL tool call
+- Don't over-research — gather enough data then synthesize immediately
+- Tool order: search → browse best results → write_report (if requested)
+
 ## What NOT to Do
 - Don't give vague, generic answers when specific data is available
 - Don't stop researching after a single search — always do at least 2 searches for complex queries
 - Don't summarize search snippets — browse the actual pages for real content
-- Don't hedge excessively — be confident when the evidence supports a conclusion`;
+- Don't hedge excessively — be confident when the evidence supports a conclusion
+- Don't waste tool calls — be efficient, gather what you need and move to synthesis`;
 
 const DIRECT_SYSTEM_PROMPT = `You are Vyroo, a knowledgeable AI assistant. You provide clear, well-structured answers using your training knowledge.
 
@@ -764,12 +771,39 @@ Deno.serve(async (req) => {
               const MAX_TOOL_ITERATIONS = 15;
               let finalTextContent = "";
               let hasUsedTools = false;
+              let hasWrittenReport = false;
+              // Accumulated logs per step for rich step progress
+              const stepLogs: Map<number, Array<{time: string; text: string; type: string}>> = new Map();
+              const getElapsed = () => {
+                const sec = Math.floor((Date.now() - startTime) / 1000);
+                return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+              };
+              const addStepLog = (stepIdx: number, text: string, type: string) => {
+                if (!stepLogs.has(stepIdx)) stepLogs.set(stepIdx, []);
+                const logs = stepLogs.get(stepIdx)!;
+                logs.push({ time: getElapsed(), text, type });
+                if (stepIdx < plan.length) {
+                  controller.enqueue(encoder.encode(`event: step\ndata: ${JSON.stringify({
+                    id: stepIdx + 1,
+                    label: plan[stepIdx].label,
+                    detail: plan[stepIdx].detail,
+                    status: "active",
+                    logs,
+                  })}\n\n`));
+                }
+              };
 
               while (toolIterations < MAX_TOOL_ITERATIONS) {
                 toolIterations++;
 
+                // Safeguard: if we've done 10+ iterations without write_report, force it
+                let extraPrompt = enrichedSystemPrompt;
+                if (toolIterations >= 10 && !hasWrittenReport && hasUsedTools) {
+                  extraPrompt += "\n\nIMPORTANT: You have gathered enough data. If the user requested a report or document, use write_report NOW as your next tool call. Do not make any more web_search or browse_url calls.";
+                }
+
                 const result = await callAnthropicWithTools(
-                  apiKey!, loopMessages, selectedModel, anthropicTools, enrichedSystemPrompt
+                  apiKey!, loopMessages, selectedModel, anthropicTools, extraPrompt
                 );
 
                 if (result.toolCalls.length === 0) {
@@ -799,6 +833,7 @@ Deno.serve(async (req) => {
                 // Execute each tool call
                 for (const toolCall of result.toolCalls) {
                   const toolStartMs = Date.now();
+                  const currentStepIdx = plan.length > 0 ? Math.min(toolIterations - 1, plan.length - 1) : 0;
 
                   // Emit tool executing event
                   controller.enqueue(encoder.encode(`event: tool\ndata: ${JSON.stringify({
@@ -807,9 +842,34 @@ Deno.serve(async (req) => {
                     status: "executing",
                   })}\n\n`));
 
+                  // Add step log: tool started
+                  if (plan.length > 0) {
+                    let domain = "";
+                    try { domain = toolCall.input.url ? new URL(toolCall.input.url).hostname.replace("www.", "") : ""; } catch {}
+                    const actionLog = toolCall.name === "web_search" ? `Searching for "${toolCall.input.query}"`
+                      : toolCall.name === "browse_url" ? `Reading ${domain || toolCall.input.url}`
+                      : toolCall.name === "write_report" ? `Generating report: ${toolCall.input.topic || "analysis"}`
+                      : toolCall.name === "generate_code" ? `Generating code`
+                      : `Running ${toolCall.name}`;
+                    addStepLog(currentStepIdx, actionLog, "action");
+                  }
+
                   // Execute the tool
                   const toolResult = await executeTool(toolCall.name, toolCall.input);
                   const durationMs = Date.now() - toolStartMs;
+                  if (toolCall.name === "write_report") hasWrittenReport = true;
+
+                  // Add step log: tool completed
+                  if (plan.length > 0) {
+                    const resultLog = toolCall.name === "web_search"
+                      ? `Found ${((toolResult as any).results || []).length} results`
+                      : toolCall.name === "browse_url"
+                      ? `Extracted content (${((toolResult as any).content || "").length > 1000 ? "detailed" : "brief"})`
+                      : toolCall.name === "write_report"
+                      ? `Report complete (${(toolResult as any).word_count || 0} words)`
+                      : `Complete`;
+                    addStepLog(currentStepIdx, resultLog, "result");
+                  }
 
                   // Emit tool result event
                   controller.enqueue(encoder.encode(`event: tool\ndata: ${JSON.stringify({
@@ -983,31 +1043,33 @@ Deno.serve(async (req) => {
                     content: [{ type: "tool_result", tool_use_id: toolCall.id, content: JSON.stringify(toolResult) }],
                   });
 
-                  // Update step progress
+                  // Update step progress — use accumulated logs
                   if (plan.length > 0) {
                     const stepIdx = Math.min(toolIterations - 1, plan.length - 1);
                     if (!completedSteps.has(stepIdx)) {
                       completedSteps.add(stepIdx);
-                      const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-                      const mins = Math.floor(Number(elapsed) / 60);
-                      const secs = Number(elapsed) % 60;
-                      const timeStr = `${mins}:${String(secs).padStart(2, '0')}`;
+                      // Complete step with all accumulated logs
+                      const logs = stepLogs.get(stepIdx) || [];
+                      logs.push({ time: getElapsed(), text: plan[stepIdx].detail, type: "result" });
+                      stepLogs.set(stepIdx, logs);
                       controller.enqueue(encoder.encode(`event: step\ndata: ${JSON.stringify({
                         id: stepIdx + 1,
                         label: plan[stepIdx].label,
                         detail: plan[stepIdx].detail,
                         status: "complete",
-                        logs: [{ time: timeStr, text: plan[stepIdx].detail, type: "result" }],
+                        logs,
                       })}\n\n`));
 
                       // Activate next step if exists
                       if (stepIdx + 1 < plan.length) {
+                        const nextLogs = [{ time: getElapsed(), text: "Starting...", type: "info" }];
+                        stepLogs.set(stepIdx + 1, nextLogs);
                         controller.enqueue(encoder.encode(`event: step\ndata: ${JSON.stringify({
                           id: stepIdx + 2,
                           label: plan[stepIdx + 1].label,
                           detail: plan[stepIdx + 1].detail,
                           status: "active",
-                          logs: [{ time: timeStr, text: "Starting...", type: "info" }],
+                          logs: nextLogs,
                         })}\n\n`));
                       }
                     }

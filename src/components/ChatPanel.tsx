@@ -409,13 +409,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
 
         {/* Upgrade banner — disabled for now */}
 
-        {/* Continue working status — only during active agentic streaming */}
-        {isAgentic && !isComplete && isStreaming && (
-        <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-muted-foreground" />
-          <span className="text-sm text-muted-foreground font-medium">Vyroo will continue working after your reply</span>
-        </div>
-        )}
+        {/* Continue working status removed — not in original Manus design */}
 
         {/* Sources with favicons — shown after steps complete */}
         {sources.length > 0 && !isStreaming && (
@@ -449,35 +443,68 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
-        {/* Streaming report card */}
+        {/* Streaming report card — matches mock design report card */}
         {streamingReport && (
           <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
               <FileText size={16} className="text-muted-foreground" />
               <span className="text-sm font-medium text-foreground truncate">{streamingReport.title}</span>
+              <div className="ml-auto relative">
+                <button
+                  onClick={() => setReportMenuOpen(reportMenuOpen === "streaming" ? null : "streaming")}
+                  className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent"
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+                {reportMenuOpen === "streaming" && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setReportMenuOpen(null)} />
+                    <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-20 shadow-xl" style={{ backgroundColor: "hsl(var(--popover))" }}>
+                      <button onClick={() => { setReportMenuOpen(null); setPreviewMsg({ id: "streaming", role: "assistant", content: streamingReport.content || "", hasReport: true, reportTitle: streamingReport.title, reportSummary: streamingReport.summary, tableData: { headers: streamingReport.headers, rows: streamingReport.rows } } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Eye size={16} className="text-muted-foreground" />Preview
+                      </button>
+                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Share2 size={16} className="text-muted-foreground" />Share
+                      </button>
+                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Download size={16} className="text-muted-foreground" /><span className="flex-1 text-left">Download</span><ChevronRight size={14} className="text-muted-foreground" />
+                      </button>
+                      <div className="h-px bg-border my-1" />
+                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Globe size={16} className="text-[hsl(210_60%_55%)]" />Convert to Google Docs
+                      </button>
+                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Globe size={16} className="text-[hsl(45_80%_55%)]" />Save to Google Drive
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="px-4 py-3">
-              <p className="text-xs text-muted-foreground mb-3">{streamingReport.summary}</p>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {streamingReport.headers.map((h, i) => (
-                        <th key={i} className="text-left py-2 px-3 text-xs font-medium text-muted-foreground">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {streamingReport.rows.map((row, ri) => (
-                      <tr key={ri} className="border-b border-border/50 last:border-0">
-                        {row.map((cell, ci) => (
-                          <td key={ci} className="py-2 px-3 text-sm text-foreground">{renderInlineMarkdown(cell)}</td>
+            <div className="px-4 py-3 space-y-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">{streamingReport.summary}</p>
+              {streamingReport.headers.length > 0 && (
+                <div className="overflow-x-auto mt-2">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {streamingReport.headers.map((h, i) => (
+                          <th key={i} className="text-left py-1.5 pr-4 font-medium text-foreground">{h}</th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="text-muted-foreground">
+                      {streamingReport.rows.map((row, ri) => (
+                        <tr key={ri} className="border-b border-border/50">
+                          {row.map((cell, ci) => (
+                            <td key={ci} className={`py-1.5 pr-4 ${ci === 0 ? "font-medium text-foreground" : ""}`}>{renderInlineMarkdown(cell)}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
