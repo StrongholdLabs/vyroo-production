@@ -29,3 +29,4 @@ dist-electron
 *.sln
 *.sw?
 .vercel
+.vercel
