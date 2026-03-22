@@ -45,8 +45,12 @@ const Dashboard = () => {
   // Fetch all conversations to auto-select first when none specified
   const { data: conversations } = useConversations();
 
-  const { data: conversation, isLoading, isError } = useConversation(activeConversation);
-  const sendMessage = useSendMessage();
+  const conversationQuery = useConversation(activeConversation || undefined);
+  // When activeConversation is cleared (New task), don't show stale cached data
+  const conversation = activeConversation ? conversationQuery.data : undefined;
+  const isLoading = activeConversation ? conversationQuery.isLoading : false;
+  const isError = activeConversation ? conversationQuery.isError : false;
+  const _sendMessage = useSendMessage(); // kept for future use
 
   // Auto-select the most recent conversation ONLY on initial page load
   // (not when user clicks "New task" to go to /dashboard)
