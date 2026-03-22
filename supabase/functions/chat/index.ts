@@ -117,7 +117,14 @@ Examples:
 "Create a marketing strategy for my startup" → agentic
 "Compare React vs Vue for enterprise apps" → agentic
 "Research nutrition trends in 2026" → agentic
-"Thanks!" → direct`;
+"Thanks!" → direct
+"no follow up?" → direct
+"where are the follow-ups?" → direct
+"can you explain more?" → direct
+"what about X?" → direct
+"tell me more about the first point" → direct
+"good job" → direct
+"why did you say that?" → direct`;
 
 /** Parse a JSON array from text that might be wrapped in markdown code blocks */
 function parseJsonArray(text: string): string[] {
@@ -1257,6 +1264,7 @@ Deno.serve(async (req) => {
           } else {
             // ===== Direct mode OR non-Anthropic agentic: use standard streaming =====
             const reader = providerStream.getReader();
+            let xmlLeakDetected = false;
 
             while (true) {
               const { done, value } = await reader.read();
@@ -1264,15 +1272,32 @@ Deno.serve(async (req) => {
 
               const chunk = new TextDecoder().decode(value);
               const lines = chunk.split("\n");
+
+              // Check for XML tool call leak (model hallucinating tool use as text)
               for (const line of lines) {
                 if (line.startsWith("data: ") && !line.includes('"error"')) {
                   try {
                     const parsed = JSON.parse(line.slice(6));
-                    if (parsed.token) fullResponse += parsed.token;
+                    if (parsed.token) {
+                      // Detect XML tool call leak
+                      if (parsed.token.includes("<function_calls>") || parsed.token.includes("<invoke") || parsed.token.includes("</function_calls>")) {
+                        xmlLeakDetected = true;
+                      }
+                      if (!xmlLeakDetected) {
+                        fullResponse += parsed.token;
+                      }
+                    }
                   } catch { /* skip */ }
                 }
               }
-              controller.enqueue(value);
+
+              // Don't forward XML-leaked tokens to client
+              if (!xmlLeakDetected) {
+                controller.enqueue(value);
+              } else if (xmlLeakDetected && fullResponse.length > 0) {
+                // We already sent some valid content before the XML leak started
+                // Just stop forwarding — the valid content is already in fullResponse
+              }
 
               // Update step progress based on response length (only in agentic mode)
               if (taskMode === "agentic" && plan.length > 0) {
