@@ -1,5 +1,5 @@
 import { Check, Loader2, ChevronUp, Circle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export interface ResearchTask {
   id: number;
@@ -19,6 +19,18 @@ export function TaskProgressPanel({ tasks, currentStep, totalSteps }: TaskProgre
   const [expanded, setExpanded] = useState(true);
   const completedCount = tasks.filter(t => t.status === "complete").length;
   const activeTask = tasks.find(t => t.status === "active");
+  const [pop, setPop] = useState(false);
+  const prevCompleted = useRef(completedCount);
+
+  useEffect(() => {
+    if (completedCount > prevCompleted.current) {
+      setPop(true);
+      const t = setTimeout(() => setPop(false), 600);
+      prevCompleted.current = completedCount;
+      return () => clearTimeout(t);
+    }
+    prevCompleted.current = completedCount;
+  }, [completedCount]);
 
   return (
     <div
@@ -30,8 +42,11 @@ export function TaskProgressPanel({ tasks, currentStep, totalSteps }: TaskProgre
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-accent/30 transition-colors"
       >
-        {/* Circular mini progress */}
-        <div className="relative w-7 h-7 flex-shrink-0">
+        {/* Circular mini progress with pop animation */}
+        <div
+          className="relative w-7 h-7 flex-shrink-0 transition-transform duration-300 ease-out"
+          style={{ transform: pop ? "scale(1.25)" : "scale(1)" }}
+        >
           <svg viewBox="0 0 28 28" className="w-full h-full -rotate-90">
             <circle cx="14" cy="14" r="11" fill="none" stroke="hsl(var(--step-line))" strokeWidth="2.5" />
             <circle
@@ -42,6 +57,7 @@ export function TaskProgressPanel({ tasks, currentStep, totalSteps }: TaskProgre
               strokeDasharray={`${2 * Math.PI * 11}`}
               strokeDashoffset={`${2 * Math.PI * 11 * (1 - completedCount / totalSteps)}`}
               className="transition-all duration-700 ease-out"
+              style={{ filter: pop ? "drop-shadow(0 0 4px hsl(var(--success) / 0.6))" : "none" }}
             />
           </svg>
           <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground tabular-nums">
