@@ -23,7 +23,7 @@ export interface StreamOptions {
 }
 
 export async function streamChat(options: StreamOptions) {
-  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, onTool, onSearch, onBrowse, onSources, onApprovalRequired, signal } = options;
+  const { conversationId, message, provider, model, onToken, onError, onDone, onTitle, onFollowUps, onStep, onReport, onMode, onTool, onSearch, onBrowse, onSources, onSlides, onApprovalRequired, signal } = options;
 
   // Get a valid session — try cached first (faster), refresh only if needed
   let accessToken: string | undefined;
