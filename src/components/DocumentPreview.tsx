@@ -253,16 +253,24 @@ export function DocumentPreview({ open, onClose, title, summary, tableData, full
 
   // If we have full markdown content, split into sections by ## headings for pagination
   const pages = useMemo(() => {
-    if (fullContent) {
-      const sections = fullContent.split(/(?=^## )/m).filter(s => s.trim());
+    if (fullContent && fullContent.length > 50) {
+      // Split on ## headings, keeping content before first ## as intro
+      const parts = fullContent.split(/(?=^## )/m).filter(s => s.trim());
+
+      // If no ## headings found, try splitting on # headings
+      const sections = parts.length <= 1
+        ? fullContent.split(/(?=^# )/m).filter(s => s.trim())
+        : parts;
+
       if (sections.length === 0) sections.push(fullContent);
+
       return sections.map((section, i) => {
         const firstLine = section.trim().split('\n')[0].replace(/^#+\s*/, '');
         return {
           id: i + 1,
-          label: firstLine || `Section ${i + 1}`,
+          label: firstLine.substring(0, 60) || `Section ${i + 1}`,
           content: (
-            <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-td:text-muted-foreground prose-th:text-foreground">
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground/80 prose-li:text-foreground/80 prose-strong:text-foreground prose-td:text-foreground/70 prose-th:text-foreground prose-table:text-sm">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{section}</ReactMarkdown>
             </div>
           ),

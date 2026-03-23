@@ -488,7 +488,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setReportMenuOpen(null)} />
                     <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-20 shadow-xl" style={{ backgroundColor: "hsl(var(--popover))" }}>
-                      <button onClick={() => { setReportMenuOpen(null); setPreviewMsg({ id: "streaming", role: "assistant", content: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: { headers: activeReport.headers, rows: activeReport.rows } } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                      <button onClick={() => { setReportMenuOpen(null); setPreviewMsg({ id: "streaming", role: "assistant", content: "", reportContent: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: { headers: activeReport.headers, rows: activeReport.rows } } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
                         <Eye size={16} className="text-muted-foreground" />Preview
                       </button>
                       <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
@@ -712,7 +712,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           title={previewMsg.reportTitle || ""}
           summary={previewMsg.reportSummary || ""}
           tableData={previewMsg.tableData}
-          fullContent={previewMsg.content || (streamingReport || lastReport)?.content || ""}
+          fullContent={(previewMsg as any).reportContent || (streamingReport || lastReport)?.content || (previewMsg.content?.length > 200 ? previewMsg.content : "") || ""}
         />
       )}
       {/* Voice Agent Overlay */}
