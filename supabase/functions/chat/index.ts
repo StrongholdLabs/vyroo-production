@@ -797,6 +797,16 @@ Deno.serve(async (req) => {
             }
           }
 
+          // For agentic tasks, upgrade budget models to Sonnet for reliable tool use
+          let agenticModel = selectedModel;
+          if (taskMode === "agentic" && actualProviderId === "anthropic") {
+            const budgetModels = ["claude-haiku-4-5-20251001", "claude-3-5-haiku-latest", "claude-3-haiku-20240307"];
+            if (budgetModels.includes(selectedModel)) {
+              agenticModel = "claude-sonnet-4-20250514";
+              console.log(`[chat] Upgrading from ${selectedModel} to ${agenticModel} for agentic task`);
+            }
+          }
+
           if (taskMode === "agentic" && actualProviderId === "anthropic") {
             // ===== ReAct Tool Loop (Anthropic only) =====
             try {
@@ -862,7 +872,7 @@ Deno.serve(async (req) => {
                 }
 
                 const result = await callAnthropicWithTools(
-                  apiKey!, loopMessages, selectedModel, anthropicTools, extraPrompt
+                  apiKey!, loopMessages, agenticModel, anthropicTools, extraPrompt
                 );
 
                 if (result.toolCalls.length === 0) {
@@ -877,7 +887,7 @@ Deno.serve(async (req) => {
                       content: "You must call write_report now with all your research findings before responding. Pass the full topic and all data you gathered.",
                     });
                     const reportResult = await callAnthropicWithTools(
-                      apiKey!, loopMessages, selectedModel, anthropicTools,
+                      apiKey!, loopMessages, agenticModel, anthropicTools,
                       enrichedSystemPrompt + "\n\nYou MUST call write_report now. Do not respond with text — call the tool first."
                     );
                     // Process any tool calls from the forced report
@@ -943,7 +953,7 @@ Deno.serve(async (req) => {
                     }
                     // Now get the final short summary
                     const summaryResult = await callAnthropicWithTools(
-                      apiKey!, loopMessages, selectedModel, anthropicTools,
+                      apiKey!, loopMessages, agenticModel, anthropicTools,
                       enrichedSystemPrompt + "\n\nThe report has been generated. Now give a SHORT 1-2 sentence summary of the key findings. Do not repeat the report content."
                     );
                     finalTextContent = summaryResult.textContent || result.textContent;
