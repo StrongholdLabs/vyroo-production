@@ -17,6 +17,8 @@ import { BrowserView } from "@/components/computer/BrowserView";
 import { SearchView } from "@/components/computer/SearchView";
 import { TaskProgressPanel } from "@/components/computer/TaskProgressPanel";
 import { ResearchTimeline } from "@/components/computer/ResearchTimeline";
+import { SlideViewerPanel } from "@/components/computer/SlideViewerPanel";
+import { Presentation } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -188,14 +190,17 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   // Auto-switch to the right tab when new data arrives in the Computer Panel
   useEffect(() => {
     if (!computerView) return;
-    if (computerView.document?.content && activeTab !== "code") {
+    const cv = computerView as any;
+    if (cv.slides?.slides?.length > 0 && activeTab !== "slides") {
+      handleTabChange("slides");
+    } else if (computerView.document?.content && activeTab !== "code") {
       handleTabChange("code");
     } else if (computerView.browserContent && !computerView.document?.content && activeTab !== "preview") {
       handleTabChange("preview");
     } else if (computerView.searchResults && !computerView.browserContent && !computerView.document?.content && activeTab !== "terminal") {
       handleTabChange("terminal");
     }
-  }, [computerView?.document?.content, computerView?.browserContent, computerView?.searchResults]);
+  }, [computerView?.document?.content, computerView?.browserContent, computerView?.searchResults, (computerView as any)?.slides]);
 
   // Keyboard shortcuts: Cmd/Ctrl+1-4 for tabs, Escape exits fullscreen
   useEffect(() => {
@@ -245,8 +250,10 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const viewType = computerView?.type || "editor";
 
   // Determine status bar label based on view
-  const statusLabel = viewType === "document" ? "Document" : viewType === "browser" ? "Browser" : viewType === "search" ? "Search" : editorLabel;
-  const statusAction = viewType === "document"
+  const statusLabel = viewType === "slides" ? "Slides" : viewType === "document" ? "Document" : viewType === "browser" ? "Browser" : viewType === "search" ? "Search" : editorLabel;
+  const statusAction = viewType === "slides"
+    ? `${(computerView as any)?.slides?.title || "Generating presentation..."}`
+    : viewType === "document"
     ? `${computerView?.document?.title || "Generating document..."}`
     : viewType === "browser"
     ? `Browsing ${computerView?.browserUrl || ""}`
@@ -260,6 +267,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         { key: "preview" as const, icon: Globe, label: "Browser" },
         { key: "terminal" as const, icon: SearchIcon, label: "Search" },
         ...(computerView?.timeline ? [{ key: "timeline" as const, icon: Clock, label: "Timeline" }] : []),
+        ...((computerView as any)?.slides ? [{ key: "slides" as const, icon: Presentation, label: "Slides" }] : []),
       ]
     : [
         { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
@@ -519,6 +527,12 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         )
       ) : activeTab === "timeline" && computerView?.timeline ? (
         <ResearchTimeline entries={computerView.timeline} onEntryClick={handleTimelineEntryClick} />
+      ) : activeTab === "slides" && (computerView as any)?.slides?.slides?.length > 0 ? (
+        <SlideViewerPanel
+          slides={(computerView as any).slides.slides}
+          presentationTitle={(computerView as any).slides.title || "Presentation"}
+          lastModified="Just now"
+        />
       ) : null}
         </motion.div>
       </AnimatePresence>

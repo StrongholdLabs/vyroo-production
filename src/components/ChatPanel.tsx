@@ -33,6 +33,8 @@ import { VoiceAgentOverlay } from "@/components/VoiceAgentOverlay";
 import { FollowUpPanel } from "@/components/FollowUpPanel";
 import { ShareConversation } from "@/components/ShareConversation";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { SlidesOutlineCard } from "@/components/SlidesOutlineCard";
+import { SlidePreviewCard } from "@/components/SlidePreviewCard";
 import { useAIChat } from "@/hooks/useAIChat";
 
 /** Render inline markdown (bold + code) within table cells */
@@ -75,7 +77,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const responseStartRef = useRef<HTMLDivElement>(null);
   const hasScrolledToResponse = useRef(false);
 
-  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, lastReport, taskMode, toolCalls, searchResults, browseData, isUsingTools, sources } = useAIChat({
+  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, lastReport, slidesData, lastSlidesData, taskMode, toolCalls, searchResults, browseData, isUsingTools, sources } = useAIChat({
     conversationId: conversation.id,
   });
 
@@ -89,13 +91,14 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   // Push live tool data to Computer Panel — using enriched data from backend
   useEffect(() => {
     if (!onComputerViewUpdate) return;
-    if (searchResults.length > 0 || browseData.length > 0 || streamingReport) {
+    if (searchResults.length > 0 || browseData.length > 0 || streamingReport || slidesData) {
       const latestSearch = searchResults[searchResults.length - 1];
       const latestBrowse = browseData[browseData.length - 1];
 
       // Determine which tab to show based on latest activity
-      let viewType: "browser" | "search" | "document" = "search";
-      if (streamingReport?.content) viewType = "document";
+      let viewType: "browser" | "search" | "document" | "slides" = "search";
+      if (slidesData) viewType = "slides";
+      else if (streamingReport?.content) viewType = "document";
       else if (latestBrowse) viewType = "browser";
 
       // Favicon color palette for search results
@@ -144,6 +147,12 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           format: streamingReport.format || "markdown",
           wordCount: streamingReport.word_count || 0,
         } : undefined,
+        // Slides data for the Slides tab
+        slides: slidesData ? {
+          title: slidesData.title,
+          slides: slidesData.slides,
+          slideCount: slidesData.slideCount,
+        } : undefined,
         // Timeline with elapsed timestamps and enriched data
         timeline: [
           ...searchResults.map((s: any, i: number) => ({
@@ -178,7 +187,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         ],
       });
     }
-  }, [searchResults, browseData, streamingReport, onComputerViewUpdate]);
+  }, [searchResults, browseData, streamingReport, slidesData, onComputerViewUpdate]);
 
   // Auto-focus composer on conversation switch
   useEffect(() => {
@@ -500,6 +509,32 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                 </div>
               )}
             </div>
+          </div>
+        ) : null; })()}
+
+        {/* Slides outline + preview cards — persists across follow-ups */}
+        {(() => { const activeSlides = slidesData || lastSlidesData; return activeSlides ? (
+          <div className="space-y-3">
+            <SlidesOutlineCard
+              title="Slides outline"
+              subtitle={activeSlides.title}
+              slides={activeSlides.slides.map((s, i) => ({
+                number: i + 1,
+                title: s.title,
+                description: s.subtitle || "",
+              }))}
+              onSlideClick={() => onOpenComputer?.()}
+            />
+            {/* Inline slide preview cards (first 2) */}
+            {activeSlides.slides.slice(0, 2).map((slide, i) => (
+              <SlidePreviewCard
+                key={i}
+                slide={slide}
+                slideNumber={i + 1}
+                totalSlides={activeSlides.slideCount}
+                onClick={() => onOpenComputer?.()}
+              />
+            ))}
           </div>
         ) : null; })()}
 

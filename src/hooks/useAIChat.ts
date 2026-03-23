@@ -43,6 +43,22 @@ export interface ToolCall {
   status: "executing" | "complete";
 }
 
+export interface SlideItem {
+  title: string;
+  subtitle?: string;
+  content?: string[];
+  bgColor?: string;
+  accentColor?: string;
+  badge?: string;
+  speakerNotes?: string;
+}
+
+export interface SlidesData {
+  title: string;
+  slides: SlideItem[];
+  slideCount: number;
+}
+
 export interface SearchData {
   query: string;
   results: Array<{ title: string; url: string; snippet?: string; domain?: string; favicon?: string }>;
@@ -78,6 +94,8 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [lastReport, setLastReport] = useState<StreamingReport | null>(null);
   const [taskMode, setTaskMode] = useState<"direct" | "agentic" | null>(null);
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
+  const [slidesData, setSlidesData] = useState<SlidesData | null>(null);
+  const [lastSlidesData, setLastSlidesData] = useState<SlidesData | null>(null);
   const [searchResults, setSearchResults] = useState<SearchData[]>([]);
   const [browseData, setBrowseData] = useState<BrowseData[]>([]);
   const [isUsingTools, setIsUsingTools] = useState(false);
@@ -96,6 +114,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
       setFollowUps([]);
       setSteps([]);
       setReport(null);
+      setSlidesData(null);
       setTaskMode(null);
       setToolCalls([]);
       setSearchResults([]);
@@ -178,6 +197,10 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         onSources: (data) => {
           setSources(data.sources || []);
         },
+        onSlides: (data) => {
+          setSlidesData(data);
+          setLastSlidesData(data); // Persist across follow-ups
+        },
         onApprovalRequired: (data) => {
           setPendingApproval(data);
         },
@@ -240,6 +263,8 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
     steps,
     report,
     lastReport,
+    slidesData,
+    lastSlidesData,
     taskMode,
     toolCalls,
     searchResults,

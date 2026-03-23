@@ -17,6 +17,7 @@ export interface StreamOptions {
   onSearch?: (data: { query: string; results: Array<{ title: string; url: string; snippet?: string; domain?: string; favicon?: string }>; elapsed?: string }) => void;
   onBrowse?: (data: { url: string; title: string; content: string; domain?: string; favicon?: string; sections?: any[]; elapsed?: string; durationMs?: number }) => void;
   onSources?: (data: { sources: Array<{ title: string; url: string; favicon: string; domain: string }> }) => void;
+  onSlides?: (data: { title: string; slides: Array<{ title: string; subtitle?: string; content?: string[]; bgColor?: string; accentColor?: string; badge?: string; speakerNotes?: string }>; slideCount: number }) => void;
   onApprovalRequired?: (data: { step_number: number; tool_name: string; tool_description?: string; args: Record<string, any>; approval_id: string }) => void;
   signal?: AbortSignal;
 }
@@ -114,6 +115,8 @@ export async function streamChat(options: StreamOptions) {
               onBrowse?.(parsed);
             } else if (eventType === "sources" && parsed) {
               onSources?.(parsed);
+            } else if (eventType === "slides" && parsed) {
+              onSlides?.(parsed);
             } else if (eventType === "approval_required" && parsed) {
               onApprovalRequired?.(parsed);
             } else if (eventType === "error") {

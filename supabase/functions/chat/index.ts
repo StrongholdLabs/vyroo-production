@@ -30,14 +30,20 @@ You are an AGENT, not a chatbot. Decide the right approach based on the task:
 3. **Cross-reference** — verify claims across multiple sources, note disagreements
 4. **Synthesize** — combine everything into an original, insightful response
 
-### Creation tasks (presentations, summaries, outlines, rewrites):
+### Creation tasks (summaries, outlines, rewrites):
 1. **Skip research** — use your training knowledge and conversation history directly
 2. **Go straight to write_report** — create the content immediately without web_search or browse_url
 3. If the conversation already contains research data from previous messages, USE THAT DATA — do not re-research
 
+### Presentation tasks ("create a presentation", "make a deck", "slides"):
+1. **Skip research** — use your knowledge and conversation history
+2. **Call generate_presentation** (NOT write_report) — this creates visual slides in the Computer Panel
+3. Pass the topic and any relevant data from the conversation
+
 ### How to decide:
 - "Research X" / "What are the top X" / "Analyze X" → RESEARCH (search + browse first)
-- "Create a presentation" / "Write a summary" / "Make an outline" / "Summarize this" → CREATION (skip to write_report)
+- "Create a presentation" / "Make a deck" / "Generate slides" → PRESENTATION (skip to generate_presentation)
+- "Write a summary" / "Make an outline" / "Summarize this" → CREATION (skip to write_report)
 - "Build me a report about X" → RESEARCH first, then write_report
 - Follow-up "now make a presentation from this" → CREATION (use existing data)
 
@@ -1168,6 +1174,15 @@ Deno.serve(async (req) => {
                       summary: reportSummary || reportContent.substring(0, 200),
                       headers: tableHeaders,
                       rows: tableRows.slice(0, 10), // Max 10 rows in card
+                    })}\n\n`));
+                  } else if (toolCall.name === "generate_presentation") {
+                    // Emit slides event for Computer Panel Slides tab + chat inline cards
+                    const slidesData = (toolResult as any).slides || [];
+                    const presTitle = (toolResult as any).title || toolCall.input.topic || "Presentation";
+                    controller.enqueue(encoder.encode(`event: slides\ndata: ${JSON.stringify({
+                      title: presTitle,
+                      slides: slidesData,
+                      slideCount: slidesData.length,
                     })}\n\n`));
                   } else if (toolCall.name === "generate_code" || toolCall.name === "review_code") {
                     // Emit code event for Computer Panel Code tab

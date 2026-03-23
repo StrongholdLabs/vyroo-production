@@ -717,6 +717,89 @@ const writeReport: AgentToolDefinition = {
   },
 };
 
+const generatePresentation: AgentToolDefinition = {
+  id: "generate_presentation",
+  name: "Generate Presentation",
+  description: "Generate a structured slide presentation with title, content, and speaker notes for each slide. Returns JSON slide data that renders as visual slides in the user's Computer Panel.",
+  parameters: {
+    topic: { type: "string", description: "The topic/title of the presentation", required: true },
+    data: { type: "string", description: "Research data or content to base the slides on" },
+    num_slides: { type: "number", description: "Number of slides to generate (default 8)" },
+  },
+  async execute(args) {
+    const topic = String(args.topic ?? "");
+    if (!topic) return { error: "No topic provided" };
+    const data = args.data ? String(args.data) : "";
+    const numSlides = Number(args.num_slides) || 8;
+
+    try {
+      const slideJson = await callAnthropic(
+        "claude-sonnet-4-20250514",
+        `You are a professional presentation designer. Generate a JSON array of slides for a presentation.
+
+Each slide must have:
+- "title": string (slide heading)
+- "subtitle": string (supporting text or key insight)
+- "content": string[] (3-4 bullet points, each under 80 characters)
+- "badge": string or null (short label like "2026 INSIGHTS", "KEY DATA", "TRENDS", null for most slides)
+- "speakerNotes": string (2-3 sentences of speaker notes)
+
+The first slide should be a title slide with the presentation title, subtitle as description, and badge.
+The last slide should be a conclusion/takeaway slide.
+Middle slides should cover key topics with data-driven bullet points.
+
+Return ONLY a valid JSON array. No markdown, no explanation. Example:
+[{"title":"Title","subtitle":"Subtitle","content":["Point 1","Point 2"],"badge":"2026","speakerNotes":"Notes here"}]`,
+        `Create a ${numSlides}-slide presentation about: ${topic}${data ? `\n\nUse this data:\n${data.slice(0, 8000)}` : ""}`,
+        4096
+      );
+
+      // Parse slides JSON
+      let slides;
+      try {
+        // Try direct parse
+        slides = JSON.parse(slideJson);
+      } catch {
+        // Extract JSON array from markdown wrapping
+        const match = slideJson.match(/\[[\s\S]*\]/);
+        if (match) slides = JSON.parse(match[0]);
+        else return { error: "Failed to parse slide data" };
+      }
+
+      if (!Array.isArray(slides) || slides.length === 0) {
+        return { error: "No slides generated" };
+      }
+
+      // Add colors — alternate between warm and cool tones
+      const colorPalettes = [
+        { bgColor: "hsl(220 14% 96%)", accentColor: "hsl(35 70% 65%)" },
+        { bgColor: "hsl(210 20% 95%)", accentColor: "hsl(210 60% 55%)" },
+        { bgColor: "hsl(220 14% 96%)", accentColor: "hsl(150 50% 50%)" },
+        { bgColor: "hsl(30 20% 96%)", accentColor: "hsl(35 70% 65%)" },
+        { bgColor: "hsl(210 20% 95%)", accentColor: "hsl(280 50% 55%)" },
+      ];
+
+      const enrichedSlides = slides.map((s: any, i: number) => ({
+        title: s.title || `Slide ${i + 1}`,
+        subtitle: s.subtitle || "",
+        content: Array.isArray(s.content) ? s.content : [],
+        badge: s.badge || null,
+        speakerNotes: s.speakerNotes || "",
+        ...colorPalettes[i % colorPalettes.length],
+      }));
+
+      return {
+        type: "presentation",
+        title: topic,
+        slides: enrichedSlides,
+        slideCount: enrichedSlides.length,
+      };
+    } catch (err) {
+      return { error: `Presentation generation failed: ${String(err)}` };
+    }
+  },
+};
+
 const executeCode: AgentToolDefinition = {
   id: "execute_code",
   name: "Execute Code",
@@ -860,6 +943,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
   analyze_csv: analyzeCsv,
   create_chart: createChart,
   write_report: writeReport,
+  generate_presentation: generatePresentation,
   execute_code: executeCode,
 };
 
