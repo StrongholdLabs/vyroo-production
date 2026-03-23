@@ -83,6 +83,8 @@ export function useConversation(id: string | undefined) {
           reportTitle: meta.reportTitle || m.report_title || undefined,
           reportSummary: meta.reportSummary || m.report_summary || undefined,
           tableData: meta.tableData || m.table_data || undefined,
+          reportContent: meta.reportContent || undefined,
+          slidesData: meta.slidesData || undefined,
           created_at: m.created_at,
         };
       });

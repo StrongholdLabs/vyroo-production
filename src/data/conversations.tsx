@@ -50,6 +50,8 @@ export interface ChatMessage {
   reportTitle?: string;
   reportSummary?: string;
   tableData?: { headers: string[]; rows: string[][] };
+  reportContent?: string;
+  slidesData?: { title: string; slides: any[]; slideCount: number };
 }
 
 export interface SuggestedFollowUp {

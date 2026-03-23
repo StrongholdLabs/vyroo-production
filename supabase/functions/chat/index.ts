@@ -778,6 +778,7 @@ Deno.serve(async (req) => {
     // (Use direct prompt for simple questions to prevent raw tool XML in responses)
     let enrichedSystemPrompt = SYSTEM_PROMPT; // Will be replaced for direct mode after classification
     let lastReportContent = ""; // Track report content for follow-up generation
+    let lastSlidesData: any = null; // Track slides data for persistence
     try {
       const memories = await getRelevantMemories(user.id, message, supabase);
       const memorySection = injectMemoryContext(memories);
@@ -1254,12 +1255,10 @@ Deno.serve(async (req) => {
                     const slidesData = slidesResult?.slides || [];
                     const presTitle = slidesResult?.title || toolCall.input?.topic || "Presentation";
                     console.log(`[chat] Slides: ${slidesData.length} slides, title: ${presTitle}`);
-                    // Always emit the slides event (even if empty, so frontend knows it was called)
-                    controller.enqueue(encoder.encode(`event: slides\ndata: ${JSON.stringify({
-                      title: presTitle,
-                      slides: slidesData,
-                      slideCount: slidesData.length,
-                    })}\n\n`));
+                    // Save for persistence
+                    lastSlidesData = { title: presTitle, slides: slidesData, slideCount: slidesData.length };
+                    // Emit slides event
+                    controller.enqueue(encoder.encode(`event: slides\ndata: ${JSON.stringify(lastSlidesData)}\n\n`));
                   } else if (toolCall.name === "generate_code" || toolCall.name === "review_code") {
                     // Emit code event for Computer Panel Code tab
                     controller.enqueue(encoder.encode(`event: code\ndata: ${JSON.stringify({
@@ -1576,7 +1575,9 @@ Deno.serve(async (req) => {
                 hasReport: true,
                 reportTitle: plan[plan.length - 1]?.label || "Report",
                 reportSummary: lastReportContent.split('\n').find((l: string) => l.trim() && !l.startsWith('#') && !l.startsWith('|'))?.substring(0, 300) || "",
+                reportContent: lastReportContent.substring(0, 15000), // Full report for Document tab persistence
                 tableData: rptHeaders.length > 0 ? { headers: rptHeaders, rows: rptRows.slice(0, 10) } : undefined,
+                slidesData: lastSlidesData || undefined, // Slides for Slides tab persistence
               };
             }
             await supabase.from("messages").insert(messageData);

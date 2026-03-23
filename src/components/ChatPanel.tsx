@@ -189,6 +189,31 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     }
   }, [searchResults, browseData, streamingReport, slidesData, onComputerViewUpdate]);
 
+  // Restore Computer Panel data from persisted message metadata on conversation switch
+  useEffect(() => {
+    if (!onComputerViewUpdate) return;
+    // Find the last assistant message with report or slides metadata
+    const lastAssistantMsg = [...messages].reverse().find(m =>
+      m.role === "assistant" && (m.reportContent || m.slidesData)
+    );
+    if (lastAssistantMsg) {
+      const view: any = { type: "document" };
+      if (lastAssistantMsg.reportContent) {
+        view.document = {
+          title: lastAssistantMsg.reportTitle || "Report",
+          content: lastAssistantMsg.reportContent,
+          format: "markdown",
+          wordCount: lastAssistantMsg.reportContent.split(/\s+/).length,
+        };
+      }
+      if (lastAssistantMsg.slidesData) {
+        view.type = "slides";
+        view.slides = lastAssistantMsg.slidesData;
+      }
+      onComputerViewUpdate(view);
+    }
+  }, [conversation.id]);
+
   // Auto-focus composer on conversation switch
   useEffect(() => {
     const timer = setTimeout(() => textareaRef.current?.focus(), 300);
