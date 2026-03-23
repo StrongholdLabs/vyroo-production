@@ -383,7 +383,26 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           <div className="flex-1 overflow-y-auto" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
             <div className="max-w-3xl mx-auto px-8 py-8">
               <div className="mb-6 pb-4 border-b border-border">
-                <h1 className="text-xl font-bold text-foreground mb-2">{computerView.document.title}</h1>
+                <div className="flex items-center justify-between">
+                  <h1 className="text-xl font-bold text-foreground mb-2">{computerView.document.title}</h1>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([computerView.document!.content], { type: 'text/markdown' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${computerView.document!.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}.md`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-md border border-border hover:bg-accent transition-colors"
+                  >
+                    <FileText size={12} />
+                    Download
+                  </button>
+                </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span>{computerView.document.wordCount?.toLocaleString()} words</span>
                   <span>•</span>

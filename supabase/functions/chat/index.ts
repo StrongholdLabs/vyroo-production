@@ -1680,6 +1680,37 @@ If score >= 8, set improved_summary to null (summary is good enough).`,
               } catch { /* embedding is non-critical */ }
             }
 
+            // Save generated content as workspace file for persistent access
+            try {
+              if (lastReportContent) {
+                const reportTitle = messageData.metadata?.reportTitle || "Research Report";
+                await supabase.from("workspace_files").insert({
+                  user_id: user.id,
+                  conversation_id: conversationId,
+                  name: reportTitle,
+                  type: "document",
+                  format: "markdown",
+                  content: lastReportContent,
+                  metadata: { tableData: messageData.metadata?.tableData },
+                  size_bytes: lastReportContent.length,
+                });
+                console.log("[chat] Saved report as workspace file");
+              }
+              if (lastSlidesData?.slides?.length > 0) {
+                await supabase.from("workspace_files").insert({
+                  user_id: user.id,
+                  conversation_id: conversationId,
+                  name: lastSlidesData.title || "Presentation",
+                  type: "presentation",
+                  format: "json",
+                  content: JSON.stringify(lastSlidesData),
+                  metadata: lastSlidesData,
+                  size_bytes: JSON.stringify(lastSlidesData).length,
+                });
+                console.log("[chat] Saved presentation as workspace file");
+              }
+            } catch { /* workspace save is non-critical */ }
+
             // Update conversation timestamp and message count
             await supabase
               .from("conversations")
