@@ -81,7 +81,13 @@ const DIRECT_SYSTEM_PROMPT = `You are Vyroo, a knowledgeable AI assistant. You p
 - **Use bold** for key terms, metrics, and important figures
 - **Keep it concise** — 2-3 sentence paragraphs max
 
-You do NOT have access to tools or web search in this mode. Answer from your knowledge.`;
+You do NOT have access to tools or web search in this mode. Answer from your knowledge.
+
+CRITICAL FORMATTING RULES:
+- NEVER output raw JSON, XML, or structured data objects in your response
+- NEVER use <function_calls>, <invoke>, or any XML-like tags
+- Format everything as clean readable Markdown (headings, bullet points, tables)
+- If asked to create a presentation or document, format it as readable Markdown sections, not JSON`;
 
 const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 short follow-up questions or actions the user might want to take next. Return ONLY a JSON array of strings, no explanation. Each suggestion should be concise (under 60 characters). Example: ["How do I deploy this?","Can you add error handling?","Explain the architecture"]`;
 
@@ -99,15 +105,18 @@ const CLASSIFY_PROMPT = `Classify this user message into one of two modes. Retur
 
 Use "direct" for:
 - Simple questions with short answers (math, facts, greetings, definitions)
-- Conversational messages (hello, thanks, follow-ups)
-- One-line requests
+- Short conversational messages (hello, thanks, ok, good job, bye)
+- Clarification questions about the previous response (explain more, what do you mean, why)
+- Feedback messages (no follow up?, where are the follow-ups?, that's wrong)
 
 Use "agentic" for:
 - Research tasks requiring multiple steps
 - Analysis or comparison requests
-- Content creation (reports, articles, presentations)
+- Content creation (reports, articles, presentations, summaries, outlines)
 - Complex multi-part questions
 - Tasks that would benefit from planning and structured execution
+- Requests to create, build, make, generate, write, summarize, or produce something
+- Follow-up requests that ask for NEW work (create a presentation, write a report, build a table)
 
 Examples:
 "What is 2+2?" → direct
@@ -116,6 +125,10 @@ Examples:
 "Analyze the top 5 DTC skincare brands" → agentic
 "Create a marketing strategy for my startup" → agentic
 "Compare React vs Vue for enterprise apps" → agentic
+"Summarize this into a presentation outline" → agentic
+"Create a comparison table" → agentic
+"Write a report based on this data" → agentic
+"Dive deeper into the top findings" → agentic
 "Research nutrition trends in 2026" → agentic
 "Thanks!" → direct
 "no follow up?" → direct
@@ -1530,38 +1543,37 @@ Deno.serve(async (req) => {
           {
             let followUpItems: Array<{text: string; category: string}> = [];
 
+            // Try AI-generated follow-ups with tight timeout
             if (fullResponse || lastReportContent) {
               try {
-                console.log("[followups] Starting generation, fullResponse length:", fullResponse.length, "reportContent length:", (lastReportContent || "").length);
                 const followUps = await Promise.race([
                   generateFollowUps(actualProviderId, apiKey!, message, fullResponse || "No response yet", lastReportContent || undefined),
-                  new Promise<string[]>(resolve => setTimeout(() => { console.log("[followups] Timed out after 8s"); resolve([]); }, 8000)),
+                  new Promise<string[]>(resolve => setTimeout(() => resolve([]), 6000)),
                 ]) as string[];
-                console.log("[followups] Got results:", JSON.stringify(followUps));
                 if (followUps.length > 0) {
                   followUpItems = followUps.map(f => typeof f === 'string' ? { text: f, category: "default" } : f);
                 }
-              } catch (followUpErr) {
-                console.error("[followups] Error:", followUpErr);
-              }
+              } catch { /* non-critical */ }
             }
 
-            // Fallback: generate context-aware follow-ups from the user's message
+            // Smart fallback — use topic keywords from user's message
             if (followUpItems.length === 0) {
-              console.log("[followups] Using fallback follow-ups");
-              const topic = message.length > 80 ? message.substring(0, 80) : message;
-              followUpItems = [
-                { text: `Go deeper on the top trends mentioned`, category: "research" },
-                { text: `Create a comparison table of the key findings`, category: "analysis" },
-                { text: `What are the investment opportunities here?`, category: "research" },
-                { text: `Summarize this into a presentation outline`, category: "create" },
+              const hasReport = !!lastReportContent;
+              const topic = message.replace(/^(can you |please |could you )/i, '').substring(0, 50);
+              followUpItems = hasReport ? [
+                { text: `Dive deeper into the key findings`, category: "research" },
+                { text: `Create a visual comparison table`, category: "analysis" },
+                { text: `What are the biggest opportunities?`, category: "research" },
+                { text: `Turn this into a presentation deck`, category: "create" },
+              ] : [
+                { text: `Tell me more about this topic`, category: "research" },
+                { text: `Give me specific examples`, category: "research" },
+                { text: `What are the pros and cons?`, category: "analysis" },
+                { text: `How does this compare to alternatives?`, category: "analysis" },
               ];
             }
 
-            if (followUpItems.length > 0) {
-              controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps: followUpItems })}\n\n`));
-              console.log("[followups] Emitted", followUpItems.length, "follow-ups");
-            }
+            controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps: followUpItems })}\n\n`));
           }
 
           controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`));
