@@ -687,6 +687,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           title={previewMsg.reportTitle || ""}
           summary={previewMsg.reportSummary || ""}
           tableData={previewMsg.tableData}
+          fullContent={previewMsg.content || (streamingReport || lastReport)?.content || ""}
         />
       )}
       {/* Voice Agent Overlay */}

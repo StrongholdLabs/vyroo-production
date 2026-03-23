@@ -24,6 +24,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface DocumentPreviewProps {
   open: boolean;
@@ -31,6 +33,7 @@ interface DocumentPreviewProps {
   title: string;
   summary: string;
   tableData?: { headers: string[]; rows: string[][] };
+  fullContent?: string;
 }
 
 // Build pages from the document content
@@ -244,11 +247,30 @@ function generateMarkdown(title: string, summary: string, tableData?: { headers:
   return md;
 }
 
-export function DocumentPreview({ open, onClose, title, summary, tableData }: DocumentPreviewProps) {
+export function DocumentPreview({ open, onClose, title, summary, tableData, fullContent }: DocumentPreviewProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [tocOpen, setTocOpen] = useState(true);
 
-  const pages = useMemo(() => buildPages(title, summary, tableData), [title, summary, tableData]);
+  // If we have full markdown content, split into sections by ## headings for pagination
+  const pages = useMemo(() => {
+    if (fullContent) {
+      const sections = fullContent.split(/(?=^## )/m).filter(s => s.trim());
+      if (sections.length === 0) sections.push(fullContent);
+      return sections.map((section, i) => {
+        const firstLine = section.trim().split('\n')[0].replace(/^#+\s*/, '');
+        return {
+          id: i + 1,
+          label: firstLine || `Section ${i + 1}`,
+          content: (
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-td:text-muted-foreground prose-th:text-foreground">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{section}</ReactMarkdown>
+            </div>
+          ),
+        };
+      });
+    }
+    return buildPages(title, summary, tableData);
+  }, [title, summary, tableData, fullContent]);
   const totalPages = pages.length;
 
   const goNext = useCallback(() => setCurrentPage(p => Math.min(totalPages - 1, p + 1)), [totalPages]);
@@ -268,7 +290,7 @@ export function DocumentPreview({ open, onClose, title, summary, tableData }: Do
   if (!open) return null;
 
   const handleDownloadMarkdown = () => {
-    const md = generateMarkdown(title, summary, tableData);
+    const md = fullContent || generateMarkdown(title, summary, tableData);
     const blob = new Blob([md], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -280,7 +302,7 @@ export function DocumentPreview({ open, onClose, title, summary, tableData }: Do
   };
 
   const handleDownloadHTML = () => {
-    const md = generateMarkdown(title, summary, tableData);
+    const md = fullContent || generateMarkdown(title, summary, tableData);
     // Simple HTML wrapper
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.6}table{border-collapse:collapse;width:100%;margin:16px 0}th,td{border:1px solid #ddd;padding:8px 12px;text-align:left}th{background:#f5f5f5;font-weight:600}h1{font-size:28px}h2{font-size:20px;margin-top:32px}</style></head><body>${md.replace(/^# (.*$)/gm, '<h1>$1</h1>').replace(/^## (.*$)/gm, '<h2>$1</h2>').replace(/\n/g, '<br>')}</body></html>`;
     const blob = new Blob([html], { type: "text/html" });
