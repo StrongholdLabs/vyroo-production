@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { ArrowLeft, ArrowRight, RotateCw, Lock, Star, X, Plus } from "lucide-react";
 
 export interface BrowserTab {
@@ -30,105 +30,6 @@ interface BrowserViewProps {
   url: string;
   pageContent: BrowserPageContent;
   isLoading?: boolean;
-}
-
-function BrowserProgressBar({ isLoading }: { isLoading: boolean }) {
-  const [progress, setProgress] = useState(0);
-  const [visible, setVisible] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (isLoading) {
-      setProgress(0);
-      setVisible(true);
-      // Fast phase: 0-80% in ~800ms
-      let current = 0;
-      intervalRef.current = setInterval(() => {
-        current += Math.random() * 12 + 3;
-        if (current >= 80) {
-          current = 80 + Math.random() * 5; // slow crawl 80-85
-        }
-        if (current > 92) current = 92; // cap before completion
-        setProgress(current);
-      }, 100);
-    } else {
-      // Jump to 100% then fade out
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      setProgress(100);
-      const timeout = setTimeout(() => setVisible(false), 400);
-      return () => clearTimeout(timeout);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isLoading]);
-
-  if (!visible) return null;
-
-  return (
-    <div className="absolute top-0 left-0 right-0 h-[2px] z-20">
-      <div
-        className="h-full bg-blue-500 transition-all duration-200 ease-out"
-        style={{
-          width: `${progress}%`,
-          boxShadow: progress < 100 ? "0 0 8px hsl(210 100% 60% / 0.6)" : "none",
-          opacity: progress >= 100 ? 0 : 1,
-          transition: progress >= 100 ? "width 200ms, opacity 300ms 200ms" : "width 200ms ease-out",
-        }}
-      />
-    </div>
-  );
-}
-
-function SkeletonLoader() {
-  return (
-    <div className="p-4 space-y-4">
-      {/* Header skeleton */}
-      <div className="flex items-center gap-2 pb-3 border-b border-zinc-200 dark:border-zinc-700">
-        <div className="w-6 h-6 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-        <div className="h-4 w-32 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-        <div className="ml-auto flex gap-3">
-          <div className="h-3 w-14 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-          <div className="h-3 w-14 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-          <div className="h-3 w-10 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-        </div>
-      </div>
-      {/* Title skeleton */}
-      <div className="h-5 w-3/4 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-      {/* Tags skeleton */}
-      <div className="flex gap-2">
-        <div className="h-5 w-16 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-        <div className="h-5 w-20 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-        <div className="h-5 w-14 rounded-full bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-      </div>
-      {/* Text block skeletons */}
-      <div className="space-y-2">
-        <div className="h-3 w-full rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-        <div className="h-3 w-5/6 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-        <div className="h-3 w-4/6 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-      </div>
-      {/* Table skeleton */}
-      <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
-        <div className="bg-zinc-50 dark:bg-zinc-800 p-2 flex gap-4">
-          <div className="h-3 w-20 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-          <div className="h-3 w-24 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-          <div className="h-3 w-16 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-        </div>
-        {[1, 2, 3].map(row => (
-          <div key={row} className="p-2 flex gap-4 border-t border-zinc-100 dark:border-zinc-800">
-            <div className="h-3 w-20 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-            <div className="h-3 w-24 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-            <div className="h-3 w-16 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-          </div>
-        ))}
-      </div>
-      {/* More text */}
-      <div className="space-y-2">
-        <div className="h-3 w-full rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-        <div className="h-3 w-2/3 rounded bg-zinc-200 dark:bg-zinc-700 animate-pulse" />
-      </div>
-    </div>
-  );
 }
 
 export function BrowserView({ tabs, url, pageContent, isLoading }: BrowserViewProps) {
@@ -163,14 +64,12 @@ export function BrowserView({ tabs, url, pageContent, isLoading }: BrowserViewPr
             }`}
           >
             {tab.favicon && (
-              tab.favicon.startsWith('http')
-                ? <img src={tab.favicon} alt="" className="w-3 h-3 rounded-sm flex-shrink-0" />
-                : <div
-                    className="w-3 h-3 rounded-sm flex-shrink-0 flex items-center justify-center text-[7px] font-bold text-white"
-                    style={{ backgroundColor: tab.favicon }}
-                  >
-                    {tab.title.charAt(0)}
-                  </div>
+              <div
+                className="w-3 h-3 rounded-sm flex-shrink-0 flex items-center justify-center text-[7px] font-bold text-white"
+                style={{ backgroundColor: tab.favicon }}
+              >
+                {tab.title.charAt(0)}
+              </div>
             )}
             <span className="truncate">{tab.title}</span>
             <X size={8} className="text-muted-foreground/40 flex-shrink-0 ml-auto" />
@@ -197,10 +96,11 @@ export function BrowserView({ tabs, url, pageContent, isLoading }: BrowserViewPr
       </div>
 
       {/* Page content */}
-      <div className="flex-1 overflow-y-auto bg-white dark:bg-zinc-900 relative">
-        <BrowserProgressBar isLoading={!!isLoading} />
+      <div className="flex-1 overflow-y-auto bg-white dark:bg-zinc-900">
         {isLoading ? (
-          <SkeletonLoader />
+          <div className="flex items-center justify-center h-full">
+            <div className="w-6 h-6 border-2 border-muted-foreground/20 border-t-foreground rounded-full animate-spin" />
+          </div>
         ) : (
           <div className="p-4 space-y-4">
             {/* Site header */}

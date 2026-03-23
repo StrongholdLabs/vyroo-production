@@ -19,14 +19,10 @@ import {
   Trash2,
   Copy,
   Check,
-  Brain,
-  LogOut,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { MemoryPanel } from "@/components/MemoryPanel";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -42,7 +38,6 @@ const navItems = [
 { id: "data", label: "Data controls", icon: Shield },
 { id: "browser", label: "Cloud browser", icon: Monitor },
 { id: "personalization", label: "Personalization", icon: Sparkles },
-{ id: "memory", label: "Memory", icon: Brain },
 { id: "skills", label: "Skills", icon: Puzzle },
 { id: "connectors", label: "Connectors", icon: Link2 },
 { id: "integrations", label: "Integrations", icon: Link2 }];
@@ -54,7 +49,6 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [emailOnTask, setEmailOnTask] = useState(true);
   const [language, setLanguage] = useState("en");
   const { theme, setTheme } = useTheme();
-  const { signOut } = useAuth();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -90,17 +84,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               )}
             </div>
 
-            <div className="px-2 pt-2 border-t border-border mt-2 space-y-0.5">
+            <div className="px-2 pt-2 border-t border-border mt-2">
               <button className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors">
                 <ExternalLink size={15} />
                 <span>Get help</span>
-              </button>
-              <button
-                onClick={() => { onOpenChange(false); signOut(); }}
-                className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <LogOut size={15} />
-                <span>Sign out</span>
               </button>
             </div>
           </div>
@@ -292,11 +279,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             {/* Account tab */}
             {activeTab === "account" && <AccountTab />}
 
-            {/* Memory tab */}
-            {activeTab === "memory" && <MemoryPanel />}
-
             {/* Placeholder for other tabs */}
-            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "account" && activeTab !== "memory" &&
+            {activeTab !== "settings" && activeTab !== "usage" && activeTab !== "account" &&
             <div className="px-6 py-12 flex flex-col items-center justify-center text-center">
                 <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center mb-3">
                   {(() => {

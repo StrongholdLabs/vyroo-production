@@ -63,14 +63,7 @@ export interface ProjectInfo {
   status: "initialized" | "building" | "complete";
 }
 
-export type ComputerViewType = "editor" | "browser" | "search" | "document";
-
-export interface DocumentData {
-  title: string;
-  content: string;
-  format: string;
-  wordCount: number;
-}
+export type ComputerViewType = "editor" | "browser" | "search";
 
 export interface ComputerViewState {
   type: ComputerViewType;
@@ -80,7 +73,6 @@ export interface ComputerViewState {
   searchQuery?: string;
   searchResults?: SearchResult[];
   timeline?: TimelineEntry[];
-  document?: DocumentData;
 }
 
 export interface Conversation {

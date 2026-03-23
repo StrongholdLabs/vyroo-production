@@ -8,7 +8,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import type { CodeLine, Step, FileNode, ComputerViewState, ResearchTask, TimelineEntry } from "@/data/conversations";
 import vyrooIcon from "@/assets/vyroo-icon.png";
-import { TokenizedLine, getTypingDelay } from "@/components/computer/SyntaxHighlighter";
+import { TokenizedLine } from "@/components/computer/SyntaxHighlighter";
 import { CodeMinimap } from "@/components/computer/CodeMinimap";
 import { TerminalTab } from "@/components/computer/TerminalTab";
 import { MarkdownRenderer } from "@/components/computer/MarkdownRenderer";
@@ -17,8 +17,6 @@ import { BrowserView } from "@/components/computer/BrowserView";
 import { SearchView } from "@/components/computer/SearchView";
 import { TaskProgressPanel } from "@/components/computer/TaskProgressPanel";
 import { ResearchTimeline } from "@/components/computer/ResearchTimeline";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 interface ComputerPanelProps {
   visible: boolean;
@@ -87,7 +85,6 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const [showDiff, setShowDiff] = useState(false);
   const [isLive, setIsLive] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const codeRef = useRef<HTMLDivElement>(null);
   const prevCodeRef = useRef(codeLines);
   const [scrollState, setScrollState] = useState({ scrollTop: 0, scrollHeight: 0, clientHeight: 0 });
@@ -106,25 +103,11 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
 
   useEffect(() => {
     if (visibleChars >= totalChars) return;
-    // Determine current character for variable-speed typing
-    let charsSoFar = 0;
-    let currentChar = "";
-    let remainingChars = "";
-    for (let i = 0; i < codeLines.length; i++) {
-      const lineContent = codeLines[i].content || "";
-      const lineLen = lineContent.length + 1; // +1 for newline
-      if (charsSoFar + lineLen > visibleChars) {
-        const posInLine = visibleChars - charsSoFar;
-        currentChar = posInLine < lineContent.length ? lineContent[posInLine] : "\n";
-        remainingChars = lineContent.slice(posInLine + 1);
-        break;
-      }
-      charsSoFar += lineLen;
-    }
-    const delay = getTypingDelay(currentChar, remainingChars);
-    const timer = setTimeout(() => setVisibleChars(v => Math.min(v + 1, totalChars)), delay);
+    const chunkSize = 1 + Math.floor(Math.random() * 3);
+    const delay = 8 + Math.random() * 25;
+    const timer = setTimeout(() => setVisibleChars(v => Math.min(v + chunkSize, totalChars)), delay);
     return () => clearTimeout(timer);
-  }, [visibleChars, totalChars, codeLines]);
+  }, [visibleChars, totalChars]);
 
   // Visible lines for code view
   const { visibleLines, partialContent } = (() => {
@@ -180,48 +163,8 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
       handleTabChange("preview");
     } else if (entry.type === "search") {
       handleTabChange("terminal");
-    } else if (entry.type === "save") {
-      handleTabChange("code");
     }
   }, [handleTabChange]);
-
-  // Auto-switch to the right tab when new data arrives in the Computer Panel
-  useEffect(() => {
-    if (!computerView) return;
-    if (computerView.document?.content && activeTab !== "code") {
-      handleTabChange("code");
-    } else if (computerView.browserContent && !computerView.document?.content && activeTab !== "preview") {
-      handleTabChange("preview");
-    } else if (computerView.searchResults && !computerView.browserContent && !computerView.document?.content && activeTab !== "terminal") {
-      handleTabChange("terminal");
-    }
-  }, [computerView?.document?.content, computerView?.browserContent, computerView?.searchResults]);
-
-  // Keyboard shortcuts: Cmd/Ctrl+1-4 for tabs, Escape exits fullscreen
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key === "1") {
-        e.preventDefault();
-        handleTabChange("code");
-      } else if (mod && e.key === "2") {
-        e.preventDefault();
-        handleTabChange("preview");
-      } else if (mod && e.key === "3") {
-        e.preventDefault();
-        handleTabChange("terminal");
-      } else if (mod && e.key === "4") {
-        e.preventDefault();
-        handleTabChange("timeline");
-      } else if (e.key === "Escape" && isFullscreen) {
-        setIsFullscreen(false);
-      }
-    };
-    if (visible) {
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [visible, isFullscreen, handleTabChange]);
 
   const handleMinimapScroll = useCallback((ratio: number) => {
     if (codeRef.current) codeRef.current.scrollTop = ratio * codeRef.current.scrollHeight;
@@ -245,10 +188,8 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const viewType = computerView?.type || "editor";
 
   // Determine status bar label based on view
-  const statusLabel = viewType === "document" ? "Document" : viewType === "browser" ? "Browser" : viewType === "search" ? "Search" : editorLabel;
-  const statusAction = viewType === "document"
-    ? `${computerView?.document?.title || "Generating document..."}`
-    : viewType === "browser"
+  const statusLabel = viewType === "browser" ? "Browser" : viewType === "search" ? "Search" : editorLabel;
+  const statusAction = viewType === "browser"
     ? `Browsing ${computerView?.browserUrl || ""}`
     : viewType === "search"
     ? `Searching ${computerView?.searchQuery || ""}...`
@@ -256,7 +197,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
 
   const tabs = isResearch
     ? [
-        { key: "code" as const, icon: FileText, label: "Document" },
+        { key: "code" as const, icon: isCode ? Code : FileText, label: isCode ? "Code" : "Document" },
         { key: "preview" as const, icon: Globe, label: "Browser" },
         { key: "terminal" as const, icon: SearchIcon, label: "Search" },
         ...(computerView?.timeline ? [{ key: "timeline" as const, icon: Clock, label: "Timeline" }] : []),
@@ -270,11 +211,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
   const diffLines = generateDiff(codeLines);
 
   return (
-    <div className={`computer-panel flex flex-col flex-shrink-0 ${
-      isFullscreen
-        ? "fixed inset-0 z-50 bg-background w-screen h-screen"
-        : "h-full w-full"
-    }`}>
+    <div className="computer-panel flex flex-col h-full w-full flex-shrink-0">
       {/* Header */}
       <div className="computer-header flex items-center justify-between px-4 h-10 flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -283,13 +220,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         </div>
         <div className="flex items-center gap-1">
           <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Square size={14} /></button>
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"
-            title={isFullscreen ? "Exit fullscreen (Esc)" : "Fullscreen"}
-          >
-            <Maximize2 size={14} />
-          </button>
+          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><Maximize2 size={14} /></button>
           <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded"><X size={14} /></button>
         </div>
       </div>
@@ -370,26 +301,7 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           className="flex-1 flex flex-col overflow-hidden"
         >
       {activeTab === "code" ? (
-        isResearch && computerView?.document?.content ? (
-          /* Document view — render report/document markdown */
-          <div className="flex-1 overflow-y-auto" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
-            <div className="max-w-3xl mx-auto px-8 py-8">
-              <div className="mb-6 pb-4 border-b border-border">
-                <h1 className="text-xl font-bold text-foreground mb-2">{computerView.document.title}</h1>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>{computerView.document.wordCount?.toLocaleString()} words</span>
-                  <span>•</span>
-                  <span>{computerView.document.format === "html" ? "HTML" : "Markdown"}</span>
-                  <span>•</span>
-                  <span>Generated just now</span>
-                </div>
-              </div>
-              <div className="prose prose-sm dark:prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-code:text-foreground prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-secondary prose-pre:border prose-pre:border-border max-w-none text-sm leading-relaxed">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{computerView.document.content}</ReactMarkdown>
-              </div>
-            </div>
-          </div>
-        ) : isCode ? (
+        isCode ? (
           /* Code editor view */
           <div className="flex-1 flex overflow-hidden">
             {/* File tree */}
@@ -412,28 +324,6 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
                     <DiffView diffLines={diffLines} visibleCount={visibleLines} />
                   ) : (
                     <div className="p-4 text-[13px] leading-[1.7] font-mono">
-                      <style dangerouslySetInnerHTML={{ __html: `
-                        @keyframes cursor-blink {
-                          0%, 50% { opacity: 1; }
-                          51%, 100% { opacity: 0; }
-                        }
-                        .typing-cursor {
-                          display: inline-block;
-                          width: 2px;
-                          height: 1em;
-                          background: hsl(210 60% 70%);
-                          margin-left: 1px;
-                          vertical-align: text-bottom;
-                          animation: cursor-blink 1s step-end infinite;
-                          box-shadow: 0 0 4px hsl(210 60% 70% / 0.5);
-                        }
-                        .typing-line-active {
-                          background: hsl(210 60% 50% / 0.05);
-                          border-radius: 2px;
-                          margin: 0 -4px;
-                          padding: 0 4px;
-                        }
-                      ` }} />
                       {codeLines.slice(0, visibleLines).map((line, i) => (
                         <div key={`${line.num}-${i}`} className="flex typing-line">
                           <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{line.num}</span>
@@ -443,11 +333,11 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
                         </div>
                       ))}
                       {isTyping && visibleLines < codeLines.length && (
-                        <div className="flex typing-line typing-line-active">
+                        <div className="flex typing-line">
                           <span className="w-8 text-right pr-3 text-muted-foreground/30 select-none tabular-nums flex-shrink-0">{codeLines[visibleLines].num}</span>
                           <span className="break-all">
                             <TokenizedLine content={partialContent || "\u00A0"} />
-                            <span className="typing-cursor" />
+                            <span className="inline-block w-[2px] h-3.5 bg-foreground/70 animate-pulse ml-[1px] align-text-bottom" />
                           </span>
                         </div>
                       )}
@@ -476,9 +366,9 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
           />
         )
       ) : activeTab === "preview" ? (
-        isResearch && computerView?.browserContent ? (
+        isResearch && computerView?.browserTabs && computerView?.browserContent ? (
           <BrowserView
-            tabs={computerView.browserTabs || [{ id: "1", title: computerView.browserContent.pageTitle || "Page", url: computerView.browserUrl || "", active: true }]}
+            tabs={computerView.browserTabs}
             url={computerView.browserUrl || ""}
             pageContent={computerView.browserContent}
           />
