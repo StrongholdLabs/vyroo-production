@@ -413,32 +413,58 @@ export function ComputerPanel({ visible, onClose, codeLines, steps, fileName, ed
         </motion.div>
       </AnimatePresence>
 
-      {/* Playback controls */}
-      <div className="flex items-center justify-between px-4 py-2 border-t flex-shrink-0"
+      {/* Vyroo progress dock */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-t flex-shrink-0"
         style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}
       >
-        <div className="flex items-center gap-2">
-          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors"><SkipBack size={14} /></button>
-          <button className="p-1 text-muted-foreground hover:text-foreground transition-colors"><SkipForward size={14} /></button>
+        {/* Segmented progress pips instead of a bar */}
+        <div className="flex items-center gap-1 flex-1">
+          {Array.from({ length: totalSteps }).map((_, i) => {
+            const stepProgress = i < activeStep ? 100 : i === activeStep - 1 ? 50 : 0;
+            const isActive = i === activeStep - 1;
+            const isDone = i < activeStep;
+            return (
+              <div
+                key={i}
+                className="flex-1 h-1.5 rounded-full overflow-hidden transition-all duration-300"
+                style={{
+                  backgroundColor: "hsl(var(--step-line))",
+                  boxShadow: isActive ? "0 0 6px hsl(var(--success) / 0.4)" : "none",
+                }}
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${
+                    isDone ? "bg-success" : isActive ? "bg-success animate-pulse" : ""
+                  }`}
+                  style={{ width: isDone ? "100%" : isActive ? "60%" : "0%" }}
+                />
+              </div>
+            );
+          })}
         </div>
-        <div className="flex-1 mx-3 flex items-center gap-2">
-          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: "hsl(var(--step-line))" }}>
-            <div className="h-full rounded-full bg-success transition-all duration-300" style={{ width: `${progress}%` }} />
+
+        {/* Status capsule */}
+        {isTyping && !isLive ? (
+          <button
+            onClick={handleJumpToLive}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold tracking-wide uppercase bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors active:scale-95"
+          >
+            <Radio size={9} className="animate-pulse" />
+            LIVE
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-semibold tracking-wide uppercase"
+            style={{ backgroundColor: isTyping ? "hsl(var(--destructive) / 0.1)" : "hsl(var(--success) / 0.1)" }}
+          >
+            <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-destructive animate-pulse" : "bg-success"}`} />
+            <span className={isTyping ? "text-destructive" : "text-success"}>{isTyping ? "working" : "complete"}</span>
           </div>
-          {isTyping && !isLive ? (
-            <button
-              onClick={handleJumpToLive}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors active:scale-95"
-            >
-              <Radio size={10} className="animate-pulse" />
-              <span>LIVE</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-1">
-              <div className={`w-1.5 h-1.5 rounded-full ${isTyping ? "bg-destructive animate-pulse" : "bg-success"}`} />
-              <span className="text-[10px] text-muted-foreground">{isTyping ? "live" : "done"}</span>
-            </div>
-          )}
+        )}
+
+        {/* Playback nav */}
+        <div className="flex items-center gap-0.5">
+          <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"><SkipBack size={12} /></button>
+          <button className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"><SkipForward size={12} /></button>
         </div>
       </div>
 
