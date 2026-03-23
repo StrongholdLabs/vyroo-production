@@ -1511,28 +1511,41 @@ Deno.serve(async (req) => {
           }
 
           // Follow-ups MUST come before done (frontend exits stream loop on done)
-          // Use strict 8s timeout so done always fires
-          if (fullResponse || lastReportContent) {
-            try {
-              console.log("[followups] Starting generation, fullResponse length:", fullResponse.length, "reportContent length:", (lastReportContent || "").length);
-              const followUps = await Promise.race([
-                generateFollowUps(actualProviderId, apiKey!, message, fullResponse || "No response yet", lastReportContent || undefined),
-                new Promise<string[]>(resolve => setTimeout(() => { console.log("[followups] Timed out after 8s"); resolve([]); }, 8000)),
-              ]) as string[];
-              console.log("[followups] Got results:", JSON.stringify(followUps));
-              if (followUps.length > 0) {
-                // Convert string[] to {text, category}[] for FollowUpPanel
-                const typedFollowUps = followUps.map(f => typeof f === 'string' ? { text: f, category: "default" } : f);
-                controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps: typedFollowUps })}\n\n`));
-                console.log("[followups] Emitted", typedFollowUps.length, "follow-ups");
-              } else {
-                console.log("[followups] Empty results, no follow-ups emitted");
+          {
+            let followUpItems: Array<{text: string; category: string}> = [];
+
+            if (fullResponse || lastReportContent) {
+              try {
+                console.log("[followups] Starting generation, fullResponse length:", fullResponse.length, "reportContent length:", (lastReportContent || "").length);
+                const followUps = await Promise.race([
+                  generateFollowUps(actualProviderId, apiKey!, message, fullResponse || "No response yet", lastReportContent || undefined),
+                  new Promise<string[]>(resolve => setTimeout(() => { console.log("[followups] Timed out after 8s"); resolve([]); }, 8000)),
+                ]) as string[];
+                console.log("[followups] Got results:", JSON.stringify(followUps));
+                if (followUps.length > 0) {
+                  followUpItems = followUps.map(f => typeof f === 'string' ? { text: f, category: "default" } : f);
+                }
+              } catch (followUpErr) {
+                console.error("[followups] Error:", followUpErr);
               }
-            } catch (followUpErr) {
-              console.error("[followups] Error:", followUpErr);
             }
-          } else {
-            console.log("[followups] Skipped: no fullResponse or lastReportContent");
+
+            // Fallback: generate context-aware follow-ups from the user's message
+            if (followUpItems.length === 0) {
+              console.log("[followups] Using fallback follow-ups");
+              const topic = message.length > 80 ? message.substring(0, 80) : message;
+              followUpItems = [
+                { text: `Go deeper on the top trends mentioned`, category: "research" },
+                { text: `Create a comparison table of the key findings`, category: "analysis" },
+                { text: `What are the investment opportunities here?`, category: "research" },
+                { text: `Summarize this into a presentation outline`, category: "create" },
+              ];
+            }
+
+            if (followUpItems.length > 0) {
+              controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps: followUpItems })}\n\n`));
+              console.log("[followups] Emitted", followUpItems.length, "follow-ups");
+            }
           }
 
           controller.enqueue(encoder.encode(`event: done\ndata: {}\n\n`));
