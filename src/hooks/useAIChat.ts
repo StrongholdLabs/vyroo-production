@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { streamChat, respondToApproval } from "@/lib/ai-stream";
 import { useModelSettings } from "@/hooks/useModelSettings";
 import { broadcastEvent } from "@/hooks/useBroadcastSync";
+import { detectCategory } from "@/lib/follow-up-icons";
 
 interface UseAIChatOptions {
   conversationId: string;
@@ -29,6 +30,9 @@ export interface StreamingReport {
   summary: string;
   headers: string[];
   rows: string[][];
+  content?: string;
+  format?: string;
+  word_count?: number;
 }
 
 export interface ToolCall {
@@ -41,13 +45,19 @@ export interface ToolCall {
 
 export interface SearchData {
   query: string;
-  results: Array<{ title: string; url: string; snippet?: string }>;
+  results: Array<{ title: string; url: string; snippet?: string; domain?: string; favicon?: string }>;
+  elapsed?: string;
 }
 
 export interface BrowseData {
   url: string;
   title: string;
   content: string;
+  domain?: string;
+  favicon?: string;
+  sections?: Array<{ type: string; content: string; items?: string[]; tableHeaders?: string[]; tableRows?: string[][] }>;
+  elapsed?: string;
+  durationMs?: number;
 }
 
 export interface ApprovalRequest {
@@ -112,7 +122,11 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           broadcastEvent("title-updated", conversationId);
         },
         onFollowUps: (newFollowUps) => {
-          setFollowUps(newFollowUps);
+          // Convert string[] from backend to {text, category}[] for FollowUpPanel
+          const typed = (newFollowUps || []).map((f: any) =>
+            typeof f === 'string' ? { text: f, category: detectCategory(f) } : f
+          );
+          setFollowUps(typed);
         },
         onStep: (stepData) => {
           setSteps(prev => {
@@ -133,7 +147,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         },
         onReport: (reportData) => {
           setReport(reportData);
-          setLastReport(reportData);
+          setLastReport(reportData); // Persist across follow-ups
         },
         onMode: (mode) => {
           setTaskMode(mode);
@@ -141,12 +155,17 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         onTool: (tool) => {
           setIsUsingTools(true);
           setToolCalls(prev => {
-            const existing = prev.findIndex(t => t.name === tool.name && t.status === "executing");
-            if (existing >= 0 && tool.status === "complete") {
-              const updated = [...prev];
-              updated[existing] = tool;
-              return updated;
+            if (tool.status === "complete") {
+              // Find the LAST executing tool with the same name (handles multiple calls)
+              const lastExecutingIdx = prev.reduce((lastIdx, t, i) =>
+                t.name === tool.name && t.status === "executing" ? i : lastIdx, -1);
+              if (lastExecutingIdx >= 0) {
+                const updated = [...prev];
+                updated[lastExecutingIdx] = tool;
+                return updated;
+              }
             }
+            // New tool or no match — add it
             return [...prev, tool];
           });
         },
@@ -167,11 +186,18 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           setIsStreaming(false);
         },
         onDone: async () => {
+          // Mark all steps as complete (fixes stuck spinners)
           setSteps(prev => prev.map(s => ({ ...s, status: "complete" as const })));
           setIsStreaming(false);
-          await queryClient.invalidateQueries({ queryKey: ["conversation", conversationId] });
+          // Refetch conversation BEFORE clearing streaming content
+          // so the DB messages are loaded and visible before we remove the stream
+          await queryClient.invalidateQueries({
+            queryKey: ["conversation", conversationId],
+          });
           await queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          // Delay clearing streaming content so follow-ups panel has time to render
           setTimeout(() => setStreamingContent(""), 150);
+          // Broadcast to other tabs
           broadcastEvent("message-created", conversationId);
         },
       });

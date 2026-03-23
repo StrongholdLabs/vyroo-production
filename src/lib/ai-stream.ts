@@ -14,8 +14,8 @@ export interface StreamOptions {
   onReport?: (report: { title: string; summary: string; headers: string[]; rows: string[][] }) => void;
   onMode?: (mode: "direct" | "agentic") => void;
   onTool?: (tool: { name: string; args: Record<string, any>; result?: any; duration?: number; status: "executing" | "complete" }) => void;
-  onSearch?: (data: { query: string; results: Array<{ title: string; url: string; snippet?: string }> }) => void;
-  onBrowse?: (data: { url: string; title: string; content: string }) => void;
+  onSearch?: (data: { query: string; results: Array<{ title: string; url: string; snippet?: string; domain?: string; favicon?: string }>; elapsed?: string }) => void;
+  onBrowse?: (data: { url: string; title: string; content: string; domain?: string; favicon?: string; sections?: any[]; elapsed?: string; durationMs?: number }) => void;
   onSources?: (data: { sources: Array<{ title: string; url: string; favicon: string; domain: string }> }) => void;
   onApprovalRequired?: (data: { step_number: number; tool_name: string; tool_description?: string; args: Record<string, any>; approval_id: string }) => void;
   signal?: AbortSignal;

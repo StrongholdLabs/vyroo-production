@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronUp, Check, Loader2, Globe, FileEdit, Image, Terminal } from "lucide-react";
 import type { Step } from "@/data/conversations";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -11,6 +11,19 @@ interface ExpandableStepProps {
 export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
   const [expanded, setExpanded] = useState(isActive ?? false);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const wasActive = useRef(isActive);
+
+  // Auto-expand when step becomes active, auto-collapse when it completes
+  useEffect(() => {
+    if (isActive && !wasActive.current) {
+      setExpanded(true);
+    } else if (!isActive && wasActive.current && step.status === "complete") {
+      // Step just completed — collapse after short delay so user sees the checkmark
+      const timer = setTimeout(() => setExpanded(false), 600);
+      return () => clearTimeout(timer);
+    }
+    wasActive.current = isActive;
+  }, [isActive, step.status]);
 
   // Collect all image sub-tasks for lightbox
   const imageItems = (step.subTasks || [])
@@ -55,8 +68,8 @@ export function ExpandableStep({ step, isActive }: ExpandableStepProps) {
           {/* Summary text */}
           <p className="text-sm text-muted-foreground leading-relaxed">{step.detail}</p>
 
-          {/* Project initialization card - for first step */}
-          {step.id === 1 && step.status === "complete" && (
+          {/* Project initialization card - only for website/code tasks, not research */}
+          {step.id === 1 && step.status === "complete" && /build|create|design|website|page|app|code/i.test(step.label) && (
             <div className="rounded-xl overflow-hidden max-w-md border border-border" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
               <div className="flex items-center gap-3 px-4 py-3">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "hsl(var(--success-soft))" }}>

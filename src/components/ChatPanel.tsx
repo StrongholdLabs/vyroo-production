@@ -32,6 +32,7 @@ import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { VoiceAgentOverlay } from "@/components/VoiceAgentOverlay";
 import { FollowUpPanel } from "@/components/FollowUpPanel";
 import { ShareConversation } from "@/components/ShareConversation";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { useAIChat } from "@/hooks/useAIChat";
 
 /** Render inline markdown (bold + code) within table cells */
@@ -71,8 +72,10 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const responseStartRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToResponse = useRef(false);
 
-  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, taskMode, toolCalls, searchResults, browseData, isUsingTools, sources } = useAIChat({
+  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, lastReport, taskMode, toolCalls, searchResults, browseData, isUsingTools, sources } = useAIChat({
     conversationId: conversation.id,
   });
 
@@ -83,49 +86,99 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     }
   }, [isUsingTools]);
 
-  // Push live tool data to Computer Panel
+  // Push live tool data to Computer Panel — using enriched data from backend
   useEffect(() => {
     if (!onComputerViewUpdate) return;
-    if (searchResults.length > 0 || browseData.length > 0) {
+    if (searchResults.length > 0 || browseData.length > 0 || streamingReport) {
       const latestSearch = searchResults[searchResults.length - 1];
       const latestBrowse = browseData[browseData.length - 1];
+
+      // Determine which tab to show based on latest activity
+      let viewType: "browser" | "search" | "document" = "search";
+      if (streamingReport?.content) viewType = "document";
+      else if (latestBrowse) viewType = "browser";
+
+      // Favicon color palette for search results
+      const faviconColors = ["hsl(210 80% 55%)", "hsl(150 60% 45%)", "hsl(45 80% 50%)", "hsl(340 65% 50%)", "hsl(280 60% 55%)", "hsl(20 80% 50%)"];
+
       onComputerViewUpdate({
-        type: latestBrowse ? "browser" : "search",
+        type: viewType,
         searchQuery: latestSearch?.query,
+        // Map search results with enriched data (favicon, domain)
         searchResults: latestSearch?.results?.map((r: any, i: number) => ({
           title: r.title,
           url: r.url,
-          date: "",
+          date: r.domain || "",
           snippet: r.snippet || "",
-          faviconColor: ["hsl(210 80% 55%)", "hsl(150 60% 45%)", "hsl(45 80% 50%)", "hsl(340 65% 50%)"][i % 4],
+          faviconColor: faviconColors[i % faviconColors.length],
+          favicon: r.favicon || "",
         })),
         browserUrl: latestBrowse?.url,
+        // Use structured sections from backend if available, fallback to raw text
         browserContent: latestBrowse ? {
           type: "website" as const,
-          pageTitle: latestBrowse.title,
-          sections: [{ type: "text" as const, content: latestBrowse.content.substring(0, 3000) }],
+          siteName: latestBrowse.domain || "",
+          pageTitle: latestBrowse.title || "Page",
+          sections: (latestBrowse.sections && latestBrowse.sections.length > 0)
+            ? latestBrowse.sections.map((s: any) => ({
+                type: s.type as "nav" | "hero" | "text" | "table" | "tags" | "list",
+                content: s.content || "",
+                items: s.items,
+                tableHeaders: s.tableHeaders,
+                tableRows: s.tableRows,
+              }))
+            : [{ type: "text" as const, content: latestBrowse.content?.substring(0, 5000) || "" }],
         } : undefined,
+        // Browser tabs from all browsed URLs
+        browserTabs: browseData.length > 0 ? browseData.map((b, i) => ({
+          id: String(i),
+          title: b.title || b.domain || "Page",
+          url: b.url,
+          favicon: b.favicon,
+          active: i === browseData.length - 1,
+        })) : undefined,
+        // Document/report data for the Document tab
+        document: streamingReport?.content ? {
+          title: streamingReport.title,
+          content: streamingReport.content,
+          format: streamingReport.format || "markdown",
+          wordCount: streamingReport.word_count || 0,
+        } : undefined,
+        // Timeline with elapsed timestamps and enriched data
         timeline: [
-          ...searchResults.map((s, i) => ({
+          ...searchResults.map((s: any, i: number) => ({
             id: i + 1,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: s.elapsed || "0:00",
             type: "search" as const,
             title: `Searched: "${s.query}"`,
             snippet: `Found ${s.results.length} results`,
           })),
-          ...browseData.map((b, i) => ({
-            id: 100 + i,
+          ...browseData.map((b: any, i: number) => {
+            const domain = b.domain || (() => { try { return new URL(b.url).hostname; } catch { return ""; } })();
+            const durationSec = b.durationMs ? Math.round(b.durationMs / 1000) : 0;
+            return {
+              id: 100 + i,
+              timestamp: b.elapsed || "0:00",
+              type: "browse" as const,
+              title: b.title || "Browsed page",
+              url: b.url,
+              domain,
+              faviconColor: faviconColors[i % faviconColors.length],
+              snippet: b.content?.substring(0, 150) || "",
+              duration: durationSec > 0 ? `${durationSec}s` : undefined,
+            };
+          }),
+          ...(streamingReport?.content ? [{
+            id: 200,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            type: "browse" as const,
-            title: b.title || "Browsed page",
-            url: b.url,
-            domain: new URL(b.url).hostname,
-            snippet: b.content.substring(0, 150),
-          })),
+            type: "save" as const,
+            title: `Report: ${streamingReport.title}`,
+            snippet: `${streamingReport.word_count || 0} words`,
+          }] : []),
         ],
       });
     }
-  }, [searchResults, browseData, onComputerViewUpdate]);
+  }, [searchResults, browseData, streamingReport, onComputerViewUpdate]);
 
   // Auto-focus composer on conversation switch
   useEffect(() => {
@@ -140,10 +193,16 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     }, 100);
   }, [conversation.id]);
 
-  // Auto-scroll during streaming
+  // Auto-scroll to response START when final response begins (not the bottom)
+  // This guides the user to read from the top of the response
   useEffect(() => {
-    if (isStreaming && streamingContent) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isStreaming && streamingContent && !hasScrolledToResponse.current) {
+      hasScrolledToResponse.current = true;
+      // Scroll to the response start with some offset so user sees context
+      responseStartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (!isStreaming) {
+      hasScrolledToResponse.current = false;
     }
   }, [isStreaming, streamingContent]);
 
@@ -358,74 +417,17 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
-        {/* Upgrade banner — disabled for now */}
-
-        {/* Continue working status — only during active agentic streaming */}
-        {isAgentic && !isComplete && isStreaming && (
-        <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-muted-foreground" />
-          <span className="text-sm text-muted-foreground font-medium">Vyroo will continue working after your reply</span>
-        </div>
+        {/* Upgrade banner — show for free plan users after agentic response */}
+        {!isStreaming && streamingSteps.length > 0 && (
+          <UpgradeBanner />
         )}
 
-        {/* Tool execution logs */}
-        {toolCalls.length > 0 && (
-          <div className="space-y-2">
-            {toolCalls.map((tool, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span className={tool.status === "executing" ? "animate-spin" : ""}>
-                  {tool.status === "executing" ? "\u{1F504}" : "\u{2705}"}
-                </span>
-                <span className="font-medium text-foreground">{tool.name}</span>
-                <span className="text-xs">
-                  {tool.name === "web_search" ? `"${tool.args.query}"` :
-                   tool.name === "browse_url" ? tool.args.url :
-                   JSON.stringify(tool.args).substring(0, 50)}
-                </span>
-                {tool.duration && <span className="text-xs text-muted-foreground/60">{(tool.duration/1000).toFixed(1)}s</span>}
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Continue working status removed — not in original Manus design */}
 
-        {/* Sources with favicons — Perplexity style */}
-        {sources.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">Sources</span>
-            <div className="flex flex-wrap gap-2">
-              {sources.slice(0, 8).map((s, i) => (
-                <a
-                  key={i}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border hover:bg-accent/50 transition-colors group"
-                  style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
-                >
-                  <img src={s.favicon} alt="" width={16} height={16} className="rounded-sm flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground group-hover:text-foreground truncate max-w-[120px]">{s.domain}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Inline search results when Computer Panel is closed */}
-        {!computerVisible && searchResults.length > 0 && sources.length === 0 && (
-          <div className="rounded-lg border border-border p-3 space-y-2" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Globe size={12} />
-              <span>Sources found</span>
-            </div>
-            {searchResults.flatMap(s => s.results).slice(0, 5).map((r, i) => (
-              <a key={i} href={r.url} target="_blank" rel="noopener noreferrer" className="block text-xs text-foreground hover:text-primary truncate">
-                {r.title}
-              </a>
-            ))}
-          </div>
-        )}
+        {/* Sources removed — not in original Manus design */}
 
         {/* Streaming response */}
+        <div ref={responseStartRef} />
         {isStreaming && streamingContent && (
           <div className="space-y-2">
             <div className="text-sm text-foreground leading-relaxed prose prose-sm dark:prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-code:text-foreground prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-secondary prose-pre:border prose-pre:border-border max-w-none">
@@ -435,38 +437,71 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
-        {/* Streaming report card */}
-        {streamingReport && (
+        {/* Report card — persists across follow-ups */}
+        {(() => { const activeReport = streamingReport || lastReport; return activeReport ? (
           <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
               <FileText size={16} className="text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground truncate">{streamingReport.title}</span>
-            </div>
-            <div className="px-4 py-3">
-              <p className="text-xs text-muted-foreground mb-3">{streamingReport.summary}</p>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {streamingReport.headers.map((h, i) => (
-                        <th key={i} className="text-left py-2 px-3 text-xs font-medium text-muted-foreground">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {streamingReport.rows.map((row, ri) => (
-                      <tr key={ri} className="border-b border-border/50 last:border-0">
-                        {row.map((cell, ci) => (
-                          <td key={ci} className="py-2 px-3 text-sm text-foreground">{renderInlineMarkdown(cell)}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <span className="text-sm font-medium text-foreground truncate">{activeReport.title}</span>
+              <div className="ml-auto relative">
+                <button
+                  onClick={() => setReportMenuOpen(reportMenuOpen === "streaming" ? null : "streaming")}
+                  className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent"
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+                {reportMenuOpen === "streaming" && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setReportMenuOpen(null)} />
+                    <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-20 shadow-xl" style={{ backgroundColor: "hsl(var(--popover))" }}>
+                      <button onClick={() => { setReportMenuOpen(null); setPreviewMsg({ id: "streaming", role: "assistant", content: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: { headers: activeReport.headers, rows: activeReport.rows } } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Eye size={16} className="text-muted-foreground" />Preview
+                      </button>
+                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Share2 size={16} className="text-muted-foreground" />Share
+                      </button>
+                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Download size={16} className="text-muted-foreground" /><span className="flex-1 text-left">Download</span><ChevronRight size={14} className="text-muted-foreground" />
+                      </button>
+                      <div className="h-px bg-border my-1" />
+                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Globe size={16} className="text-[hsl(210_60%_55%)]" />Convert to Google Docs
+                      </button>
+                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Globe size={16} className="text-[hsl(45_80%_55%)]" />Save to Google Drive
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
+            <div className="px-4 py-3 space-y-2">
+              <p className="text-xs text-muted-foreground leading-relaxed">{activeReport.summary}</p>
+              {activeReport.headers.length > 0 && (
+                <div className="overflow-x-auto mt-2">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border">
+                        {activeReport.headers.map((h, i) => (
+                          <th key={i} className="text-left py-1.5 pr-4 font-medium text-foreground">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="text-muted-foreground">
+                      {activeReport.rows.map((row, ri) => (
+                        <tr key={ri} className="border-b border-border/50">
+                          {row.map((cell, ci) => (
+                            <td key={ci} className={`py-1.5 pr-4 ${ci === 0 ? "font-medium text-foreground" : ""}`}>{renderInlineMarkdown(cell)}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
-        )}
+        ) : null; })()}
 
         {/* AI error */}
         {aiError && (
