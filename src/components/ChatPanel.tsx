@@ -32,6 +32,7 @@ import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { VoiceAgentOverlay } from "@/components/VoiceAgentOverlay";
 import { FollowUpPanel } from "@/components/FollowUpPanel";
 import { ShareConversation } from "@/components/ShareConversation";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { useAIChat } from "@/hooks/useAIChat";
 
 /** Render inline markdown (bold + code) within table cells */
@@ -74,7 +75,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const responseStartRef = useRef<HTMLDivElement>(null);
   const hasScrolledToResponse = useRef(false);
 
-  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, taskMode, toolCalls, searchResults, browseData, isUsingTools, sources } = useAIChat({
+  const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, lastReport, taskMode, toolCalls, searchResults, browseData, isUsingTools, sources } = useAIChat({
     conversationId: conversation.id,
   });
 
@@ -416,7 +417,10 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
-        {/* Upgrade banner — disabled for now */}
+        {/* Upgrade banner — show for free plan users after agentic response */}
+        {!isStreaming && streamingSteps.length > 0 && (
+          <UpgradeBanner />
+        )}
 
         {/* Continue working status removed — not in original Manus design */}
 
@@ -433,12 +437,12 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
-        {/* Streaming report card — matches mock design report card */}
-        {streamingReport && (
+        {/* Report card — persists across follow-ups */}
+        {(() => { const activeReport = streamingReport || lastReport; return activeReport ? (
           <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
               <FileText size={16} className="text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground truncate">{streamingReport.title}</span>
+              <span className="text-sm font-medium text-foreground truncate">{activeReport.title}</span>
               <div className="ml-auto relative">
                 <button
                   onClick={() => setReportMenuOpen(reportMenuOpen === "streaming" ? null : "streaming")}
@@ -450,7 +454,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setReportMenuOpen(null)} />
                     <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-20 shadow-xl" style={{ backgroundColor: "hsl(var(--popover))" }}>
-                      <button onClick={() => { setReportMenuOpen(null); setPreviewMsg({ id: "streaming", role: "assistant", content: streamingReport.content || "", hasReport: true, reportTitle: streamingReport.title, reportSummary: streamingReport.summary, tableData: { headers: streamingReport.headers, rows: streamingReport.rows } } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                      <button onClick={() => { setReportMenuOpen(null); setPreviewMsg({ id: "streaming", role: "assistant", content: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: { headers: activeReport.headers, rows: activeReport.rows } } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
                         <Eye size={16} className="text-muted-foreground" />Preview
                       </button>
                       <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
@@ -472,19 +476,19 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
               </div>
             </div>
             <div className="px-4 py-3 space-y-2">
-              <p className="text-xs text-muted-foreground leading-relaxed">{streamingReport.summary}</p>
-              {streamingReport.headers.length > 0 && (
+              <p className="text-xs text-muted-foreground leading-relaxed">{activeReport.summary}</p>
+              {activeReport.headers.length > 0 && (
                 <div className="overflow-x-auto mt-2">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-border">
-                        {streamingReport.headers.map((h, i) => (
+                        {activeReport.headers.map((h, i) => (
                           <th key={i} className="text-left py-1.5 pr-4 font-medium text-foreground">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="text-muted-foreground">
-                      {streamingReport.rows.map((row, ri) => (
+                      {activeReport.rows.map((row, ri) => (
                         <tr key={ri} className="border-b border-border/50">
                           {row.map((cell, ci) => (
                             <td key={ci} className={`py-1.5 pr-4 ${ci === 0 ? "font-medium text-foreground" : ""}`}>{renderInlineMarkdown(cell)}</td>
@@ -497,7 +501,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
               )}
             </div>
           </div>
-        )}
+        ) : null; })()}
 
         {/* AI error */}
         {aiError && (

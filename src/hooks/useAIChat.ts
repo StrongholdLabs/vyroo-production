@@ -75,6 +75,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const [steps, setSteps] = useState<StreamingStep[]>([]);
   const [report, setReport] = useState<StreamingReport | null>(null);
+  const [lastReport, setLastReport] = useState<StreamingReport | null>(null);
   const [taskMode, setTaskMode] = useState<"direct" | "agentic" | null>(null);
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
   const [searchResults, setSearchResults] = useState<SearchData[]>([]);
@@ -146,6 +147,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         },
         onReport: (reportData) => {
           setReport(reportData);
+          setLastReport(reportData); // Persist across follow-ups
         },
         onMode: (mode) => {
           setTaskMode(mode);
@@ -237,6 +239,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
     followUps,
     steps,
     report,
+    lastReport,
     taskMode,
     toolCalls,
     searchResults,

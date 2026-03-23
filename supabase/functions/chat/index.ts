@@ -1187,13 +1187,15 @@ Deno.serve(async (req) => {
                 }
               }
 
-              // Stream the final text response as token events
+              // Stream the final text response as token events with typewriter pacing
               if (finalTextContent) {
-                const chunkSize = 20;
+                const chunkSize = 12;
                 for (let i = 0; i < finalTextContent.length; i += chunkSize) {
                   const chunk = finalTextContent.substring(i, i + chunkSize);
                   controller.enqueue(encoder.encode(`event: token\ndata: ${JSON.stringify({ token: chunk })}\n\n`));
                   fullResponse += chunk;
+                  // Small delay for typewriter effect (15ms per chunk ≈ natural reading pace)
+                  await new Promise(r => setTimeout(r, 15));
                 }
               }
 
