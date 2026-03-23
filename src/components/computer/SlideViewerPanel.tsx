@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Download, Share2, Play, MoreHorizontal, Sparkles } from "lucide-react";
 import type { SlideData } from "@/components/SlidePreviewCard";
+import { useToast } from "@/hooks/use-toast";
 
 interface SlideViewerPanelProps {
   slides: SlideData[];
@@ -11,6 +12,34 @@ interface SlideViewerPanelProps {
 export function SlideViewerPanel({ slides, presentationTitle, lastModified }: SlideViewerPanelProps) {
   const [activeSlide, setActiveSlide] = useState(0);
   const current = slides[activeSlide];
+  const { toast } = useToast();
+
+  const handleDownload = useCallback(() => {
+    // Generate markdown slide content
+    let md = `# ${presentationTitle}\n\n`;
+    slides.forEach((slide, i) => {
+      md += `---\n\n## Slide ${i + 1}: ${slide.title}\n\n`;
+      if (slide.subtitle) md += `*${slide.subtitle}*\n\n`;
+      if (slide.content && slide.content.length > 0) {
+        slide.content.forEach(point => { md += `- ${point}\n`; });
+        md += '\n';
+      }
+      if (slide.speakerNotes) md += `> **Speaker Notes:** ${slide.speakerNotes}\n\n`;
+    });
+
+    // Download as .md file
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${presentationTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({ title: "Presentation downloaded", description: `${slides.length} slides exported as Markdown` });
+  }, [slides, presentationTitle, toast]);
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: "hsl(var(--computer-bg))" }}>
@@ -21,11 +50,18 @@ export function SlideViewerPanel({ slides, presentationTitle, lastModified }: Sl
           {lastModified && <p className="text-[10px] text-muted-foreground">Last modified: {lastModified}</p>}
         </div>
         <div className="flex items-center gap-1">
-          {[Share2, Download, Play, MoreHorizontal].map((Icon, i) => (
-            <button key={i} className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors">
-              <Icon size={14} />
-            </button>
-          ))}
+          <button className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors" title="Share">
+            <Share2 size={14} />
+          </button>
+          <button onClick={handleDownload} className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors" title="Download as Markdown">
+            <Download size={14} />
+          </button>
+          <button className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors" title="Present">
+            <Play size={14} />
+          </button>
+          <button className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors" title="More options">
+            <MoreHorizontal size={14} />
+          </button>
         </div>
       </div>
 

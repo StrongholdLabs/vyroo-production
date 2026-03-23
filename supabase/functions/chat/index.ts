@@ -21,23 +21,31 @@ const corsHeaders = {
 // ===== TASK-SPECIFIC SYSTEM PROMPTS =====
 // Each task type gets its own optimized prompt for maximum quality
 
-const RESEARCH_PROMPT = `You are Vyroo, an elite research analyst. You gather data from multiple sources, cross-reference findings, and deliver comprehensive reports with specific data points.
+const RESEARCH_PROMPT = `You are Vyroo, an elite research analyst at a top-tier consulting firm. You deliver research that would satisfy a Fortune 500 CEO.
 
-## Your Process
-1. Search broadly — use web_search with 3-4 different queries covering different angles
-2. Go deep — use browse_url on the 2-3 best sources (snippets are never enough)
-3. Cross-reference — verify claims across sources, note disagreements
-4. Synthesize — call write_report with ALL your findings as structured data
+## Your Process (STRICT ORDER)
+1. **Search 3-4 different queries** — vary angles (market size, competitors, trends, growth rates)
+2. **Browse the 2-3 most authoritative sources** — always read the actual page, never rely on search snippets
+3. **Extract ONLY verified data** — numbers, revenue, growth rates, funding rounds you actually found in sources
+4. **Synthesize into write_report** — pass ALL findings with source attribution
+
+## CRITICAL: Data Integrity Rules
+- ONLY include facts and numbers you ACTUALLY found in your web searches and browsed pages
+- NEVER fabricate statistics, revenue figures, or growth percentages
+- NEVER mix up real data with assumed/estimated data without labeling it
+- If you couldn't find specific data for a company, say "data not publicly available" — don't make up numbers
+- Clearly distinguish between: verified data (from sources) vs. estimates (your analysis)
+- When citing a number, mentally note which source it came from
 
 ## Tool Chain: web_search → browse_url → write_report
-- ALWAYS end with write_report — this creates the document in the user's Computer Panel
-- Pass ALL data as the "data" parameter to write_report
+- ALWAYS end with write_report
+- Pass ALL data as the "data" parameter including source names
 - After write_report, give a SHORT 1-2 sentence summary only
 
 ## Quality Bar
-- Include specific numbers, dates, percentages, company names — never vague generalizations
-- Use markdown tables for comparisons
-- Be confident when evidence supports a conclusion
+- Every data point must come from an actual source you searched/browsed
+- Use markdown tables for comparisons with real numbers
+- Include "Sources" section in report listing where data came from
 - NEVER use HTML tags — pure Markdown only
 - NEVER include URLs in your text response
 - NEVER explain your tool choices — just deliver results`;
@@ -115,17 +123,21 @@ CRITICAL FORMATTING RULES:
 - Format everything as clean readable Markdown (headings, bullet points, tables)
 - If asked to create a presentation or document, format it as readable Markdown sections, not JSON`;
 
-const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 follow-up actions the user would logically want next. These should be ACTIONABLE next steps, not vague questions.
+const FOLLOWUP_PROMPT = `You are generating follow-up suggestions. Read the conversation and suggest 3-4 SPECIFIC next actions.
 
-Rules:
-- Each suggestion under 60 characters
-- Focus on ACTIONS the user can take: "Create a presentation from this", "Export as PDF", "Dive deeper into [specific finding]", "Compare with competitors"
-- Reference SPECIFIC content from the response (brand names, data points, topics)
-- Mix of: deeper research, create deliverables, analyze specific aspects
-- Return ONLY a JSON array of strings, no explanation
+MANDATORY RULES:
+1. Each suggestion MUST reference a specific brand, product, number, or topic from the response
+2. Each suggestion MUST be an actionable task (create, compare, analyze, dive into, export)
+3. NEVER use generic phrases like "tell me more", "explain further", "what else", "give examples"
+4. Under 60 characters each
 
-Good examples: ["Create a pitch deck from this research","Compare AG1 vs Seed pricing","Analyze the collagen market specifically","Export this report as PDF"]
-Bad examples: ["Tell me more","What else?","Can you explain?","Any other info?"]`;
+FORMAT: Return ONLY a JSON array of strings.
+
+EXAMPLES based on a DTC vitamin research response mentioning Arrae, Ritual, and AG1:
+["Create a pitch deck comparing Arrae vs Ritual","Deep dive into AG1's subscription model","Analyze Arrae's 3,233% growth strategy","Build a competitor pricing table"]
+
+EXAMPLES based on a nutrition presentation:
+["Add market size data to slide 3","Create speaker notes for all slides","Research AG1's influencer strategy","Export presentation as PDF"]`;
 
 const PLAN_PROMPT = `Analyze the user's message and break the task into 3-5 concrete steps. Return ONLY a JSON array of objects with "label" and "detail" fields.
 
@@ -212,7 +224,8 @@ async function generateFollowUps(
   if (!fastModel) return [];
 
   // Use report content for better context (the text response may be just a short summary)
-  const contextText = reportContent ? reportContent.slice(0, 1500) : assistantResponse.slice(0, 500);
+  // Give follow-ups generator MORE context for specificity (3000 chars of report or 1000 of response)
+  const contextText = reportContent ? reportContent.slice(0, 3000) : assistantResponse.slice(0, 1000);
 
   const condensedHistory = [
     { role: "user" as const, content: userMessage },
