@@ -71,6 +71,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const responseStartRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToResponse = useRef(false);
 
   const { send: sendAI, abort, isStreaming, streamingContent, error: aiError, followUps: aiFollowUps, steps: streamingSteps, report: streamingReport, taskMode, toolCalls, searchResults, browseData, isUsingTools, sources } = useAIChat({
     conversationId: conversation.id,
@@ -190,10 +192,16 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     }, 100);
   }, [conversation.id]);
 
-  // Auto-scroll during streaming
+  // Auto-scroll to response START when final response begins (not the bottom)
+  // This guides the user to read from the top of the response
   useEffect(() => {
-    if (isStreaming && streamingContent) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isStreaming && streamingContent && !hasScrolledToResponse.current) {
+      hasScrolledToResponse.current = true;
+      // Scroll to the response start with some offset so user sees context
+      responseStartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    if (!isStreaming) {
+      hasScrolledToResponse.current = false;
     }
   }, [isStreaming, streamingContent]);
 
@@ -415,6 +423,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         {/* Sources removed — not in original Manus design */}
 
         {/* Streaming response */}
+        <div ref={responseStartRef} />
         {isStreaming && streamingContent && (
           <div className="space-y-2">
             <div className="text-sm text-foreground leading-relaxed prose prose-sm dark:prose-invert prose-headings:font-semibold prose-headings:text-foreground prose-p:text-foreground/90 prose-li:text-foreground/90 prose-strong:text-foreground prose-code:text-foreground prose-code:bg-secondary prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-secondary prose-pre:border prose-pre:border-border max-w-none">
