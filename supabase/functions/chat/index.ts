@@ -1039,11 +1039,16 @@ Deno.serve(async (req) => {
                     addStepLog(currentStepIdx, resultLog, "result");
                   }
 
-                  // Emit tool result event
+                  // Emit tool result event (truncate large results like slides/reports)
+                  const truncatedResult = toolCall.name === "generate_presentation"
+                    ? { type: "presentation", slideCount: (toolResult as any)?.slides?.length || 0 }
+                    : toolCall.name === "write_report"
+                    ? { summary: ((toolResult as any)?.content || "").substring(0, 200) }
+                    : toolResult;
                   controller.enqueue(encoder.encode(`event: tool\ndata: ${JSON.stringify({
                     name: toolCall.name,
                     args: toolCall.input,
-                    result: toolResult,
+                    result: truncatedResult,
                     duration: durationMs,
                     status: "complete",
                   })}\n\n`));
@@ -1192,8 +1197,16 @@ Deno.serve(async (req) => {
                     })}\n\n`));
                   } else if (toolCall.name === "generate_presentation") {
                     // Emit slides event for Computer Panel Slides tab + chat inline cards
-                    const slidesData = (toolResult as any).slides || [];
-                    const presTitle = (toolResult as any).title || toolCall.input.topic || "Presentation";
+                    // Handle both object and string results
+                    let slidesResult = toolResult as any;
+                    if (typeof slidesResult === "string") {
+                      try { slidesResult = JSON.parse(slidesResult); } catch {}
+                    }
+                    console.log("[chat] generate_presentation type:", typeof toolResult, "keys:", Object.keys(slidesResult || {}));
+                    const slidesData = slidesResult?.slides || [];
+                    const presTitle = slidesResult?.title || toolCall.input?.topic || "Presentation";
+                    console.log(`[chat] Slides: ${slidesData.length} slides, title: ${presTitle}`);
+                    // Always emit the slides event (even if empty, so frontend knows it was called)
                     controller.enqueue(encoder.encode(`event: slides\ndata: ${JSON.stringify({
                       title: presTitle,
                       slides: slidesData,

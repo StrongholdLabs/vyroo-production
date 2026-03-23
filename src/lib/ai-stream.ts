@@ -116,6 +116,7 @@ export async function streamChat(options: StreamOptions) {
             } else if (eventType === "sources" && parsed) {
               onSources?.(parsed);
             } else if (eventType === "slides" && parsed) {
+              console.log("[ai-stream] slides event received:", parsed?.slideCount);
               onSlides?.(parsed);
             } else if (eventType === "approval_required" && parsed) {
               onApprovalRequired?.(parsed);

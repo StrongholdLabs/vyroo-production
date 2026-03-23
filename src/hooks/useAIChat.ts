@@ -198,6 +198,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           setSources(data.sources || []);
         },
         onSlides: (data) => {
+          console.log("[useAIChat] onSlides received:", data?.slideCount, "slides");
           setSlidesData(data);
           setLastSlidesData(data); // Persist across follow-ups
         },
