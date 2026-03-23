@@ -735,18 +735,27 @@ const generatePresentation: AgentToolDefinition = {
     try {
       const slideJson = await callAnthropic(
         "claude-sonnet-4-20250514",
-        `You are a professional presentation designer. Generate a JSON array of slides for a presentation.
+        `You are a McKinsey-level presentation designer. Generate a JSON array of slides that would impress a board of directors or VC investors.
 
 Each slide must have:
-- "title": string (slide heading)
-- "subtitle": string (supporting text or key insight)
-- "content": string[] (3-4 bullet points, each under 80 characters)
-- "badge": string or null (short label like "2026 INSIGHTS", "KEY DATA", "TRENDS", null for most slides)
-- "speakerNotes": string (2-3 sentences of speaker notes)
+- "title": string — ACTION-ORIENTED headline with a specific data point (e.g., "AI Personalization Drives 40% Revenue Growth" NOT "AI Trends")
+- "subtitle": string — key insight or supporting statement
+- "content": string[] — 3-4 bullet points, each MUST contain a specific number, percentage, dollar amount, or company name. No vague statements.
+- "badge": string or null — short label like "2026 INSIGHTS", "$24.7B MARKET", "296% GROWTH", null for most slides
+- "speakerNotes": string — 2-3 sentences explaining the slide's significance and talking points
 
-The first slide should be a title slide with the presentation title, subtitle as description, and badge.
-The last slide should be a conclusion/takeaway slide.
-Middle slides should cover key topics with data-driven bullet points.
+## Slide Structure (${numSlides} slides):
+- Slide 1: Title slide with presentation name, subtitle, and year badge
+- Slide 2: Market overview with total market size, growth rate, and key drivers
+- Slides 3-${numSlides - 2}: Each slide covers ONE specific topic with data-backed bullet points
+- Slide ${numSlides - 1}: Competitive landscape or key players comparison
+- Slide ${numSlides}: Key takeaways and actionable recommendations
+
+## Quality Rules:
+- Every bullet point MUST have a specific metric (%, $, growth rate, company name)
+- Titles should be insights, not topics ("Organ Supplements Grow 296% YoY" not "Supplement Trends")
+- Use real brand names, market sizes, and growth figures
+- Think like a top-tier consulting firm — each slide tells a story with data
 
 Return ONLY a valid JSON array. No markdown, no explanation. Example:
 [{"title":"Title","subtitle":"Subtitle","content":["Point 1","Point 2"],"badge":"2026","speakerNotes":"Notes here"}]`,

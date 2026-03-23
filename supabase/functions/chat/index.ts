@@ -18,82 +18,83 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `You are Vyroo, an advanced AI research and analysis agent. You operate like a top-tier research analyst — you gather information from multiple sources, cross-reference findings, and deliver comprehensive, well-structured reports.
+// ===== TASK-SPECIFIC SYSTEM PROMPTS =====
+// Each task type gets its own optimized prompt for maximum quality
 
-## How You Work
+const RESEARCH_PROMPT = `You are Vyroo, an elite research analyst. You gather data from multiple sources, cross-reference findings, and deliver comprehensive reports with specific data points.
 
-You are an AGENT, not a chatbot. Decide the right approach based on the task:
+## Your Process
+1. Search broadly — use web_search with 3-4 different queries covering different angles
+2. Go deep — use browse_url on the 2-3 best sources (snippets are never enough)
+3. Cross-reference — verify claims across sources, note disagreements
+4. Synthesize — call write_report with ALL your findings as structured data
 
-### Research tasks (questions, analysis, comparisons):
-1. **Search broadly first** — use web_search with multiple queries to cover different angles
-2. **Go deep on the best sources** — use browse_url to read full articles, not just snippets
-3. **Cross-reference** — verify claims across multiple sources, note disagreements
-4. **Synthesize** — combine everything into an original, insightful response
+## Tool Chain: web_search → browse_url → write_report
+- ALWAYS end with write_report — this creates the document in the user's Computer Panel
+- Pass ALL data as the "data" parameter to write_report
+- After write_report, give a SHORT 1-2 sentence summary only
 
-### Creation tasks (summaries, outlines, rewrites):
-1. **Skip research** — use your training knowledge and conversation history directly
-2. **Go straight to write_report** — create the content immediately without web_search or browse_url
-3. If the conversation already contains research data from previous messages, USE THAT DATA — do not re-research
+## Quality Bar
+- Include specific numbers, dates, percentages, company names — never vague generalizations
+- Use markdown tables for comparisons
+- Be confident when evidence supports a conclusion
+- NEVER use HTML tags — pure Markdown only
+- NEVER include URLs in your text response
+- NEVER explain your tool choices — just deliver results`;
 
-### Presentation tasks ("create a presentation", "make a deck", "slides"):
-1. **Skip research** — use your knowledge and conversation history
-2. **Call generate_presentation** (NOT write_report) — this creates visual slides in the Computer Panel
-3. Pass the topic and any relevant data from the conversation
+const PRESENTATION_PROMPT = `You are Vyroo, a professional presentation designer. You create stunning, data-driven slide decks.
 
-### How to decide:
-- "Research X" / "What are the top X" / "Analyze X" → RESEARCH (search + browse first)
-- "Create a presentation" / "Make a deck" / "Generate slides" → PRESENTATION (skip to generate_presentation)
-- "Write a summary" / "Make an outline" / "Summarize this" → CREATION (skip to write_report)
-- "Build me a report about X" → RESEARCH first, then write_report
-- Follow-up "now make a presentation from this" → PRESENTATION (generate_presentation with existing data)
+## Your Process
+1. Skip web research — use your knowledge and conversation history
+2. Call generate_presentation immediately with the topic
+3. Include specific data points, metrics, and actionable insights per slide
 
-CRITICAL RULE: If the user mentions "presentation", "slides", "deck", or "ppt" → you MUST call generate_presentation. Never call write_report for presentation requests. After calling generate_presentation, give a SHORT 1-2 sentence summary. Do NOT explain your tool selection or reasoning — just deliver the result.
+## CRITICAL RULES
+- ALWAYS call generate_presentation — NEVER call write_report for presentations
+- Each slide needs: compelling title, key insight as subtitle, 3-4 data-driven bullet points
+- First slide = title slide with badge. Last slide = key takeaways
+- After generating, give a SHORT 1 sentence summary ("I've created an 8-slide presentation about X")
+- NEVER explain your reasoning or tool choices
 
-## Tool Usage Strategy
+## Quality Bar for Slides
+- Every bullet point should contain a specific number, percentage, or data point
+- Use action-oriented titles ("AI Personalization Drives 40% Revenue Growth" not "AI Trends")
+- Include market size, growth rates, company examples, and competitive data
+- Think like McKinsey — each slide should tell a story with data`;
 
-- **web_search**: Use 2-3 different search queries ONLY for research tasks. Skip for creation tasks.
-- **browse_url**: Browse 2-3 relevant URLs ONLY when researching. Skip for creation tasks.
-- **generate_code**: For any coding task, generate complete, runnable code with comments.
-- **generate_presentation**: ALWAYS use this for presentation/deck/slides requests. NEVER use write_report for presentations.
-- **write_report**: Use for reports, summaries, analysis — but NEVER for presentations (use generate_presentation instead).
+const CODE_PROMPT = `You are Vyroo, an expert software engineer. You write clean, production-ready code.
 
-## Response Quality Standards
+## Your Process
+1. Understand the requirements fully before coding
+2. Call generate_code with complete, runnable code including error handling
+3. Add clear comments explaining key decisions
 
-Your final response MUST:
-- **Lead with a direct answer** — state the key finding/answer in the first paragraph
-- **Provide depth** — include specific data, numbers, dates, names, and facts (not vague generalizations)
-- **Use evidence** — every major claim should reference a source with inline links: [Source Name](url)
-- **Be structured** — use ## headings, bullet points, and tables where appropriate
-- **Include a takeaway** — end with a "Key Takeaways" or "Bottom Line" section
-- **Never be shallow** — if you only found surface-level info, search and browse more before responding
+## Quality Bar
+- Production-ready code with error handling
+- Type-safe (TypeScript preferred)
+- Include imports and dependencies
+- Add usage examples
+- NEVER use HTML tags in explanations — pure Markdown
+- NEVER explain tool choices — just deliver the code`;
 
-## Formatting Rules
-- Use **bold** for key terms, metrics, brand names, and important figures
-- Use markdown tables for comparisons (always include headers)
-- Keep paragraphs to 2-3 sentences max
-- Do NOT include URLs or links in your text response — no [text](url) patterns, no raw URLs
-- For long responses, use a table of contents with plain text section names
-- NEVER use HTML tags (<a>, <div>, <span>, <br>, etc.) — use ONLY pure Markdown syntax
+const ANALYSIS_PROMPT = `You are Vyroo, a senior data analyst. You analyze data, find patterns, and deliver actionable insights.
 
-## Tool Efficiency
-- Keep searches focused: max 3-4 web_search calls, max 2-3 browse_url calls
-- Don't over-research — gather enough data then synthesize immediately
-- Tool order for research: search → browse best results → write_report
-- Tool order for presentations: generate_presentation (no research needed)
+## Your Process
+1. If data needs gathering: web_search → browse_url (2-3 sources max)
+2. Analyze and structure findings
+3. Call write_report with tables, charts descriptions, and recommendations
+4. After write_report, give a SHORT summary
 
-## CRITICAL: Tool Selection Rules
-- For research/analysis/reports → call **write_report** as your FINAL tool
-- For presentations/slides/decks → call **generate_presentation** as your FINAL tool (NEVER write_report)
-- Pass ALL findings as the "data" parameter
-- After the tool completes, give a SHORT 1-2 sentence summary (do NOT repeat content inline)
-- Do NOT write long inline responses — put detailed content in the tool output
+## Quality Bar
+- Always include comparison tables with specific numbers
+- Identify trends and patterns, not just list facts
+- End with actionable recommendations
+- Use bold for key metrics
+- NEVER use HTML tags — pure Markdown only
+- NEVER explain tool choices`;
 
-## What NOT to Do
-- Don't give vague, generic answers when specific data is available
-- Don't stop researching after a single search — always do at least 2 searches for complex queries
-- Don't summarize search snippets — browse the actual pages for real content
-- Don't hedge excessively — be confident when the evidence supports a conclusion
-- Don't waste tool calls — be efficient, gather what you need and move to synthesis`;
+// Combined prompt used as fallback when task type is unclear
+const SYSTEM_PROMPT = RESEARCH_PROMPT;
 
 const DIRECT_SYSTEM_PROMPT = `You are Vyroo, a knowledgeable AI assistant. You provide clear, well-structured answers using your training knowledge.
 
@@ -114,7 +115,17 @@ CRITICAL FORMATTING RULES:
 - Format everything as clean readable Markdown (headings, bullet points, tables)
 - If asked to create a presentation or document, format it as readable Markdown sections, not JSON`;
 
-const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 short follow-up questions or actions the user might want to take next. Return ONLY a JSON array of strings, no explanation. Each suggestion should be concise (under 60 characters). Example: ["How do I deploy this?","Can you add error handling?","Explain the architecture"]`;
+const FOLLOWUP_PROMPT = `Based on the conversation below, suggest 3-4 follow-up actions the user would logically want next. These should be ACTIONABLE next steps, not vague questions.
+
+Rules:
+- Each suggestion under 60 characters
+- Focus on ACTIONS the user can take: "Create a presentation from this", "Export as PDF", "Dive deeper into [specific finding]", "Compare with competitors"
+- Reference SPECIFIC content from the response (brand names, data points, topics)
+- Mix of: deeper research, create deliverables, analyze specific aspects
+- Return ONLY a JSON array of strings, no explanation
+
+Good examples: ["Create a pitch deck from this research","Compare AG1 vs Seed pricing","Analyze the collagen market specifically","Export this report as PDF"]
+Bad examples: ["Tell me more","What else?","Can you explain?","Any other info?"]`;
 
 const PLAN_PROMPT = `Analyze the user's message and break the task into 3-5 concrete steps. Return ONLY a JSON array of objects with "label" and "detail" fields.
 
@@ -126,43 +137,42 @@ Bad labels: "Understanding task", "Processing data", "Delivering results"
 Example for "Analyze top 5 DTC skincare brands":
 [{"label":"Researching top DTC skincare brands","detail":"Searching for market data on The Ordinary, Glossier, Rhode, Dieux, and Drunk Elephant"},{"label":"Comparing pricing strategies","detail":"Building a pricing comparison table across product categories"},{"label":"Analyzing market positioning","detail":"Identifying each brand's unique positioning and target demographic"},{"label":"Compiling brand analysis report","detail":"Writing comprehensive comparison with tables and key insights"}]`;
 
-const CLASSIFY_PROMPT = `Classify this user message into one of two modes. Return ONLY the word "direct" or "agentic".
+const CLASSIFY_PROMPT = `Classify this user message into exactly ONE category. Return ONLY the single word.
 
-Use "direct" for:
-- Simple questions with short answers (math, facts, greetings, definitions)
-- Short conversational messages (hello, thanks, ok, good job, bye)
-- Clarification questions about the previous response (explain more, what do you mean, why)
-- Feedback messages (no follow up?, where are the follow-ups?, that's wrong)
-
-Use "agentic" for:
-- Research tasks requiring multiple steps
-- Analysis or comparison requests
-- Content creation (reports, articles, presentations, summaries, outlines)
-- Complex multi-part questions
-- Tasks that would benefit from planning and structured execution
-- Requests to create, build, make, generate, write, summarize, or produce something
-- Follow-up requests that ask for NEW work (create a presentation, write a report, build a table)
+Categories:
+- "direct" — simple questions, greetings, follow-up clarifications, feedback
+- "research" — research tasks, analysis, comparisons, "what are the top X", market research
+- "presentation" — create slides, make a deck, presentation, ppt
+- "code" — write code, build an app, fix a bug, programming tasks
+- "analysis" — analyze data, compare options, create a table, financial analysis
 
 Examples:
 "What is 2+2?" → direct
 "Hello" → direct
-"What's the capital of France?" → direct
-"Analyze the top 5 DTC skincare brands" → agentic
-"Create a marketing strategy for my startup" → agentic
-"Compare React vs Vue for enterprise apps" → agentic
-"Summarize this into a presentation outline" → agentic
-"Create a comparison table" → agentic
-"Write a report based on this data" → agentic
-"Dive deeper into the top findings" → agentic
-"Research nutrition trends in 2026" → agentic
 "Thanks!" → direct
-"no follow up?" → direct
-"where are the follow-ups?" → direct
 "can you explain more?" → direct
-"what about X?" → direct
-"tell me more about the first point" → direct
-"good job" → direct
-"why did you say that?" → direct`;
+"Research the top DTC brands" → research
+"What are the hottest products in 2026?" → research
+"Conduct deep research on nutrition trends" → research
+"Create a presentation about DTC products" → presentation
+"Make a deck about market trends" → presentation
+"Generate slides for my pitch" → presentation
+"Build a React component for authentication" → code
+"Write a Python script to analyze CSV data" → code
+"Analyze my sales data and find trends" → analysis
+"Compare these 5 companies side by side" → analysis
+"Create a comparison table" → analysis`;
+
+// Map task type to the right system prompt
+function getTaskPrompt(taskType: string): string {
+  switch (taskType) {
+    case "research": return RESEARCH_PROMPT;
+    case "presentation": return PRESENTATION_PROMPT;
+    case "code": return CODE_PROMPT;
+    case "analysis": return ANALYSIS_PROMPT;
+    default: return RESEARCH_PROMPT; // fallback
+  }
+}
 
 /** Parse a JSON array from text that might be wrapped in markdown code blocks */
 function parseJsonArray(text: string): string[] {
@@ -427,16 +437,23 @@ async function generatePlan(
  * Classify whether a message needs the full agentic flow (plan + steps) or a direct answer.
  * Uses a fast model with max_tokens: 10 for near-instant classification.
  */
+type TaskType = "direct" | "research" | "presentation" | "code" | "analysis";
+
 async function classifyTask(
   providerId: string,
   apiKey: string,
   userMessage: string
-): Promise<"direct" | "agentic"> {
+): Promise<TaskType> {
   // Very short messages (greetings, one-word) are direct — skip the LLM call
   if (userMessage.trim().length < 20) return "direct";
 
+  // Quick keyword detection for presentations (most reliable, skip LLM)
+  const lower = userMessage.toLowerCase();
+  if (lower.includes("presentation") || lower.includes("slides") || lower.includes("deck") || lower.includes("ppt")) return "presentation";
+  if (lower.includes("write code") || lower.includes("build a") || lower.includes("create a component") || lower.includes("script")) return "code";
+
   const fastModel = FAST_MODELS[providerId];
-  if (!fastModel) return "agentic";
+  if (!fastModel) return "research";
 
   try {
     let text = "";
@@ -456,7 +473,7 @@ async function classifyTask(
           messages: [{ role: "user", content: userMessage }],
         }),
       });
-      if (!res.ok) return "agentic";
+      if (!res.ok) return "research";
       const data = await res.json();
       text = data.content?.[0]?.text || "";
     } else if (providerId === "openai") {
@@ -475,7 +492,7 @@ async function classifyTask(
           ],
         }),
       });
-      if (!res.ok) return "agentic";
+      if (!res.ok) return "research";
       const data = await res.json();
       text = data.choices?.[0]?.message?.content || "";
     } else if (providerId === "gemini") {
@@ -492,7 +509,7 @@ async function classifyTask(
           }),
         }
       );
-      if (!res.ok) return "agentic";
+      if (!res.ok) return "research";
       const data = await res.json();
       text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     } else if (providerId === "together") {
@@ -511,19 +528,22 @@ async function classifyTask(
           ],
         }),
       });
-      if (!res.ok) return "agentic";
+      if (!res.ok) return "research";
       const data = await res.json();
       text = data.choices?.[0]?.message?.content || "";
     }
 
-    const lower = text.toLowerCase().trim();
-    if (lower.includes("direct")) return "direct";
-    if (lower.includes("agentic")) return "agentic";
-    // Default to agentic for safety
-    return "agentic";
+    const classified = text.toLowerCase().trim();
+    if (classified.includes("direct")) return "direct";
+    if (classified.includes("presentation")) return "presentation";
+    if (classified.includes("code")) return "code";
+    if (classified.includes("analysis")) return "analysis";
+    if (classified.includes("research")) return "research";
+    // Default to research for safety
+    return "research";
   } catch {
-    // Classification is non-critical — default to agentic for complex task safety
-    return "agentic";
+    // Classification is non-critical — default to research for complex task safety
+    return "research";
   }
 }
 
@@ -773,21 +793,26 @@ Deno.serve(async (req) => {
           // Classify whether this needs the full agentic flow or a direct answer
           const taskMode = await classifyTask(actualProviderId, apiKey!, message);
 
-          // Use the correct system prompt based on mode
-          // Direct mode must NOT include tool references or Claude will emit raw XML
+          // Select the right system prompt based on task type
           if (taskMode === "direct") {
             enrichedSystemPrompt = DIRECT_SYSTEM_PROMPT;
-            // Re-inject memory if we had it
-            try {
-              const memories = await getRelevantMemories(user.id, message, supabase);
-              const memorySection = injectMemoryContext(memories);
-              if (memorySection) enrichedSystemPrompt += memorySection;
-            } catch {}
+          } else {
+            // Use task-specific prompt for maximum quality
+            enrichedSystemPrompt = getTaskPrompt(taskMode);
+            console.log(`[chat] Using ${taskMode} prompt for task`);
           }
+          // Re-inject memory for all modes
+          try {
+            const memories = await getRelevantMemories(user.id, message, supabase);
+            const memorySection = injectMemoryContext(memories);
+            if (memorySection) enrichedSystemPrompt += memorySection;
+          } catch {}
 
           // Emit task mode so frontend knows whether to show steps UI
+          // Frontend uses "direct" vs "agentic" — map our types
+          const frontendMode = taskMode === "direct" ? "direct" : "agentic";
           controller.enqueue(
-            encoder.encode(`event: mode\ndata: ${JSON.stringify({ mode: taskMode })}\n\n`)
+            encoder.encode(`event: mode\ndata: ${JSON.stringify({ mode: frontendMode })}\n\n`)
           );
 
           let plan: Array<{label: string; detail: string}> = [];
@@ -801,7 +826,7 @@ Deno.serve(async (req) => {
             } catch {}
           }
 
-          if (taskMode === "agentic") {
+          if (taskMode !== "direct") {
             // Generate task plan for agentic step visualization
             plan = await generatePlan(actualProviderId, apiKey!, message);
             startTime = Date.now();
@@ -823,7 +848,7 @@ Deno.serve(async (req) => {
           // For agentic tasks, ALWAYS use Anthropic Sonnet for reliable tool use
           // Other providers (Gemini, OpenAI) don't have a tool loop implementation
           let agenticModel = selectedModel;
-          if (taskMode === "agentic" && actualProviderId !== "anthropic") {
+          if (taskMode !== "direct" && actualProviderId !== "anthropic") {
             // Force switch to Anthropic for agentic tasks
             const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
             if (anthropicKey) {
@@ -833,7 +858,7 @@ Deno.serve(async (req) => {
               console.log(`[chat] Switching from ${selectedModel} to Anthropic Sonnet for agentic task (non-Anthropic provider can't do tool loops)`);
             }
           }
-          if (taskMode === "agentic" && actualProviderId === "anthropic") {
+          if (taskMode !== "direct" && actualProviderId === "anthropic") {
             const budgetModels = ["claude-haiku-4-5-20251001", "claude-3-5-haiku-latest", "claude-3-haiku-20240307"];
             if (budgetModels.includes(selectedModel)) {
               agenticModel = "claude-sonnet-4-20250514";
@@ -841,7 +866,7 @@ Deno.serve(async (req) => {
             }
           }
 
-          if (taskMode === "agentic" && actualProviderId === "anthropic") {
+          if (taskMode !== "direct" && actualProviderId === "anthropic") {
             // ===== ReAct Tool Loop (Anthropic only) =====
             try {
               // Build Anthropic-format tool definitions from agent-tools registry
@@ -1022,9 +1047,19 @@ Deno.serve(async (req) => {
                     addStepLog(currentStepIdx, actionLog, "action");
                   }
 
-                  // Execute the tool
-                  const toolResult = await executeTool(toolCall.name, toolCall.input);
-                  const durationMs = Date.now() - toolStartMs;
+                  // Execute the tool with error recovery
+                  let toolResult: any;
+                  let durationMs: number;
+                  try {
+                    toolResult = await executeTool(toolCall.name, toolCall.input);
+                    durationMs = Date.now() - toolStartMs;
+                  } catch (toolError) {
+                    durationMs = Date.now() - toolStartMs;
+                    // Error recovery: keep the error in context so the model can adapt
+                    toolResult = { error: `Tool ${toolCall.name} failed: ${String(toolError)}` };
+                    console.warn(`[chat] Tool ${toolCall.name} failed, keeping error in context for recovery:`, toolError);
+                    addStepLog(currentStepIdx, `${toolCall.name} failed, adapting approach...`, "action");
+                  }
                   if (toolCall.name === "write_report") hasWrittenReport = true;
 
                   // Add step log: tool completed
@@ -1416,7 +1451,7 @@ Deno.serve(async (req) => {
               }
 
               // Update step progress based on response length (only in agentic mode)
-              if (taskMode === "agentic" && plan.length > 0) {
+              if (taskMode !== "direct" && plan.length > 0) {
                 const progress = fullResponse.length;
                 const thresholds = plan.map((_, i) => Math.floor((i + 1) * (1500 / plan.length)));
                 for (let i = 0; i < plan.length; i++) {
@@ -1453,7 +1488,7 @@ Deno.serve(async (req) => {
           }
 
           // Complete all remaining steps (only in agentic mode)
-          if (taskMode === "agentic" && plan.length > 0) {
+          if (taskMode !== "direct" && plan.length > 0) {
             for (let i = 0; i < plan.length; i++) {
               if (!completedSteps.has(i)) {
                 const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
@@ -1550,7 +1585,7 @@ Deno.serve(async (req) => {
             }
 
             // Save steps to database — only for agentic mode
-            if (taskMode === "agentic" && plan.length > 0) {
+            if (taskMode !== "direct" && plan.length > 0) {
               try {
                 await supabase.from("steps").delete().eq("conversation_id", conversationId);
                 for (let i = 0; i < plan.length; i++) {
