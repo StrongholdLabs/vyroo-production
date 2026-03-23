@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_AGJQwW9UDTbgDhKYuDBzampvl5VF",
+  "orgId": "team_UxjWCSu4Wz6alNyJrfn01ere",
+  "projectName": "vyroo-v2",
+  "settings": {
+    "createdAt": 1774049630202,
+    "framework": "vite",
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}
