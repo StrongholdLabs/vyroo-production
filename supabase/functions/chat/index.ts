@@ -83,6 +83,8 @@ const DIRECT_SYSTEM_PROMPT = `You are Vyroo, a knowledgeable AI assistant. You p
 
 You do NOT have access to tools or web search in this mode. Answer from your knowledge.
 
+CRITICAL: NEVER output XML tags, function calls, tool invocations, or anything resembling <function_calls>, <invoke>, or <parameter> tags. You are in direct answer mode — just respond with plain text and markdown.
+
 CRITICAL FORMATTING RULES:
 - NEVER output raw JSON, XML, or structured data objects in your response
 - NEVER use <function_calls>, <invoke>, or any XML-like tags

@@ -23,12 +23,15 @@ const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeConversation, setActiveConversation] = useState(conversationId || "");
   const [computerVisible, setComputerVisible] = useState(false);
-  const [liveComputerView, setLiveComputerView] = useState<ComputerViewState | undefined>();
+  const [computerViews, setComputerViews] = useState<Record<string, ComputerViewState>>({});
+  const liveComputerView = activeConversation ? computerViews[activeConversation] : undefined;
 
-  // Callback for ChatPanel to update computer view with live tool data
+  // Callback for ChatPanel to update computer view — stored per-conversation
   const handleComputerViewUpdate = useCallback((view: ComputerViewState) => {
-    setLiveComputerView(view);
-  }, []);
+    if (activeConversation) {
+      setComputerViews(prev => ({ ...prev, [activeConversation]: view }));
+    }
+  }, [activeConversation]);
 
   // Sync activeConversation with URL params
   useEffect(() => {
