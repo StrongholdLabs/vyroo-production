@@ -1283,7 +1283,6 @@ Deno.serve(async (req) => {
           } else {
             // ===== Direct mode OR non-Anthropic agentic: use standard streaming =====
             const reader = providerStream.getReader();
-            let xmlLeakDetected = false;
 
             while (true) {
               const { done, value } = await reader.read();
@@ -1292,30 +1291,45 @@ Deno.serve(async (req) => {
               const chunk = new TextDecoder().decode(value);
               const lines = chunk.split("\n");
 
-              // Check for XML tool call leak (model hallucinating tool use as text)
+              // Filter out XML tool call leaks per-token (don't block entire stream)
+              let hasCleanTokens = false;
               for (const line of lines) {
                 if (line.startsWith("data: ") && !line.includes('"error"')) {
                   try {
                     const parsed = JSON.parse(line.slice(6));
                     if (parsed.token) {
-                      // Detect XML tool call leak
-                      if (parsed.token.includes("<function_calls>") || parsed.token.includes("<invoke") || parsed.token.includes("</function_calls>")) {
-                        xmlLeakDetected = true;
-                      }
-                      if (!xmlLeakDetected) {
+                      // Skip individual tokens that contain XML tool call patterns
+                      const isXml = parsed.token.includes("<function_calls>") || parsed.token.includes("<invoke") ||
+                        parsed.token.includes("</function_calls>") || parsed.token.includes("</invoke>") ||
+                        parsed.token.includes('<parameter name=');
+                      if (!isXml) {
                         fullResponse += parsed.token;
+                        hasCleanTokens = true;
                       }
                     }
                   } catch { /* skip */ }
                 }
               }
 
-              // Don't forward XML-leaked tokens to client
-              if (!xmlLeakDetected) {
-                controller.enqueue(value);
-              } else if (xmlLeakDetected && fullResponse.length > 0) {
-                // We already sent some valid content before the XML leak started
-                // Just stop forwarding — the valid content is already in fullResponse
+              // Forward clean chunks, rebuild SSE for filtered ones
+              if (hasCleanTokens) {
+                // Rebuild the SSE data without XML tokens
+                const cleanLines = lines.filter(line => {
+                  if (!line.startsWith("data: ")) return true;
+                  try {
+                    const parsed = JSON.parse(line.slice(6));
+                    if (parsed.token) {
+                      return !(parsed.token.includes("<function_calls>") || parsed.token.includes("<invoke") ||
+                        parsed.token.includes("</function_calls>") || parsed.token.includes("</invoke>") ||
+                        parsed.token.includes('<parameter name='));
+                    }
+                  } catch {}
+                  return true;
+                });
+                const cleanChunk = cleanLines.join("\n");
+                if (cleanChunk.trim()) {
+                  controller.enqueue(new TextEncoder().encode(cleanChunk + "\n"));
+                }
               }
 
               // Update step progress based on response length (only in agentic mode)
