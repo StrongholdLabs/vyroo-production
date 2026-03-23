@@ -774,11 +774,45 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Inject cross-conversation memory into the system prompt
-    // (Use direct prompt for simple questions to prevent raw tool XML in responses)
+    // Inject cross-conversation memory + RAG context into the system prompt
     let enrichedSystemPrompt = SYSTEM_PROMPT; // Will be replaced for direct mode after classification
     let lastReportContent = ""; // Track report content for follow-up generation
     let lastSlidesData: any = null; // Track slides data for persistence
+
+    // RAG: Search past conversations for relevant context
+    let ragContext = "";
+    try {
+      const openaiKey = Deno.env.get("OPENAI_API_KEY");
+      if (openaiKey && message.length > 30) {
+        const embRes = await fetch("https://api.openai.com/v1/embeddings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${openaiKey}` },
+          body: JSON.stringify({ model: "text-embedding-3-small", input: message }),
+        });
+        if (embRes.ok) {
+          const embData = await embRes.json();
+          const queryEmbedding = embData.data?.[0]?.embedding;
+          if (queryEmbedding) {
+            const { data: similar } = await supabase.rpc("search_similar_messages", {
+              query_embedding: queryEmbedding,
+              match_threshold: 0.75,
+              match_count: 3,
+              p_user_id: user.id,
+            });
+            if (similar && similar.length > 0) {
+              const relevantParts = similar
+                .filter((s: any) => s.conversation_id !== conversationId) // Only cross-conversation
+                .map((s: any) => s.content.substring(0, 500));
+              if (relevantParts.length > 0) {
+                ragContext = `\n\n## Relevant Context from Past Research\n${relevantParts.join('\n---\n')}`;
+                console.log(`[chat] RAG: Found ${relevantParts.length} relevant past messages`);
+              }
+            }
+          }
+        }
+      }
+    } catch { /* RAG is non-critical */ }
+
     try {
       const memories = await getRelevantMemories(user.id, message, supabase);
       const memorySection = injectMemoryContext(memories);
@@ -815,12 +849,14 @@ Deno.serve(async (req) => {
             enrichedSystemPrompt = getTaskPrompt(taskMode);
             console.log(`[chat] Using ${taskMode} prompt for task`);
           }
-          // Re-inject memory for all modes
+          // Re-inject memory + RAG context for all modes
           try {
             const memories = await getRelevantMemories(user.id, message, supabase);
             const memorySection = injectMemoryContext(memories);
             if (memorySection) enrichedSystemPrompt += memorySection;
           } catch {}
+          // Inject RAG context from past conversations
+          if (ragContext) enrichedSystemPrompt += ragContext;
 
           // Emit task mode so frontend knows whether to show steps UI
           // Frontend uses "direct" vs "agentic" — map our types
@@ -1315,6 +1351,48 @@ Deno.serve(async (req) => {
                 }
               }
 
+              // ===== EVALUATOR AGENT =====
+              // Separate agent reviews output quality before sending to user
+              if ((lastReportContent || lastSlidesData) && finalTextContent) {
+                try {
+                  const evalApiKey = apiKey || Deno.env.get("ANTHROPIC_API_KEY");
+                  if (evalApiKey) {
+                    const evalContent = lastReportContent
+                      ? `Report: ${lastReportContent.substring(0, 2000)}`
+                      : `Slides: ${JSON.stringify(lastSlidesData?.slides?.slice(0, 3)).substring(0, 1500)}`;
+                    const evalRes = await fetch("https://api.anthropic.com/v1/messages", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", "x-api-key": evalApiKey, "anthropic-version": "2023-06-01" },
+                      body: JSON.stringify({
+                        model: "claude-haiku-4-5-20251001",
+                        max_tokens: 256,
+                        system: `You are a strict quality evaluator for an AI research platform. Review this output.
+Score 1-10. Return ONLY JSON: {"score": N, "issues": ["issue1", "issue2"] or [], "improved_summary": "better 1-2 sentence summary" or null}
+Deduct points for: fabricated/unverified data, vague claims without numbers, generic filler text, missing key insights.
+If score >= 8, set improved_summary to null (summary is good enough).`,
+                        messages: [{ role: "user", content: `User asked: "${message}"\n\nAI summary: "${finalTextContent}"\n\n${evalContent}` }],
+                      }),
+                    });
+                    if (evalRes.ok) {
+                      const evalData = await evalRes.json();
+                      const evalText = evalData.content?.[0]?.text || "";
+                      const evalMatch = evalText.match(/\{[\s\S]*\}/);
+                      if (evalMatch) {
+                        const eval_ = JSON.parse(evalMatch[0]);
+                        console.log(`[chat] Evaluator score: ${eval_.score}/10, issues: ${eval_.issues?.length || 0}`);
+                        // If evaluator provides a better summary, use it
+                        if (eval_.improved_summary && eval_.score < 8) {
+                          finalTextContent = eval_.improved_summary;
+                          console.log("[chat] Evaluator improved the summary");
+                        }
+                      }
+                    }
+                  }
+                } catch (evalError) {
+                  console.warn("[chat] Evaluator failed (non-critical):", evalError);
+                }
+              }
+
               // Stream the final text response as token events with typewriter pacing
               if (finalTextContent) {
                 const chunkSize = 12;
@@ -1580,7 +1658,27 @@ Deno.serve(async (req) => {
                 slidesData: lastSlidesData || undefined, // Slides for Slides tab persistence
               };
             }
-            await supabase.from("messages").insert(messageData);
+            const { data: insertedMsg } = await supabase.from("messages").insert(messageData).select("id").single();
+
+            // Generate embedding for RAG search (async, non-blocking)
+            if (insertedMsg?.id && (fullResponse || lastReportContent)) {
+              const textToEmbed = (lastReportContent || fullResponse).substring(0, 8000);
+              try {
+                const embRes = await fetch("https://api.openai.com/v1/embeddings", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("OPENAI_API_KEY")}` },
+                  body: JSON.stringify({ model: "text-embedding-3-small", input: textToEmbed }),
+                });
+                if (embRes.ok) {
+                  const embData = await embRes.json();
+                  const embedding = embData.data?.[0]?.embedding;
+                  if (embedding) {
+                    await supabase.from("messages").update({ embedding }).eq("id", insertedMsg.id);
+                    console.log("[chat] Embedding stored for RAG search");
+                  }
+                }
+              } catch { /* embedding is non-critical */ }
+            }
 
             // Update conversation timestamp and message count
             await supabase
