@@ -152,7 +152,28 @@ const webSearch: AgentToolDefinition = {
     const query = String(args.query ?? "");
     if (!query) return { error: "No query provided", results: [] };
 
-    // Try Brave Search first
+    // 1. Tavily Search (purpose-built for AI, best quality)
+    const tavilyKey = Deno.env.get("TAVILY_API_KEY");
+    if (tavilyKey) {
+      try {
+        const resp = await fetch("https://api.tavily.com/search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ api_key: tavilyKey, query, max_results: 5, include_answer: false }),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          const results = (data.results ?? []).map(
+            (r: { title?: string; url?: string; content?: string }) => ({
+              title: r.title ?? "", url: r.url ?? "", snippet: r.content ?? "",
+            })
+          );
+          return { results, source: "tavily" };
+        }
+      } catch { /* fall through */ }
+    }
+
+    // 2. Brave Search
     const braveKey = Deno.env.get("BRAVE_SEARCH_API_KEY");
     if (braveKey) {
       try {
@@ -164,20 +185,15 @@ const webSearch: AgentToolDefinition = {
           const data = await resp.json();
           const results = (data.web?.results ?? []).map(
             (r: { title?: string; url?: string; description?: string }) => ({
-              title: r.title ?? "",
-              url: r.url ?? "",
-              snippet: r.description ?? "",
+              title: r.title ?? "", url: r.url ?? "", snippet: r.description ?? "",
             })
           );
           return { results, source: "brave" };
         }
-        // If Brave fails (rate limit, etc.), fall through to DuckDuckGo
-      } catch {
-        // fall through
-      }
+      } catch { /* fall through */ }
     }
 
-    // Fallback: DuckDuckGo HTML scrape
+    // 3. DuckDuckGo HTML scrape (fallback)
     try {
       const ddgUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
       const resp = await fetch(ddgUrl, {
@@ -253,7 +269,7 @@ const browseUrl: AgentToolDefinition = {
 
       const html = await resp.text();
       const title = extractTitle(html);
-      const content = stripHtml(html).slice(0, 5000);
+      const content = stripHtml(html).slice(0, 15000);
 
       return {
         url,
@@ -343,7 +359,7 @@ const extractContent: AgentToolDefinition = {
       if (sections.length === 0) {
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         const bodyText = bodyMatch ? stripHtml(bodyMatch[1]) : stripHtml(html);
-        sections.push({ tag: "body", content: bodyText.slice(0, 5000) });
+        sections.push({ tag: "body", content: bodyText.slice(0, 15000) });
       }
 
       const totalWords = sections.reduce(
@@ -685,7 +701,7 @@ const writeReport: AgentToolDefinition = {
     try {
       const content = await callAnthropic(
         "claude-sonnet-4-20250514",
-        `You are a professional report writer. Write a well-structured ${format === "html" ? "HTML" : "Markdown"} report on the given topic. Include: Executive Summary, Key Findings, Analysis, and Recommendations sections. Be thorough but concise.`,
+        `You are a professional report writer. Write a well-structured ${format === "html" ? "HTML" : "Markdown"} report on the given topic. Include: Executive Summary, Key Findings, Analysis, and Recommendations sections. Be thorough but concise.\n\nIMPORTANT: Use ONLY pure Markdown. Never use HTML tags like <a>, <div>, <span>, <br>, etc. For section headers, use ## headings only. Do not add HTML anchor tags to headings.`,
         `Write a report on: ${topic}${data ? `\n\nIncorporate these data/findings:\n${data.slice(0, 10000)}` : ""}`,
         4096
       );

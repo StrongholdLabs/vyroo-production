@@ -29,7 +29,7 @@ export async function callAnthropicWithTools(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: systemPrompt || "",
       messages,
       tools,

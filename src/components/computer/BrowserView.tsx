@@ -163,12 +163,14 @@ export function BrowserView({ tabs, url, pageContent, isLoading }: BrowserViewPr
             }`}
           >
             {tab.favicon && (
-              <div
-                className="w-3 h-3 rounded-sm flex-shrink-0 flex items-center justify-center text-[7px] font-bold text-white"
-                style={{ backgroundColor: tab.favicon }}
-              >
-                {tab.title.charAt(0)}
-              </div>
+              tab.favicon.startsWith('http')
+                ? <img src={tab.favicon} alt="" className="w-3 h-3 rounded-sm flex-shrink-0" />
+                : <div
+                    className="w-3 h-3 rounded-sm flex-shrink-0 flex items-center justify-center text-[7px] font-bold text-white"
+                    style={{ backgroundColor: tab.favicon }}
+                  >
+                    {tab.title.charAt(0)}
+                  </div>
             )}
             <span className="truncate">{tab.title}</span>
             <X size={8} className="text-muted-foreground/40 flex-shrink-0 ml-auto" />

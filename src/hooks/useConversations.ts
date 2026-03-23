@@ -72,16 +72,20 @@ export function useConversation(id: string | undefined) {
       if (convResult.error) throw convResult.error;
 
       const conv = convResult.data;
-      const messages: ChatMessage[] = (msgsResult.data ?? []).map((m) => ({
-        id: m.id,
-        role: m.role as "user" | "assistant",
-        content: m.content,
-        hasReport: m.has_report,
-        reportTitle: m.report_title ?? undefined,
-        reportSummary: m.report_summary ?? undefined,
-        tableData: m.table_data ?? undefined,
-        created_at: m.created_at,
-      }));
+      const messages: ChatMessage[] = (msgsResult.data ?? []).map((m: any) => {
+        // Report metadata from JSONB column (persisted by backend)
+        const meta = m.metadata || {};
+        return {
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          hasReport: meta.hasReport || m.has_report || false,
+          reportTitle: meta.reportTitle || m.report_title || undefined,
+          reportSummary: meta.reportSummary || m.report_summary || undefined,
+          tableData: meta.tableData || m.table_data || undefined,
+          created_at: m.created_at,
+        };
+      });
 
       const steps: Step[] = (stepsResult.data ?? []).map((s) =>
         toStep({

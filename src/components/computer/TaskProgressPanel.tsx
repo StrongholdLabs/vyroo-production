@@ -1,5 +1,5 @@
-import { Check, Loader2, ChevronUp, Circle } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { Check, Loader2, ChevronUp } from "lucide-react";
+import { useState } from "react";
 
 export interface ResearchTask {
   id: number;
@@ -17,105 +17,58 @@ interface TaskProgressPanelProps {
 
 export function TaskProgressPanel({ tasks, currentStep, totalSteps }: TaskProgressPanelProps) {
   const [expanded, setExpanded] = useState(true);
-  const completedCount = tasks.filter(t => t.status === "complete").length;
-  const activeTask = tasks.find(t => t.status === "active");
-  const [pop, setPop] = useState(false);
-  const prevCompleted = useRef(completedCount);
-
-  useEffect(() => {
-    if (completedCount > prevCompleted.current) {
-      setPop(true);
-      const t = setTimeout(() => setPop(false), 600);
-      prevCompleted.current = completedCount;
-      return () => clearTimeout(t);
-    }
-    prevCompleted.current = completedCount;
-  }, [completedCount]);
 
   return (
     <div
       className="flex-shrink-0 border-t"
       style={{ borderColor: "hsl(var(--computer-border))", backgroundColor: "hsl(var(--computer-header))" }}
     >
-      {/* Header with arc progress */}
+      {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-accent/30 transition-colors"
+        className="flex items-center justify-between w-full px-4 py-2.5 text-left"
       >
-        {/* Circular mini progress with pop animation */}
-        <div
-          className="relative w-7 h-7 flex-shrink-0 transition-transform duration-300 ease-out"
-          style={{ transform: pop ? "scale(1.25)" : "scale(1)" }}
-        >
-          <svg viewBox="0 0 28 28" className="w-full h-full -rotate-90">
-            <circle cx="14" cy="14" r="11" fill="none" stroke="hsl(var(--step-line))" strokeWidth="2.5" />
-            <circle
-              cx="14" cy="14" r="11" fill="none"
-              stroke="hsl(var(--success))"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeDasharray={`${2 * Math.PI * 11}`}
-              strokeDashoffset={`${2 * Math.PI * 11 * (1 - completedCount / totalSteps)}`}
-              className="transition-all duration-700 ease-out"
-              style={{ filter: pop ? "drop-shadow(0 0 4px hsl(var(--success) / 0.6))" : "none" }}
-            />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-foreground tabular-nums">
-            {completedCount}
-          </span>
+        <span className="text-sm font-medium text-foreground">Task progress</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground tabular-nums">{currentStep} / {totalSteps}</span>
+          <ChevronUp
+            size={14}
+            className={`text-muted-foreground transition-transform duration-200 ${expanded ? "" : "rotate-180"}`}
+          />
         </div>
-
-        <div className="flex-1 min-w-0">
-          <span className="text-sm font-medium text-foreground">
-            {activeTask ? activeTask.label : "All tasks complete"}
-          </span>
-          {activeTask?.elapsed && (
-            <span className="text-[10px] text-muted-foreground ml-2">{activeTask.elapsed}</span>
-          )}
-        </div>
-
-        <ChevronUp
-          size={14}
-          className={`text-muted-foreground transition-transform duration-200 ${expanded ? "" : "rotate-180"}`}
-        />
       </button>
 
-      {/* Expanded task list */}
+      {/* Task list */}
       {expanded && (
-        <div className="px-4 pb-3 space-y-0.5">
-          {tasks.map((task, i) => (
-            <div
-              key={task.id}
-              className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg transition-colors ${
-                task.status === "active" ? "bg-accent/50" : ""
-              }`}
-            >
-              {/* Vertical connector */}
-              <div className="relative flex flex-col items-center w-4">
-                {task.status === "complete" ? (
-                  <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(var(--success) / 0.15)" }}>
-                    <Check size={10} className="text-success" />
+        <div className="px-4 pb-3 space-y-1.5">
+          {tasks.map((task) => (
+            <div key={task.id} className="flex items-start gap-2.5">
+              {task.status === "complete" ? (
+                <Check size={14} className="text-success flex-shrink-0 mt-0.5" />
+              ) : task.status === "active" ? (
+                <div className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 flex items-center justify-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+                </div>
+              ) : (
+                <div className="w-3.5 h-3.5 rounded-full border border-border flex-shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1 min-w-0">
+                <span className={`text-xs leading-snug ${
+                  task.status === "complete" ? "text-foreground" :
+                  task.status === "active" ? "text-foreground font-medium" :
+                  "text-muted-foreground"
+                }`}>
+                  {task.label}
+                </span>
+                {task.status === "active" && task.elapsed && (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[10px] text-muted-foreground tabular-nums">{task.elapsed}</span>
+                    {task.activity && (
+                      <span className="text-[10px] text-muted-foreground">{task.activity}</span>
+                    )}
                   </div>
-                ) : task.status === "active" ? (
-                  <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: "hsl(var(--foreground) / 0.1)" }}>
-                    <Loader2 size={10} className="text-foreground animate-spin" />
-                  </div>
-                ) : (
-                  <Circle size={14} className="text-muted-foreground/30" />
                 )}
               </div>
-
-              <span className={`text-xs leading-snug flex-1 ${
-                task.status === "complete" ? "text-muted-foreground line-through decoration-muted-foreground/30" :
-                task.status === "active" ? "text-foreground font-medium" :
-                "text-muted-foreground/60"
-              }`}>
-                {task.label}
-              </span>
-
-              {task.status === "active" && task.activity && (
-                <span className="text-[10px] text-muted-foreground/70 flex-shrink-0">{task.activity}</span>
-              )}
             </div>
           ))}
         </div>
