@@ -816,8 +816,19 @@ Deno.serve(async (req) => {
             }
           }
 
-          // For agentic tasks, upgrade budget models to Sonnet for reliable tool use
+          // For agentic tasks, ALWAYS use Anthropic Sonnet for reliable tool use
+          // Other providers (Gemini, OpenAI) don't have a tool loop implementation
           let agenticModel = selectedModel;
+          if (taskMode === "agentic" && actualProviderId !== "anthropic") {
+            // Force switch to Anthropic for agentic tasks
+            const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+            if (anthropicKey) {
+              actualProviderId = "anthropic";
+              apiKey = anthropicKey;
+              agenticModel = "claude-sonnet-4-20250514";
+              console.log(`[chat] Switching from ${selectedModel} to Anthropic Sonnet for agentic task (non-Anthropic provider can't do tool loops)`);
+            }
+          }
           if (taskMode === "agentic" && actualProviderId === "anthropic") {
             const budgetModels = ["claude-haiku-4-5-20251001", "claude-3-5-haiku-latest", "claude-3-haiku-20240307"];
             if (budgetModels.includes(selectedModel)) {
