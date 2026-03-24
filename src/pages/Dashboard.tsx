@@ -200,11 +200,34 @@ const Dashboard = () => {
                     <TaskInput />
                   </div>
                   <ActionChips />
-                  <div className="flex items-center gap-2 mt-4 px-3 py-2 rounded-lg bg-secondary/30 border border-border/30">
-                    <Monitor size={14} className="text-muted-foreground flex-shrink-0" />
-                    <p className="text-[11px] text-muted-foreground">
-                      <span className="font-medium text-foreground/70">Computer Panel</span> — code editor, browser, terminal & research timeline appear alongside your chat when needed.
-                    </p>
+                  {/* Feature cards — onboarding hints for new users */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mt-4">
+                    {[
+                      { icon: "🔍", title: "Research & Analysis", desc: "Deep research with real-time data and cited reports", example: "Top 5 DTC brands in 2026" },
+                      { icon: "📊", title: "Presentations", desc: "Data-driven slide decks. Download as PPTX.", example: "Create a pitch deck about AI trends" },
+                      { icon: "💻", title: "Code & Data", desc: "Generate, review, and execute code.", example: "Build a React auth component" },
+                      { icon: "📝", title: "Reports & Writing", desc: "Professional reports with tables and sources.", example: "Write a market analysis report" },
+                    ].map((card) => (
+                      <button
+                        key={card.title}
+                        onClick={() => {
+                          const textarea = document.querySelector('textarea');
+                          if (textarea) {
+                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+                            nativeInputValueSetter?.call(textarea, card.example);
+                            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                            textarea.focus();
+                          }
+                        }}
+                        className="flex items-start gap-3 px-4 py-3 rounded-xl border border-border/50 hover:border-border hover:bg-accent/30 transition-all text-left group"
+                      >
+                        <span className="text-lg mt-0.5">{card.icon}</span>
+                        <div>
+                          <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{card.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{card.desc}</p>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

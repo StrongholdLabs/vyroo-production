@@ -27,6 +27,7 @@ const AgentRun = lazy(() => import("./pages/AgentRun.tsx"));
 const WorkflowEditor = lazy(() => import("./pages/WorkflowEditor.tsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
 const Library = lazy(() => import("./pages/Library.tsx"));
+const SearchPage = lazy(() => import("./pages/SearchPage.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
@@ -116,6 +117,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Library />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/search"
+                element={
+                  <ProtectedRoute>
+                    <SearchPage />
                   </ProtectedRoute>
                 }
               />

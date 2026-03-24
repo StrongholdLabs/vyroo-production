@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -261,9 +261,71 @@ const Library = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(initialFavorites);
+  const [dbGroups, setDbGroups] = useState<LibraryGroup[] | null>(null);
+
+  // Load workspace files from Supabase
+  useEffect(() => {
+    (async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: files } = await supabase
+          .from("workspace_files")
+          .select("id, name, type, format, content, size_bytes, conversation_id, is_pinned, created_at, updated_at")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(100);
+
+        if (files && files.length > 0) {
+          // Map DB types to Library types
+          const typeMap: Record<string, ArtifactType> = {
+            document: "document", presentation: "slides", code: "document",
+            data: "spreadsheet", image: "image",
+          };
+
+          // Group by date
+          const today = new Date(); today.setHours(0,0,0,0);
+          const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+          const weekAgo = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+
+          const groups: Record<string, LibraryGroup> = {};
+          for (const f of files) {
+            const fDate = new Date(f.updated_at || f.created_at);
+            fDate.setHours(0,0,0,0);
+            let dateLabel: string;
+            if (fDate >= today) dateLabel = "Today";
+            else if (fDate >= yesterday) dateLabel = "Yesterday";
+            else if (fDate >= weekAgo) dateLabel = "This week";
+            else dateLabel = fDate.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+
+            if (!groups[dateLabel]) {
+              groups[dateLabel] = { conversationTitle: dateLabel, date: dateLabel, artifacts: [] };
+            }
+            groups[dateLabel].artifacts.push({
+              id: f.id,
+              conversationId: f.conversation_id || "",
+              title: f.name,
+              type: typeMap[f.type] || "document",
+              preview: f.content?.substring(0, 200) || "",
+              isFavorited: f.is_pinned || false,
+            });
+          }
+          setDbGroups(Object.values(groups));
+        } else {
+          setDbGroups([]); // No files — show empty state
+        }
+      } catch {
+        setDbGroups(null); // Error — fall back to mock data
+      }
+    })();
+  }, []);
+
+  const libraryData = dbGroups !== null ? dbGroups : mockLibraryData;
 
   const filteredGroups = useMemo(() => {
-    return mockLibraryData
+    return libraryData
       .map((group) => ({
         ...group,
         artifacts: group.artifacts.filter((artifact) => {
