@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { TaskInput } from "@/components/TaskInput";
 import { ActionChips } from "@/components/ActionChips";
-import AnimatedCardStack from "@/components/ui/animated-card-stack";
+import { PromoCarousel } from "@/components/PromoCarousel";
 import { SpecialText } from "@/components/ui/special-text";
 import { useAuth } from "@/contexts/AuthContext";
 import type { VerticalType } from "@/lib/plugins/types";
@@ -145,7 +145,7 @@ const Index = () => {
           }`}
           style={{ transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)" }}
         >
-          <AnimatedCardStack />
+          <PromoCarousel />
         </div>
       </main>
 

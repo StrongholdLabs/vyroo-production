@@ -248,7 +248,9 @@ function TimeGroup({ title, conversations, activeId, onSelect, onDelete }: TimeG
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDelete(conv.id);
+                  if (window.confirm("Delete this conversation? This cannot be undone.")) {
+                    onDelete(conv.id);
+                  }
                 }}
                 className="p-0.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
               >

@@ -14,7 +14,7 @@ import { useRealtimeConversations } from "@/hooks/useRealtimeConversations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
-import { Menu, Loader2, Monitor } from "lucide-react";
+import { Menu, Loader2, Monitor, Plus } from "lucide-react";
 
 const Dashboard = () => {
   const { conversationId } = useParams();
@@ -272,18 +272,32 @@ const Dashboard = () => {
           {!conversation ? (
             <div className="flex-1 flex flex-col items-center justify-center px-4 pb-24">
               <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
-                <h2 className="font-display text-3xl md:text-4xl text-foreground tracking-tight text-center">
+                <h2 className="font-display text-3xl text-foreground tracking-tight text-center">
                   What can I help you with?
                 </h2>
                 <div className="w-full">
                   <TaskInput />
                 </div>
                 <ActionChips />
-                <div className="flex items-center gap-2 mt-4 px-3 py-2 rounded-lg bg-secondary/30 border border-border/30">
-                  <Monitor size={14} className="text-muted-foreground flex-shrink-0" />
-                  <p className="text-[11px] text-muted-foreground">
-                    <span className="font-medium text-foreground/70">Computer Panel</span> — code editor, browser, terminal & research timeline appear alongside your chat when needed.
-                  </p>
+                {/* Feature cards — mobile */}
+                <div className="grid grid-cols-1 gap-2 w-full mt-2">
+                  {[
+                    { icon: "🔍", title: "Research", example: "Top 5 DTC brands in 2026" },
+                    { icon: "📊", title: "Presentations", example: "Create a pitch deck about AI trends" },
+                    { icon: "💻", title: "Code", example: "Build a React auth component" },
+                    { icon: "📝", title: "Reports", example: "Write a market analysis report" },
+                  ].map((card) => (
+                    <button key={card.title} onClick={() => {
+                      const ta = document.querySelector('textarea');
+                      if (ta) { const s = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set; s?.call(ta, card.example); ta.dispatchEvent(new Event('input', { bubbles: true })); ta.focus(); }
+                    }} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-accent/30 transition-all text-left">
+                      <span>{card.icon}</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{card.title}</p>
+                        <p className="text-[11px] text-muted-foreground">{card.example}</p>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -315,6 +329,17 @@ const Dashboard = () => {
                 />
               </DrawerContent>
             </Drawer>
+          )}
+
+          {/* Mobile FAB — New Task button (only when viewing a conversation) */}
+          {conversation && (
+            <button
+              onClick={() => { setActiveConversation(""); navigate("/dashboard"); }}
+              className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:opacity-90 active:scale-95 transition-all z-30"
+              aria-label="New task"
+            >
+              <Plus size={24} />
+            </button>
           )}
         </main>
       )}
