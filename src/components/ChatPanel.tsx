@@ -310,14 +310,26 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                 </div>
 
-                {msg.hasReport && msg.tableData && (
-                  <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-                      <FileText size={16} className="text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground truncate">{msg.reportTitle}</span>
-                      <div className="ml-auto relative">
+                {msg.hasReport && (
+                  <div
+                    className="rounded-xl border border-border overflow-hidden cursor-pointer hover:border-foreground/20 transition-colors"
+                    style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
+                  >
+                    {/* Clickable card header — opens preview */}
+                    <div
+                      className="flex items-center gap-2 px-4 py-3 border-b border-border hover:bg-accent/50 transition-colors"
+                      onClick={() => setPreviewMsg(msg)}
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <FileText size={16} className="text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-foreground truncate block">{msg.reportTitle}</span>
+                        <span className="text-[11px] text-muted-foreground">Click to open document</span>
+                      </div>
+                      <div className="ml-auto relative flex items-center gap-1">
                         <button
-                          onClick={() => setReportMenuOpen(reportMenuOpen === msg.id ? null : msg.id)}
+                          onClick={(e) => { e.stopPropagation(); setReportMenuOpen(reportMenuOpen === msg.id ? null : msg.id); }}
                           className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent"
                         >
                           <MoreHorizontal size={16} />
@@ -337,56 +349,40 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                                 Preview
                               </button>
                               <button
+                                onClick={() => {
+                                  setReportMenuOpen(null);
+                                  const content = (msg as any).reportContent || msg.reportSummary || "";
+                                  const blob = new Blob([content], { type: 'text/markdown' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${(msg.reportTitle || "report").replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}.md`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  URL.revokeObjectURL(url);
+                                }}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Download size={16} className="text-muted-foreground" />
+                                Download as Markdown
+                              </button>
+                              <button
                                 onClick={() => setReportMenuOpen(null)}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                               >
                                 <Share2 size={16} className="text-muted-foreground" />
                                 Share
                               </button>
-                              <button
-                                onClick={() => setReportMenuOpen(null)}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                              >
-                                <Download size={16} className="text-muted-foreground" />
-                                <span className="flex-1 text-left">Download</span>
-                                <ChevronRight size={14} className="text-muted-foreground" />
-                              </button>
-                              <div className="h-px bg-border my-1" />
-                              <button
-                                onClick={() => setReportMenuOpen(null)}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                              >
-                                <Globe size={16} className="text-[hsl(210_60%_55%)]" />
-                                Convert to Google Docs
-                              </button>
-                              <button
-                                onClick={() => setReportMenuOpen(null)}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                              >
-                                <Globe size={16} className="text-[hsl(45_80%_55%)]" />
-                                Save to Google Drive
-                              </button>
-                              <button
-                                onClick={() => setReportMenuOpen(null)}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                              >
-                                <Globe size={16} className="text-[hsl(210_80%_55%)]" />
-                                Save to OneDrive (personal)
-                              </button>
-                              <button
-                                onClick={() => setReportMenuOpen(null)}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                              >
-                                <Globe size={16} className="text-[hsl(210_60%_45%)]" />
-                                Save to OneDrive (work/school)
-                              </button>
                             </div>
                           </>
                         )}
                       </div>
                     </div>
-                    <div className="px-4 py-3 space-y-2">
-                      <p className="text-xs text-muted-foreground leading-relaxed">{msg.reportSummary}</p>
+                    {/* Summary + optional table */}
+                    <div className="px-4 py-3 space-y-2" onClick={() => setPreviewMsg(msg)}>
+                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{msg.reportSummary}</p>
+                      {msg.tableData && (
                       <div className="overflow-x-auto mt-2">
                         <table className="w-full text-xs">
                           <thead>
@@ -397,7 +393,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                             </tr>
                           </thead>
                           <tbody className="text-muted-foreground">
-                            {msg.tableData.rows.map((row, ri) => (
+                            {msg.tableData.rows.slice(0, 5).map((row, ri) => (
                               <tr key={ri} className="border-b border-border/50">
                                 {row.map((cell, ci) => (
                                   <td key={ci} className={`py-1.5 pr-4 ${ci === 0 ? "font-medium text-foreground" : ""}`}>{renderInlineMarkdown(cell)}</td>
@@ -406,7 +402,11 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                             ))}
                           </tbody>
                         </table>
+                        {msg.tableData.rows.length > 5 && (
+                          <p className="text-[11px] text-muted-foreground mt-1">+{msg.tableData.rows.length - 5} more rows — click to view full report</p>
+                        )}
                       </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -471,15 +471,24 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         )}
 
-        {/* Report card — persists across follow-ups */}
+        {/* Report card — persists across follow-ups (streaming/active session) */}
         {(() => { const activeReport = streamingReport || lastReport; return activeReport ? (
-          <div className="rounded-xl border border-border overflow-hidden" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+          <div
+            className="rounded-xl border border-border overflow-hidden cursor-pointer hover:border-foreground/20 transition-colors"
+            style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
+            onClick={() => setPreviewMsg({ id: "streaming", role: "assistant", content: "", reportContent: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: activeReport.headers.length > 0 ? { headers: activeReport.headers, rows: activeReport.rows } : undefined } as any)}
+          >
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-              <FileText size={16} className="text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground truncate">{activeReport.title}</span>
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <FileText size={16} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-foreground truncate block">{activeReport.title}</span>
+                <span className="text-[11px] text-muted-foreground">Click to open document</span>
+              </div>
               <div className="ml-auto relative">
                 <button
-                  onClick={() => setReportMenuOpen(reportMenuOpen === "streaming" ? null : "streaming")}
+                  onClick={(e) => { e.stopPropagation(); setReportMenuOpen(reportMenuOpen === "streaming" ? null : "streaming"); }}
                   className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent"
                 >
                   <MoreHorizontal size={16} />
@@ -488,21 +497,26 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setReportMenuOpen(null)} />
                     <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-20 shadow-xl" style={{ backgroundColor: "hsl(var(--popover))" }}>
-                      <button onClick={() => { setReportMenuOpen(null); setPreviewMsg({ id: "streaming", role: "assistant", content: "", reportContent: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: { headers: activeReport.headers, rows: activeReport.rows } } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                      <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setPreviewMsg({ id: "streaming", role: "assistant", content: "", reportContent: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: activeReport.headers.length > 0 ? { headers: activeReport.headers, rows: activeReport.rows } : undefined } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
                         <Eye size={16} className="text-muted-foreground" />Preview
                       </button>
-                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                      <button onClick={(e) => {
+                        e.stopPropagation(); setReportMenuOpen(null);
+                        const content = activeReport.content || "";
+                        const blob = new Blob([content], { type: 'text/markdown' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${(activeReport.title || "report").replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}.md`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Download size={16} className="text-muted-foreground" />Download as Markdown
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
                         <Share2 size={16} className="text-muted-foreground" />Share
-                      </button>
-                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
-                        <Download size={16} className="text-muted-foreground" /><span className="flex-1 text-left">Download</span><ChevronRight size={14} className="text-muted-foreground" />
-                      </button>
-                      <div className="h-px bg-border my-1" />
-                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
-                        <Globe size={16} className="text-[hsl(210_60%_55%)]" />Convert to Google Docs
-                      </button>
-                      <button onClick={() => setReportMenuOpen(null)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
-                        <Globe size={16} className="text-[hsl(45_80%_55%)]" />Save to Google Drive
                       </button>
                     </div>
                   </>
@@ -510,7 +524,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
               </div>
             </div>
             <div className="px-4 py-3 space-y-2">
-              <p className="text-xs text-muted-foreground leading-relaxed">{activeReport.summary}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{activeReport.summary}</p>
               {activeReport.headers.length > 0 && (
                 <div className="overflow-x-auto mt-2">
                   <table className="w-full text-xs">
@@ -522,7 +536,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                       </tr>
                     </thead>
                     <tbody className="text-muted-foreground">
-                      {activeReport.rows.map((row, ri) => (
+                      {activeReport.rows.slice(0, 5).map((row, ri) => (
                         <tr key={ri} className="border-b border-border/50">
                           {row.map((cell, ci) => (
                             <td key={ci} className={`py-1.5 pr-4 ${ci === 0 ? "font-medium text-foreground" : ""}`}>{renderInlineMarkdown(cell)}</td>

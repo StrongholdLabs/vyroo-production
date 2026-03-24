@@ -1794,7 +1794,7 @@ If score >= 8, set improved_summary to null (summary is good enough).`,
               try {
                 const followUps = await Promise.race([
                   generateFollowUps(actualProviderId, apiKey!, message, fullResponse || "No response yet", lastReportContent || undefined),
-                  new Promise<string[]>(resolve => setTimeout(() => resolve([]), 6000)),
+                  new Promise<string[]>(resolve => setTimeout(() => resolve([]), 10000)),
                 ]) as string[];
                 if (followUps.length > 0) {
                   followUpItems = followUps.map(f => typeof f === 'string' ? { text: f, category: "default" } : f);
@@ -1802,21 +1802,25 @@ If score >= 8, set improved_summary to null (summary is good enough).`,
               } catch { /* non-critical */ }
             }
 
-            // Smart fallback — use topic keywords from user's message
+            // Smart fallback — extract REAL topic from user's message for specific follow-ups
             if (followUpItems.length === 0) {
               const hasReport = !!lastReportContent;
-              const topic = message.replace(/^(can you |please |could you )/i, '').substring(0, 50);
+              const topic = message.replace(/^(can you |please |could you |help me |I want to |I need to |research |analyze |find |search for |look into )/gi, '').split(/[.!?]/)[0].trim().substring(0, 60);
+              // Extract brand/product names from report if available
+              const reportFirstLine = lastReportContent ? lastReportContent.split('\n').find((l: string) => l.trim() && !l.startsWith('#'))?.substring(0, 100) || "" : "";
               followUpItems = hasReport ? [
-                { text: `Dive deeper into the key findings`, category: "research" },
-                { text: `Create a visual comparison table`, category: "analysis" },
-                { text: `What are the biggest opportunities?`, category: "research" },
-                { text: `Turn this into a presentation deck`, category: "create" },
+                { text: `Create a presentation about ${topic}`, category: "create" },
+                { text: `Compare pricing strategies for ${topic}`, category: "analysis" },
+                { text: `Analyze growth opportunities in ${topic}`, category: "research" },
+                { text: `Build a competitive matrix for ${topic}`, category: "analysis" },
               ] : [
-                { text: `Tell me more about this topic`, category: "research" },
-                { text: `Give me specific examples`, category: "research" },
-                { text: `What are the pros and cons?`, category: "analysis" },
-                { text: `How does this compare to alternatives?`, category: "analysis" },
+                { text: `Research ${topic} in more depth`, category: "research" },
+                { text: `Compare the top players in ${topic}`, category: "analysis" },
+                { text: `Create a report about ${topic}`, category: "create" },
+                { text: `What are the latest trends in ${topic}?`, category: "research" },
               ];
+              // Truncate any overly long follow-ups
+              followUpItems = followUpItems.map(f => ({ ...f, text: f.text.length > 70 ? f.text.substring(0, 67) + "..." : f.text }));
             }
 
             controller.enqueue(encoder.encode(`event: followups\ndata: ${JSON.stringify({ followUps: followUpItems })}\n\n`));
