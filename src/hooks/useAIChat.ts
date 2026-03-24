@@ -102,34 +102,43 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
   const [sources, setSources] = useState<Array<{ title: string; url: string; favicon: string; domain: string }>>([]);
   const [pendingApproval, setPendingApproval] = useState<ApprovalRequest | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const generationRef = useRef(0); // Track which "generation" of send() is active
   const queryClient = useQueryClient();
   const { provider, model } = useModelSettings();
 
   // Reset all streaming state when conversation changes
-  // This prevents stale UI from showing when switching conversations
+  // CRITICAL: Abort FIRST to prevent stale callbacks from firing into new conversation state
   React.useEffect(() => {
-    // Abort any in-flight request
+    // 1. Abort any in-flight request FIRST
     abortRef.current?.abort();
-    // Reset all state
+    abortRef.current = null;
+    // 2. Increment generation so any stale callbacks are discarded
+    generationRef.current += 1;
+    // 3. THEN reset all state
     setIsStreaming(false);
     setStreamingContent("");
     setError(null);
     setFollowUps([]);
     setSteps([]);
     setReport(null);
+    setLastReport(null);
     setTaskMode(null);
     setToolCalls([]);
     setSlidesData(null);
+    setLastSlidesData(null);
     setSearchResults([]);
     setBrowseData([]);
     setIsUsingTools(false);
     setSources([]);
     setPendingApproval(null);
-    // Don't reset lastReport/lastSlidesData — they persist across follow-ups
   }, [conversationId]);
 
   const send = useCallback(
     async (message: string) => {
+      // Capture current generation — if it changes mid-stream, discard callbacks
+      const currentGen = ++generationRef.current;
+      const isStale = () => generationRef.current !== currentGen;
+
       try {
       setIsStreaming(true);
       setStreamingContent("");
@@ -148,12 +157,13 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
 
       // Optimistically add user message to the conversation cache
       // so it appears immediately (before the edge function response)
+      const optimisticId = `optimistic-${Date.now()}`;
       queryClient.setQueryData(["conversation", conversationId], (prev: any) => {
         if (!prev) return prev;
         return {
           ...prev,
           messages: [...(prev.messages || []), {
-            id: `optimistic-${Date.now()}`,
+            id: optimisticId,
             role: "user",
             content: message,
             created_at: new Date().toISOString(),
@@ -171,31 +181,34 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
         model,
         signal: controller.signal,
         onToken: (token) => {
+          if (isStale()) return;
           setStreamingContent((prev) => prev + token);
         },
         onTitle: (title) => {
-          // Auto-title received — invalidate conversations list
+          if (isStale()) return;
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
           broadcastEvent("title-updated", conversationId);
         },
         onFollowUps: (newFollowUps) => {
-          // Convert string[] from backend to {text, category}[] for FollowUpPanel
-          const typed = (newFollowUps || []).map((f: any) =>
-            typeof f === 'string' ? { text: f, category: detectCategory(f) } : f
-          );
-          setFollowUps(typed);
+          if (isStale()) return;
+          try {
+            const typed = (newFollowUps || []).map((f: any) =>
+              typeof f === 'string' ? { text: f, category: detectCategory(f) } : f
+            );
+            setFollowUps(typed);
+          } catch { /* detectCategory failure is non-critical */ }
         },
         onStep: (stepData) => {
+          if (isStale()) return;
           setSteps(prev => {
             const existing = prev.findIndex(s => s.id === stepData.id);
             const step: StreamingStep = {
               ...stepData,
               icon: null,
-              logs: stepData.logs || [],
+              logs: (stepData.logs || []).slice(-20), // Cap logs at 20 per step (H3)
             };
             if (existing >= 0) {
               const updated = [...prev];
-              // Replace step entirely — don't merge logs (causes duplication)
               updated[existing] = step;
               return updated;
             }
@@ -203,17 +216,19 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           });
         },
         onReport: (reportData) => {
+          if (isStale()) return;
           setReport(reportData);
-          setLastReport(reportData); // Persist across follow-ups
+          setLastReport(reportData);
         },
         onMode: (mode) => {
+          if (isStale()) return;
           setTaskMode(mode);
         },
         onTool: (tool) => {
+          if (isStale()) return;
           setIsUsingTools(true);
           setToolCalls(prev => {
             if (tool.status === "complete") {
-              // Find the LAST executing tool with the same name (handles multiple calls)
               const lastExecutingIdx = prev.reduce((lastIdx, t, i) =>
                 t.name === tool.name && t.status === "executing" ? i : lastIdx, -1);
               if (lastExecutingIdx >= 0) {
@@ -222,32 +237,45 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
                 return updated;
               }
             }
-            // New tool or no match — add it
             return [...prev, tool];
           });
         },
         onSearch: (data) => {
-          setSearchResults(prev => [...prev, data]);
+          if (isStale()) return;
+          setSearchResults(prev => prev.length >= 50 ? prev : [...prev, data]); // Cap at 50 (FA6)
         },
         onBrowse: (data) => {
-          setBrowseData(prev => [...prev, data]);
+          if (isStale()) return;
+          setBrowseData(prev => prev.length >= 50 ? prev : [...prev, data]); // Cap at 50 (FA6)
         },
         onSources: (data) => {
+          if (isStale()) return;
           setSources(data.sources || []);
         },
         onSlides: (data) => {
-          // slides received
+          if (isStale()) return;
           setSlidesData(data);
-          setLastSlidesData(data); // Persist across follow-ups
+          setLastSlidesData(data);
         },
         onApprovalRequired: (data) => {
+          if (isStale()) return;
           setPendingApproval(data);
         },
         onError: (err) => {
+          if (isStale()) return;
           setError(err);
           setIsStreaming(false);
+          // FA2: Rollback optimistic message on error
+          queryClient.setQueryData(["conversation", conversationId], (prev: any) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              messages: (prev.messages || []).filter((m: any) => m.id !== optimisticId),
+            };
+          });
         },
         onDone: async () => {
+          if (isStale()) return;
           // Mark all steps as complete (fixes stuck spinners)
           setSteps(prev => prev.map(s => ({ ...s, status: "complete" as const })));
           setIsStreaming(false);

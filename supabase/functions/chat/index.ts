@@ -562,11 +562,11 @@ async function classifyTask(
     if (classified.includes("code")) return "code";
     if (classified.includes("analysis")) return "analysis";
     if (classified.includes("research")) return "research";
-    // Default to research for safety
-    return "research";
+    // C1 FIX: Default to "direct" — safer and cheaper than triggering full agentic flow
+    return "direct";
   } catch {
-    // Classification is non-critical — default to research for complex task safety
-    return "research";
+    // Classification failed — default to "direct" to avoid expensive agentic flow for simple messages
+    return "direct";
   }
 }
 
@@ -957,6 +957,8 @@ Deno.serve(async (req) => {
 
               let toolIterations = 0;
               const MAX_TOOL_ITERATIONS = 15;
+              const TOOL_LOOP_TIMEOUT_MS = 50000; // 50s wall-clock limit (reserves 10s for response + follow-ups)
+              const toolLoopStartMs = Date.now();
               let finalTextContent = "";
               let hasUsedTools = false;
               let hasWrittenReport = false;
@@ -981,7 +983,7 @@ Deno.serve(async (req) => {
                 }
               };
 
-              while (toolIterations < MAX_TOOL_ITERATIONS) {
+              while (toolIterations < MAX_TOOL_ITERATIONS && (Date.now() - toolLoopStartMs) < TOOL_LOOP_TIMEOUT_MS) {
                 toolIterations++;
 
                 // Safeguard: after 5+ iterations, strongly push write_report
@@ -1107,11 +1109,20 @@ Deno.serve(async (req) => {
                     addStepLog(currentStepIdx, actionLog, "action");
                   }
 
-                  // Execute the tool with error recovery
+                  // Execute the tool with error recovery + per-tool timeout (C5)
+                  const TOOL_TIMEOUTS: Record<string, number> = {
+                    web_search: 10000, browse_url: 15000, write_report: 20000,
+                    generate_presentation: 20000, generate_code: 15000,
+                    execute_code: 10000, summarize: 10000,
+                  };
+                  const toolTimeout = TOOL_TIMEOUTS[toolCall.name] || 15000;
                   let toolResult: any;
                   let durationMs: number;
                   try {
-                    toolResult = await executeTool(toolCall.name, toolCall.input);
+                    toolResult = await Promise.race([
+                      executeTool(toolCall.name, toolCall.input),
+                      new Promise((_, reject) => setTimeout(() => reject(new Error(`Tool ${toolCall.name} timed out after ${toolTimeout/1000}s`)), toolTimeout)),
+                    ]);
                     durationMs = Date.now() - toolStartMs;
                   } catch (toolError) {
                     durationMs = Date.now() - toolStartMs;

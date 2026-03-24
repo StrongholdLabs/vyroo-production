@@ -79,14 +79,9 @@ export async function streamChat(options: StreamOptions) {
     const decoder = new TextDecoder();
     let buffer = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    let streamEnded = false;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
+    const processLines = (lines: string[]) => {
       let eventType = "";
       for (const line of lines) {
         if (line.startsWith("event: ")) {
@@ -121,9 +116,11 @@ export async function streamChat(options: StreamOptions) {
               onApprovalRequired?.(parsed);
             } else if (eventType === "error") {
               onError(parsed.error || "Unknown error");
+              streamEnded = true;
               return;
             } else if (eventType === "done") {
               onDone();
+              streamEnded = true;
               return;
             }
           } catch {
@@ -131,9 +128,25 @@ export async function streamChat(options: StreamOptions) {
           }
         }
       }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      processLines(lines);
+      if (streamEnded) return;
     }
 
-    onDone();
+    // FA3: Flush remaining buffer (handles events without trailing newline)
+    if (buffer.trim()) {
+      processLines(buffer.split("\n"));
+    }
+    if (!streamEnded) onDone();
   } catch (error) {
     if (signal?.aborted) return;
     onError(String(error));
