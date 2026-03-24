@@ -279,8 +279,15 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           // Mark all steps as complete (fixes stuck spinners)
           setSteps(prev => prev.map(s => ({ ...s, status: "complete" as const })));
           setIsStreaming(false);
-          // Refetch conversation BEFORE clearing streaming content
-          // so the DB messages are loaded and visible before we remove the stream
+          // Remove optimistic message before refetch to prevent brief duplicate (#5)
+          queryClient.setQueryData(["conversation", conversationId], (prev: any) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              messages: (prev.messages || []).filter((m: any) => !String(m.id).startsWith("optimistic-")),
+            };
+          });
+          // Refetch conversation so DB messages replace optimistic ones
           await queryClient.invalidateQueries({
             queryKey: ["conversation", conversationId],
           });

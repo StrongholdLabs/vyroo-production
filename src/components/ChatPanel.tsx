@@ -70,6 +70,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const [reportMenuOpen, setReportMenuOpen] = useState<string | null>(null);
   const [previewMsg, setPreviewMsg] = useState<ChatMsg | null>(null);
   const [voiceAgentOpen, setVoiceAgentOpen] = useState(false);
+  const [stepsCollapsed, setStepsCollapsed] = useState(false);
   const [voiceAiResponse, setVoiceAiResponse] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -190,25 +191,27 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   }, [searchResults, browseData, streamingReport, slidesData, onComputerViewUpdate]);
 
   // Restore Computer Panel data from persisted message metadata on conversation switch
+  // Scans ALL messages (not just last) to find most recent report AND slides
   useEffect(() => {
     if (!onComputerViewUpdate) return;
-    // Find the last assistant message with report or slides metadata
-    const lastAssistantMsg = [...messages].reverse().find(m =>
-      m.role === "assistant" && (m.reportContent || m.slidesData)
-    );
-    if (lastAssistantMsg) {
-      const view: any = { type: "document" };
-      if (lastAssistantMsg.reportContent) {
+    const reversed = [...messages].reverse();
+    const lastReport = reversed.find(m => m.role === "assistant" && m.reportContent);
+    const lastSlides = reversed.find(m => m.role === "assistant" && m.slidesData);
+
+    if (lastReport || lastSlides) {
+      const view: any = {};
+      if (lastReport?.reportContent) {
+        view.type = "document";
         view.document = {
-          title: lastAssistantMsg.reportTitle || "Report",
-          content: lastAssistantMsg.reportContent,
+          title: lastReport.reportTitle || "Report",
+          content: lastReport.reportContent,
           format: "markdown",
-          wordCount: lastAssistantMsg.reportContent.split(/\s+/).length,
+          wordCount: lastReport.reportContent.split(/\s+/).length,
         };
       }
-      if (lastAssistantMsg.slidesData) {
+      if (lastSlides?.slidesData) {
         view.type = "slides";
-        view.slides = lastAssistantMsg.slidesData;
+        view.slides = lastSlides.slidesData;
       }
       onComputerViewUpdate(view);
     }
@@ -227,24 +230,24 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     }, 100);
   }, [conversation.id]);
 
-  // Auto-scroll to response START when final response begins (not the bottom)
-  // This guides the user to read from the top of the response
+  // Auto-scroll to response area when first content appears
+  // Uses "nearest" to avoid jarring jumps — only scrolls if content is out of view
   useEffect(() => {
     if (isStreaming && streamingContent && !hasScrolledToResponse.current) {
       hasScrolledToResponse.current = true;
-      // Scroll to the response start with some offset so user sees context
-      responseStartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      responseStartRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
     if (!isStreaming) {
       hasScrolledToResponse.current = false;
+      setStepsCollapsed(false); // Expand steps for new response
     }
   }, [isStreaming, streamingContent]);
 
-  // Auto-send initial message from TaskInput
-  const initialSentRef = useRef(false);
+  // Auto-send initial message from TaskInput (with double-send protection)
+  const initialSentRef = useRef<string | null>(null);
   useEffect(() => {
-    if (initialMessage && !initialSentRef.current && !isStreaming) {
-      initialSentRef.current = true;
+    if (initialMessage && initialSentRef.current !== initialMessage && !isStreaming) {
+      initialSentRef.current = initialMessage;
       onSendMessage?.(initialMessage);
       sendAI(initialMessage);
       onInitialMessageSent?.();
@@ -270,7 +273,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   }, []);
 
   const handleSend = () => {
-    if (!message.trim()) return;
+    if (!message.trim() || isStreaming) return;
     onSendMessage?.(message);
     sendAI(message);
     setMessage("");
@@ -485,17 +488,32 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         ))}
 
         {/* Steps — show streaming steps during execution, fallback to persisted steps (hide in direct mode) */}
-        {taskMode !== "direct" && (streamingSteps.length > 0 ? streamingSteps : steps).length > 0 && (
-          <div className="space-y-1">
-            {(streamingSteps.length > 0 ? streamingSteps : steps).map((step) => (
-              <ExpandableStep
-                key={step.id}
-                step={step}
-                isActive={step.status === "active"}
-              />
-            ))}
-          </div>
-        )}
+        {taskMode !== "direct" && (streamingSteps.length > 0 ? streamingSteps : steps).length > 0 && (() => {
+          const allSteps = streamingSteps.length > 0 ? streamingSteps : steps;
+          const allComplete = allSteps.every(s => s.status === "complete");
+          const completedCount = allSteps.filter(s => s.status === "complete").length;
+          return (
+            <div className="space-y-1">
+              {/* Collapse toggle — only show after all steps complete */}
+              {allComplete && !isStreaming && (
+                <button
+                  onClick={() => setStepsCollapsed(prev => !prev)}
+                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+                >
+                  <ChevronDown size={14} className={`transition-transform ${stepsCollapsed ? "-rotate-90" : ""}`} />
+                  <span>{stepsCollapsed ? `Show ${completedCount} completed steps` : `${completedCount} steps completed`}</span>
+                </button>
+              )}
+              {!stepsCollapsed && allSteps.map((step) => (
+                <ExpandableStep
+                  key={step.id}
+                  step={step}
+                  isActive={step.status === "active"}
+                />
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Upgrade banner — show for free plan users after agentic response */}
         {!isStreaming && streamingSteps.length > 0 && (
@@ -646,36 +664,24 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         {/* Thinking indicator */}
         {isThinking && !streamingContent && <ThinkingIndicator />}
 
-        {/* AI-generated follow-ups */}
-        <FollowUpPanel
-          followUps={dynamicFollowUps}
-          visible={!isThinking && dynamicFollowUps.length > 0}
-          onSelect={(text) => {
-            onSendMessage?.(text);
-            sendAI(text);
-            scrollToBottom();
-          }}
-        />
-
-        {/* Static follow-ups (from conversation data, fallback) */}
-        {staticFollowUps.length > 0 && dynamicFollowUps.length === 0 && !isThinking && (
-          <div className="space-y-2 pt-2">
-            <span className="text-xs text-muted-foreground font-medium">Suggested follow-ups</span>
-            {staticFollowUps.map((item, i) => (
-              <button key={i} className="suggested-followup w-full text-left" onClick={() => {
-                onSendMessage?.(item.text);
-                sendAI(item.text);
+        {/* Follow-ups — unified render: AI-generated first, static fallback */}
+        {(() => {
+          const followUpsToShow = dynamicFollowUps.length > 0
+            ? dynamicFollowUps
+            : staticFollowUps.map(item => ({ text: item.text, category: "default" }));
+          return (
+            <FollowUpPanel
+              followUps={followUpsToShow}
+              visible={!isThinking && followUpsToShow.length > 0}
+              onSelect={(text) => {
+                if (isStreaming) return;
+                onSendMessage?.(text);
+                sendAI(text);
                 scrollToBottom();
-              }}>
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <span className="text-muted-foreground flex-shrink-0">{item.icon}</span>
-                  <span className="text-sm text-foreground truncate">{item.text}</span>
-                </div>
-                <ArrowRight size={16} className="text-muted-foreground flex-shrink-0" />
-              </button>
-            ))}
-          </div>
-        )}
+              }}
+            />
+          );
+        })()}
 
         {/* Publish card for completed conversations */}
         {isComplete && !isThinking && isWebsite && (
