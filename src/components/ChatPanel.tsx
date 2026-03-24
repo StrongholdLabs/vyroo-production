@@ -427,6 +427,31 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                                 Download Docx
                                 <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
                               </button>
+                              <div className="h-px bg-border my-1" />
+                              <button
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("Google Docs integration coming soon!"); }}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Globe size={16} className="text-[hsl(210_60%_55%)]" />
+                                Convert to Google Docs
+                                <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("Google Drive integration coming soon!"); }}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Globe size={16} className="text-[hsl(45_80%_55%)]" />
+                                Save to Google Drive
+                                <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("OneDrive integration coming soon!"); }}
+                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                              >
+                                <Globe size={16} />
+                                Save to OneDrive
+                                <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
+                              </button>
                             </div>
                           </>
                         )}
@@ -626,6 +651,16 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("Docx export coming soon!"); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                         <Download size={16} className="text-blue-500" />Download Docx <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
+                      </button>
+                      <div className="h-px bg-border my-1" />
+                      <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("Google Docs integration coming soon!"); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                        <Globe size={16} className="text-[hsl(210_60%_55%)]" />Convert to Google Docs <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("Google Drive integration coming soon!"); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                        <Globe size={16} className="text-[hsl(45_80%_55%)]" />Save to Google Drive <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("OneDrive integration coming soon!"); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                        <Globe size={16} />Save to OneDrive <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
                       </button>
                     </div>
                   </>
