@@ -49,7 +49,13 @@ const Dashboard = () => {
 
   const conversationQuery = useConversation(activeConversation || undefined);
   // When activeConversation is cleared (New task), don't show stale cached data
-  const conversation = activeConversation ? conversationQuery.data : undefined;
+  // If conversation is loading but we have an ID, provide a stub so ChatPanel renders immediately
+  const conversationStub = activeConversation ? {
+    id: activeConversation, title: "New task", type: "intelligence" as const,
+    icon: "💬", steps: [], messages: [], followUps: [], codeLines: [],
+    fileName: "", editorLabel: "Editor",
+  } : undefined;
+  const conversation = activeConversation ? (conversationQuery.data || conversationStub) : undefined;
   const isLoading = activeConversation ? conversationQuery.isLoading : false;
   const isError = activeConversation ? conversationQuery.isError : false;
   const _sendMessage = useSendMessage(); // kept for future use
@@ -190,7 +196,7 @@ const Dashboard = () => {
 
           {/* Main content area */}
           <ResizablePanel defaultSize={!conversation || !computerVisible ? 82 : 45} minSize={30}>
-            {!conversation && !pendingMessage ? (
+            {!conversation ? (
               <div className="flex-1 flex flex-col items-center justify-center px-4 pb-24 h-full">
                 <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
                   <h2 className="font-display text-3xl md:text-4xl text-foreground tracking-tight text-center">
@@ -236,11 +242,7 @@ const Dashboard = () => {
             ) : (
               <div className="flex flex-col h-full min-w-0">
                 <ChatPanel
-                  conversation={conversation || {
-                    id: activeConversation, title: "New task", type: "intelligence" as const,
-                    icon: "💬", steps: [], messages: [], followUps: [], codeLines: [],
-                    fileName: "", editorLabel: "Editor",
-                  }}
+                  conversation={conversation}
                   computerVisible={computerVisible}
                   onOpenComputer={handleOpenComputer}
                   onSendMessage={handleSendMessage}
@@ -275,7 +277,7 @@ const Dashboard = () => {
       ) : (
         /* Mobile layout */
         <main className="flex-1 flex overflow-hidden relative">
-          {!conversation && !pendingMessage ? (
+          {!conversation ? (
             <div className="flex-1 flex flex-col items-center justify-center px-4 pb-24">
               <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
                 <h2 className="font-display text-3xl text-foreground tracking-tight text-center">
