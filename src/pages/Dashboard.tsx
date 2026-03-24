@@ -14,7 +14,7 @@ import { useRealtimeConversations } from "@/hooks/useRealtimeConversations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
-import { Menu, Loader2, Monitor, Plus } from "lucide-react";
+import { Menu, Loader2, Monitor, Plus, Search, BarChart, Code, FileText } from "lucide-react";
 
 const Dashboard = () => {
   const { conversationId } = useParams();
@@ -203,10 +203,10 @@ const Dashboard = () => {
                   {/* Feature cards — onboarding hints for new users */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mt-4">
                     {[
-                      { icon: "🔍", title: "Research & Analysis", desc: "Deep research with real-time data and cited reports", example: "Top 5 DTC brands in 2026" },
-                      { icon: "📊", title: "Presentations", desc: "Data-driven slide decks. Download as PPTX.", example: "Create a pitch deck about AI trends" },
-                      { icon: "💻", title: "Code & Data", desc: "Generate, review, and execute code.", example: "Build a React auth component" },
-                      { icon: "📝", title: "Reports & Writing", desc: "Professional reports with tables and sources.", example: "Write a market analysis report" },
+                      { icon: <Search size={16} />, color: "text-blue-400", title: "Research & Analysis", desc: "Deep research with real-time data and cited reports", example: "Top 5 DTC brands in 2026" },
+                      { icon: <BarChart size={16} />, color: "text-orange-400", title: "Presentations", desc: "Data-driven slide decks. Download as PPTX.", example: "Create a pitch deck about AI trends" },
+                      { icon: <Code size={16} />, color: "text-green-400", title: "Code & Data", desc: "Generate, review, and execute code.", example: "Build a React auth component" },
+                      { icon: <FileText size={16} />, color: "text-purple-400", title: "Reports & Writing", desc: "Professional reports with tables and sources.", example: "Write a market analysis report" },
                     ].map((card) => (
                       <button
                         key={card.title}
@@ -221,7 +221,9 @@ const Dashboard = () => {
                         }}
                         className="flex items-start gap-3 px-4 py-3 rounded-xl border border-border/50 hover:border-border hover:bg-accent/30 transition-all text-left group"
                       >
-                        <span className="text-lg mt-0.5">{card.icon}</span>
+                        <div className={`w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0 ${card.color}`}>
+                          {card.icon}
+                        </div>
                         <div>
                           <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{card.title}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">{card.desc}</p>
@@ -282,16 +284,16 @@ const Dashboard = () => {
                 {/* Feature cards — mobile */}
                 <div className="grid grid-cols-1 gap-2 w-full mt-2">
                   {[
-                    { icon: "🔍", title: "Research", example: "Top 5 DTC brands in 2026" },
-                    { icon: "📊", title: "Presentations", example: "Create a pitch deck about AI trends" },
-                    { icon: "💻", title: "Code", example: "Build a React auth component" },
-                    { icon: "📝", title: "Reports", example: "Write a market analysis report" },
+                    { icon: <Search size={14} />, color: "text-blue-400", title: "Research", example: "Top 5 DTC brands in 2026" },
+                    { icon: <BarChart size={14} />, color: "text-orange-400", title: "Presentations", example: "Create a pitch deck about AI trends" },
+                    { icon: <Code size={14} />, color: "text-green-400", title: "Code", example: "Build a React auth component" },
+                    { icon: <FileText size={14} />, color: "text-purple-400", title: "Reports", example: "Write a market analysis report" },
                   ].map((card) => (
                     <button key={card.title} onClick={() => {
                       const ta = document.querySelector('textarea');
                       if (ta) { const s = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set; s?.call(ta, card.example); ta.dispatchEvent(new Event('input', { bubbles: true })); ta.focus(); }
                     }} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border/50 hover:bg-accent/30 transition-all text-left">
-                      <span>{card.icon}</span>
+                      <span className={`${card.color} flex-shrink-0`}>{card.icon}</span>
                       <div>
                         <p className="text-sm font-medium text-foreground">{card.title}</p>
                         <p className="text-[11px] text-muted-foreground">{card.example}</p>
