@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
-import { Download, Share2, Play, MoreHorizontal, Sparkles } from "lucide-react";
+import { Download, Share2, Play, MoreHorizontal, Sparkles, FileDown } from "lucide-react";
 import type { SlideData } from "@/components/SlidePreviewCard";
 import { useToast } from "@/hooks/use-toast";
+import { exportPptx } from "@/lib/export-pptx";
 
 interface SlideViewerPanelProps {
   slides: SlideData[];
@@ -14,8 +15,25 @@ export function SlideViewerPanel({ slides, presentationTitle, lastModified }: Sl
   const current = slides[activeSlide];
   const { toast } = useToast();
 
-  const handleDownload = useCallback(() => {
-    // Generate markdown slide content
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleDownloadPptx = useCallback(async () => {
+    setExporting(true);
+    setDownloadMenuOpen(false);
+    try {
+      await exportPptx(slides, presentationTitle, "dark");
+      toast({ title: "PPTX downloaded", description: `${slides.length} slides exported as PowerPoint` });
+    } catch (e) {
+      console.error("PPTX export error:", e);
+      toast({ title: "Export failed", description: "Could not generate PPTX file", variant: "destructive" });
+    } finally {
+      setExporting(false);
+    }
+  }, [slides, presentationTitle, toast]);
+
+  const handleDownloadMd = useCallback(() => {
+    setDownloadMenuOpen(false);
     let md = `# ${presentationTitle}\n\n`;
     slides.forEach((slide, i) => {
       md += `---\n\n## Slide ${i + 1}: ${slide.title}\n\n`;
@@ -26,8 +44,6 @@ export function SlideViewerPanel({ slides, presentationTitle, lastModified }: Sl
       }
       if (slide.speakerNotes) md += `> **Speaker Notes:** ${slide.speakerNotes}\n\n`;
     });
-
-    // Download as .md file
     const blob = new Blob([md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -37,8 +53,7 @@ export function SlideViewerPanel({ slides, presentationTitle, lastModified }: Sl
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
-    toast({ title: "Presentation downloaded", description: `${slides.length} slides exported as Markdown` });
+    toast({ title: "Markdown downloaded", description: `${slides.length} slides exported as Markdown` });
   }, [slides, presentationTitle, toast]);
 
   return (
@@ -53,9 +68,41 @@ export function SlideViewerPanel({ slides, presentationTitle, lastModified }: Sl
           <button className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors" title="Share">
             <Share2 size={14} />
           </button>
-          <button onClick={handleDownload} className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors" title="Download as Markdown">
-            <Download size={14} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
+              className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
+              title="Download"
+              disabled={exporting}
+            >
+              {exporting ? (
+                <div className="w-3.5 h-3.5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Download size={14} />
+              )}
+            </button>
+            {downloadMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setDownloadMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-border py-1.5 z-20 shadow-xl" style={{ backgroundColor: "hsl(var(--popover))" }}>
+                  <button
+                    onClick={handleDownloadPptx}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                  >
+                    <FileDown size={14} className="text-orange-400" />
+                    Download as PPTX
+                  </button>
+                  <button
+                    onClick={handleDownloadMd}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
+                  >
+                    <Download size={14} className="text-muted-foreground" />
+                    Download as Markdown
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <button className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors" title="Present">
             <Play size={14} />
           </button>

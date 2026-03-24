@@ -144,9 +144,9 @@ export const ecommercePlugin: VyrooPlugin = {
   ],
 
   onActivate: async () => {
-    console.log("[E-Commerce Plugin] Activated");
+    // activated
   },
   onDeactivate: async () => {
-    console.log("[E-Commerce Plugin] Deactivated");
+    // deactivated
   },
 };

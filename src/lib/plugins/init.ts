@@ -10,7 +10,4 @@ export function initPlugins(): void {
   pluginRegistry.register(ecommercePlugin);
 
   // In the future, load user-installed plugins from storage here
-  console.log(
-    `[Plugins] Initialized ${pluginRegistry.getAll().length} plugin(s)`
-  );
 }

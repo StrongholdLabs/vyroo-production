@@ -779,13 +779,16 @@ Return ONLY a valid JSON array. No markdown, no explanation. Example:
         return { error: "No slides generated" };
       }
 
-      // Add colors — alternate between warm and cool tones
+      // Professional dark color palettes (Manus-style)
       const colorPalettes = [
-        { bgColor: "hsl(220 14% 96%)", accentColor: "hsl(35 70% 65%)" },
-        { bgColor: "hsl(210 20% 95%)", accentColor: "hsl(210 60% 55%)" },
-        { bgColor: "hsl(220 14% 96%)", accentColor: "hsl(150 50% 50%)" },
-        { bgColor: "hsl(30 20% 96%)", accentColor: "hsl(35 70% 65%)" },
-        { bgColor: "hsl(210 20% 95%)", accentColor: "hsl(280 50% 55%)" },
+        { bgColor: "#0f172a", accentColor: "#38bdf8" },   // Dark navy + sky blue
+        { bgColor: "#1a1a2e", accentColor: "#4fc3f7" },   // Deep blue + light blue
+        { bgColor: "#0d1b2a", accentColor: "#48c9b0" },   // Dark teal + mint
+        { bgColor: "#1b1b2f", accentColor: "#e2b04a" },   // Dark purple + gold
+        { bgColor: "#162447", accentColor: "#e43f5a" },   // Navy + coral
+        { bgColor: "#1a1a2e", accentColor: "#a78bfa" },   // Dark + purple
+        { bgColor: "#0f172a", accentColor: "#34d399" },   // Dark + emerald
+        { bgColor: "#1e1e30", accentColor: "#fb923c" },   // Dark + orange
       ];
 
       const enrichedSlides = slides.map((s: any, i: number) => ({

@@ -123,6 +123,21 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
       setSources([]);
       setPendingApproval(null);
 
+      // Optimistically add user message to the conversation cache
+      // so it appears immediately (before the edge function response)
+      queryClient.setQueryData(["conversation", conversationId], (prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [...(prev.messages || []), {
+            id: `optimistic-${Date.now()}`,
+            role: "user",
+            content: message,
+            created_at: new Date().toISOString(),
+          }],
+        };
+      });
+
       const controller = new AbortController();
       abortRef.current = controller;
 
@@ -198,7 +213,7 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
           setSources(data.sources || []);
         },
         onSlides: (data) => {
-          console.log("[useAIChat] onSlides received:", data?.slideCount, "slides");
+          // slides received
           setSlidesData(data);
           setLastSlidesData(data); // Persist across follow-ups
         },

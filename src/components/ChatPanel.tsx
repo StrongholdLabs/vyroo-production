@@ -411,6 +411,44 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                   </div>
                 )}
 
+                {/* Slides card — inline presentation preview */}
+                {msg.slidesData && msg.slidesData.slides?.length > 0 && (
+                  <div
+                    className="rounded-xl border border-border overflow-hidden cursor-pointer hover:border-foreground/20 transition-colors"
+                    style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
+                    onClick={() => onOpenComputer?.()}
+                  >
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+                      <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
+                        <Sparkles size={16} className="text-orange-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-foreground truncate block">{msg.slidesData.title}</span>
+                        <span className="text-[11px] text-muted-foreground">{msg.slidesData.slideCount || msg.slidesData.slides.length} slides · Click to view presentation</span>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3">
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {msg.slidesData.slides.slice(0, 4).map((slide: any, si: number) => (
+                          <div
+                            key={si}
+                            className="flex-shrink-0 w-32 h-20 rounded-lg p-2 flex flex-col justify-between"
+                            style={{ backgroundColor: slide.bgColor || "#1a1a2e" }}
+                          >
+                            <span className="text-[9px] font-bold text-white/90 line-clamp-2 leading-tight">{slide.title}</span>
+                            <span className="text-[8px] text-white/50">{si + 1}/{msg.slidesData!.slides.length}</span>
+                          </div>
+                        ))}
+                        {msg.slidesData.slides.length > 4 && (
+                          <div className="flex-shrink-0 w-32 h-20 rounded-lg flex items-center justify-center border border-border">
+                            <span className="text-xs text-muted-foreground">+{msg.slidesData.slides.length - 4} more</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Project init card for website conversations */}
                 {isWebsite && conversation.project && (
                   <ProjectInitCard project={conversation.project} onView={onOpenComputer} />
