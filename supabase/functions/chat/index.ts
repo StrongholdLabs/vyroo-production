@@ -852,21 +852,68 @@ Deno.serve(async (req) => {
           // Classify whether this needs the full agentic flow or a direct answer
           const taskMode = await classifyTask(actualProviderId, apiKey!, message);
 
-          // Select the right system prompt based on task type
+          // === SKILLS SYSTEM: Load user's enabled skills and match to task ===
+          let activeSkill: { id: string; name: string; system_prompt: string; tools: string[] } | null = null;
+          try {
+            // Get user's enabled skills with their definitions
+            const { data: userSkills } = await supabase
+              .from("user_skills")
+              .select("skill_id, skills(id, name, system_prompt, tools, category)")
+              .eq("user_id", user.id)
+              .eq("enabled", true);
+
+            if (userSkills && userSkills.length > 0) {
+              // Find best matching skill for this task type
+              const categoryMap: Record<string, string[]> = {
+                research: ["research", "analysis"],
+                analysis: ["analysis", "data", "research"],
+                presentation: ["creative"],
+                code: ["code"],
+              };
+              const relevantCategories = categoryMap[taskMode] || [];
+              const matchedSkill = userSkills.find((us: any) =>
+                us.skills && relevantCategories.includes(us.skills.category)
+              );
+              if (matchedSkill?.skills) {
+                activeSkill = matchedSkill.skills as any;
+                console.log(`[chat] Skill activated: ${activeSkill!.name} (${activeSkill!.id})`);
+              }
+            }
+          } catch { /* skills are non-critical */ }
+
+          // Select system prompt: skill prompt > task prompt > default
           if (taskMode === "direct") {
             enrichedSystemPrompt = DIRECT_SYSTEM_PROMPT;
+          } else if (activeSkill?.system_prompt) {
+            // Use skill-specific prompt (highest priority for agentic tasks)
+            enrichedSystemPrompt = activeSkill.system_prompt;
+            console.log(`[chat] Using skill prompt: ${activeSkill.name}`);
           } else {
-            // Use task-specific prompt for maximum quality
             enrichedSystemPrompt = getTaskPrompt(taskMode);
-            console.log(`[chat] Using ${taskMode} prompt for task`);
+            console.log(`[chat] Using ${taskMode} prompt (no skill matched)`);
           }
+
+          // Load user's custom instructions from preferences
+          try {
+            const { data: prefs } = await supabase
+              .from("user_preferences")
+              .select("custom_instructions, nickname")
+              .eq("user_id", user.id)
+              .single();
+            if (prefs?.custom_instructions) {
+              enrichedSystemPrompt += `\n\n## User's Custom Instructions\n${prefs.custom_instructions}`;
+            }
+            if (prefs?.nickname) {
+              enrichedSystemPrompt += `\nThe user's name is ${prefs.nickname}. Address them by name when appropriate.`;
+            }
+          } catch { /* preferences are non-critical */ }
+
           // Re-inject memory + RAG context for all modes
           try {
             const memories = await getRelevantMemories(user.id, message, supabase);
             const memorySection = injectMemoryContext(memories);
             if (memorySection) enrichedSystemPrompt += memorySection;
           } catch {}
-          // Inject RAG context from past conversations
           if (ragContext) enrichedSystemPrompt += ragContext;
 
           // Emit task mode so frontend knows whether to show steps UI
