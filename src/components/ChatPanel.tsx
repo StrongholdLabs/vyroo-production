@@ -262,11 +262,19 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const isAgentic = taskMode === "agentic" || steps.length > 1;
   const lastAssistantId = useMemo(() => messages.filter(m => m.role === "assistant").pop()?.id, [messages]);
 
+  // Scroll to bottom after sending a message (so user sees their message + thinking indicator)
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  }, []);
+
   const handleSend = () => {
     if (!message.trim()) return;
     onSendMessage?.(message);
     sendAI(message);
     setMessage("");
+    scrollToBottom();
   };
 
   return (
@@ -615,10 +623,23 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           </div>
         ) : null; })()}
 
-        {/* AI error */}
+        {/* AI error with retry */}
         {aiError && (
-          <div className="px-3 py-2 rounded-lg border border-destructive/30 bg-destructive/10 text-sm text-destructive">
-            {aiError}
+          <div className="px-4 py-3 rounded-xl border border-destructive/30 bg-destructive/5 space-y-2">
+            <p className="text-sm text-destructive">{aiError}</p>
+            <button
+              onClick={() => {
+                const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
+                if (lastUserMsg) {
+                  sendAI(lastUserMsg.content);
+                  scrollToBottom();
+                }
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-foreground bg-accent hover:bg-accent/80 rounded-lg transition-colors"
+            >
+              <ArrowRight size={12} />
+              Retry
+            </button>
           </div>
         )}
 
@@ -632,6 +653,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           onSelect={(text) => {
             onSendMessage?.(text);
             sendAI(text);
+            scrollToBottom();
           }}
         />
 
@@ -643,6 +665,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
               <button key={i} className="suggested-followup w-full text-left" onClick={() => {
                 onSendMessage?.(item.text);
                 sendAI(item.text);
+                scrollToBottom();
               }}>
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <span className="text-muted-foreground flex-shrink-0">{item.icon}</span>
@@ -774,6 +797,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         onTranscript={(text) => {
           onSendMessage?.(text);
           sendAI(text);
+          scrollToBottom();
         }}
         aiResponse={voiceAiResponse}
       />

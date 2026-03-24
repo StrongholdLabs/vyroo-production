@@ -105,6 +105,29 @@ export function useAIChat({ conversationId }: UseAIChatOptions) {
   const queryClient = useQueryClient();
   const { provider, model } = useModelSettings();
 
+  // Reset all streaming state when conversation changes
+  // This prevents stale UI from showing when switching conversations
+  React.useEffect(() => {
+    // Abort any in-flight request
+    abortRef.current?.abort();
+    // Reset all state
+    setIsStreaming(false);
+    setStreamingContent("");
+    setError(null);
+    setFollowUps([]);
+    setSteps([]);
+    setReport(null);
+    setTaskMode(null);
+    setToolCalls([]);
+    setSlidesData(null);
+    setSearchResults([]);
+    setBrowseData([]);
+    setIsUsingTools(false);
+    setSources([]);
+    setPendingApproval(null);
+    // Don't reset lastReport/lastSlidesData — they persist across follow-ups
+  }, [conversationId]);
+
   const send = useCallback(
     async (message: string) => {
       try {

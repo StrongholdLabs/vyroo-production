@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -40,6 +40,7 @@ export function DashboardSidebar({
   onSelect,
 }: DashboardSidebarProps) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const navigate = useNavigate();
   const { data: conversations, isLoading } = useConversations();
   const deleteConversation = useDeleteConversation();
 
@@ -78,7 +79,7 @@ export function DashboardSidebar({
           {/* Navigation items */}
           <div className="px-2 space-y-0.5">
             <button
-              onClick={() => { window.location.href = "/dashboard"; }}
+              onClick={() => { onSelect(""); navigate("/dashboard"); }}
               className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-sidebar-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors duration-150"
             >
               <span className="text-muted-foreground"><Plus size={16} /></span>
