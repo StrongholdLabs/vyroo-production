@@ -99,6 +99,16 @@ export function TaskInput() {
       const conv = await createConversation.mutateAsync({
         title: value.slice(0, 60) + (value.length > 60 ? "..." : ""),
       });
+      // Pre-seed the conversation query cache so ChatPanel renders immediately
+      const { QueryClient } = await import("@tanstack/react-query");
+      const queryClient = (window as any).__queryClient;
+      if (queryClient) {
+        queryClient.setQueryData(["conversation", conv.id], {
+          id: conv.id, title: conv.title || value.slice(0, 60), type: "intelligence",
+          icon: "💬", steps: [], messages: [], followUps: [], codeLines: [],
+          fileName: "", editorLabel: "Editor",
+        });
+      }
       // Navigate with the message in state so ChatPanel can send it to the AI
       navigate(`/dashboard/${conv.id}`, { state: { initialMessage: value } });
       setValue("");

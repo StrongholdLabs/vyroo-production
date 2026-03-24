@@ -38,6 +38,8 @@ const SharedConversation = lazy(() => import("./pages/SharedConversation.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 const queryClient = new QueryClient();
+// Expose queryClient globally so TaskInput can pre-seed conversation cache
+(window as any).__queryClient = queryClient;
 
 // Use HashRouter in Electron (file:// protocol doesn't support pushState)
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI;
