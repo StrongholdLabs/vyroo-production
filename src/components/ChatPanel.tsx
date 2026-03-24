@@ -376,20 +376,24 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
 
                 {msg.hasReport && (
                   <div
-                    className="rounded-xl border border-border cursor-pointer hover:border-foreground/20 transition-colors relative"
+                    className="rounded-xl border border-border hover:border-foreground/20 transition-colors relative overflow-hidden"
                     style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
                   >
-                    {/* Clickable card header — opens preview */}
+                    {/* Card header with icon, title, menu */}
                     <div
-                      className="flex items-center gap-2 px-4 py-3 border-b border-border hover:bg-accent/50 transition-colors"
+                      className="flex items-center gap-2 px-4 py-3 border-b border-border cursor-pointer hover:bg-accent/30 transition-colors"
                       onClick={() => setPreviewMsg(msg)}
                     >
                       <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <FileText size={16} className="text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-foreground truncate block">{msg.reportTitle}</span>
-                        <span className="text-[11px] text-muted-foreground">Click to open document</span>
+                        <span className="text-sm font-medium text-foreground truncate block">{msg.reportTitle || "Compiling final report"}</span>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <span>Author: Vyroo AI</span>
+                          <span>•</span>
+                          <span>{msg.created_at ? new Date(msg.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "Just now"}</span>
+                        </div>
                       </div>
                       <div className="ml-auto relative flex items-center gap-1">
                         <button
@@ -483,9 +487,22 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                         )}
                       </div>
                     </div>
-                    {/* Summary + optional table */}
-                    <div className="px-4 py-3 space-y-2" onClick={() => setPreviewMsg(msg)}>
-                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{msg.reportSummary}</p>
+                    {/* Inline content preview — Manus-style */}
+                    <div className="px-4 py-3 space-y-2 cursor-pointer" onClick={() => setPreviewMsg(msg)}>
+                      <p className="text-xs text-muted-foreground/90 leading-relaxed line-clamp-4">{msg.reportSummary}</p>
+                      {/* Section outline from report headers */}
+                      {msg.reportContent && (() => {
+                        const headers = msg.reportContent.split('\n').filter((l: string) => l.match(/^#{1,3}\s/)).slice(0, 6);
+                        return headers.length > 1 ? (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {headers.map((h: string, i: number) => (
+                              <span key={i} className="text-[10px] px-2 py-0.5 rounded-md border border-border/50 text-muted-foreground" style={{ backgroundColor: "hsl(var(--accent) / 0.5)" }}>
+                                {h.replace(/^#+\s*/, '').substring(0, 35)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null;
+                      })()}
                       {msg.tableData && (
                       <div className="overflow-x-auto mt-2">
                         <table className="w-full text-xs">
