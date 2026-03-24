@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import {
   User,
@@ -452,6 +452,49 @@ function PersonalizationTab() {
   const [occupation, setOccupation] = useState("");
   const [bio, setBio] = useState("");
   const [instructions, setInstructions] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load preferences from API on mount
+  useEffect(() => {
+    if (loaded) return;
+    (async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL || "https://lwcklhkqibyvlwvfrort.supabase.co"}/functions/v1/preferences`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) {
+          const prefs = await res.json();
+          setNickname(prefs.nickname || "");
+          setOccupation(prefs.occupation || "");
+          setBio(prefs.bio || "");
+          setInstructions(prefs.custom_instructions || "");
+        }
+      } catch {}
+      setLoaded(true);
+    })();
+  }, [loaded]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL || "https://lwcklhkqibyvlwvfrort.supabase.co"}/functions/v1/preferences`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ nickname, occupation, bio, custom_instructions: instructions }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {}
+    setSaving(false);
+  };
 
   return (
     <div className="px-6 py-5 space-y-5">
@@ -501,8 +544,14 @@ function PersonalizationTab() {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button className="px-4 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-accent transition-colors">Cancel</button>
-            <button className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium">Save</button>
+            <button onClick={() => setLoaded(false)} className="px-4 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-accent transition-colors">Cancel</button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium disabled:opacity-50"
+            >
+              {saving ? "Saving..." : saved ? "✓ Saved" : "Save"}
+            </button>
           </div>
         </div>
       ) : (
@@ -518,12 +567,45 @@ function PersonalizationTab() {
 /* ─── Skills Tab ─── */
 function SkillsTab() {
   const [search, setSearch] = useState("");
-  const skills = [
-    { name: "video-generator", desc: "Professional AI video production workflow. Use when creating videos, short films,…", official: true, enabled: false, date: "Mar 13, 2026" },
-    { name: "skill-creator", desc: "Guide for creating or updating skills that extend Vyroo via specialized knowledge,…", official: true, enabled: true, date: "Feb 16, 2026" },
-    { name: "stock-analysis", desc: "Analyze stocks and companies using financial market data. Get company profiles, technical…", official: true, enabled: false, date: "Jan 23, 2026", sparkle: true },
-    { name: "similarweb-analytics", desc: "Analyze websites and domains using SimilarWeb traffic data. Get traffic metrics,…", official: true, enabled: false, date: "Jan 23, 2026", sparkle: true },
-  ];
+  const [skills, setSkills] = useState<Array<{ id: string; name: string; description: string; is_official: boolean; icon: string; category: string; created_at: string; enabled: boolean }>>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load skills from DB
+  useEffect(() => {
+    if (loaded) return;
+    (async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Get all skills + user's enabled status
+        const { data: allSkills } = await supabase.from("skills").select("id, name, description, is_official, icon, category, created_at");
+        const { data: userSkills } = await supabase.from("user_skills").select("skill_id, enabled").eq("user_id", user.id);
+
+        const enabledMap = new Map((userSkills || []).map((us: any) => [us.skill_id, us.enabled]));
+        setSkills((allSkills || []).map((s: any) => ({
+          ...s,
+          enabled: enabledMap.get(s.id) ?? false,
+        })));
+      } catch {}
+      setLoaded(true);
+    })();
+  }, [loaded]);
+
+  const toggleSkill = async (skillId: string, enabled: boolean) => {
+    // Optimistic update
+    setSkills(prev => prev.map(s => s.id === skillId ? { ...s, enabled } : s));
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from("user_skills").upsert({ user_id: user.id, skill_id: skillId, enabled }, { onConflict: "user_id,skill_id" });
+    } catch {
+      // Revert on error
+      setSkills(prev => prev.map(s => s.id === skillId ? { ...s, enabled: !enabled } : s));
+    }
+  };
 
   return (
     <div className="px-6 py-5 space-y-5">
@@ -559,18 +641,18 @@ function SkillsTab() {
 
       {/* Skills grid */}
       <div className="grid grid-cols-2 gap-3">
-        {skills.filter((s) => !search || s.name.includes(search.toLowerCase())).map((skill) => (
-          <div key={skill.name} className="rounded-xl border border-border p-4" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
+        {skills.filter((s) => !search || s.name.toLowerCase().includes(search.toLowerCase()) || s.description?.toLowerCase().includes(search.toLowerCase())).map((skill) => (
+          <div key={skill.id} className="rounded-xl border border-border p-4" style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-foreground">
-                {skill.name} {skill.sparkle && <Sparkles size={12} className="inline text-primary ml-0.5" />}
+                {skill.name} {skill.is_official && <Sparkles size={12} className="inline text-primary ml-0.5" />}
               </span>
-              <Switch checked={skill.enabled} onCheckedChange={() => {}} />
+              <Switch checked={skill.enabled} onCheckedChange={(checked) => toggleSkill(skill.id, checked)} />
             </div>
-            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{skill.desc}</p>
+            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{skill.description}</p>
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground">
-                {skill.official && <><Check size={10} className="inline mr-0.5" />Official · </>}Updated on {skill.date}
+                {skill.is_official && <><Check size={10} className="inline mr-0.5" />Official · </>}{skill.category}
               </span>
               <button className="p-1 text-muted-foreground hover:text-foreground"><MoreHorizontal size={14} /></button>
             </div>
