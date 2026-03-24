@@ -756,7 +756,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Insert user message
+    // Sanitize user message for prompt injection defense (H6)
+    // Strip patterns that could manipulate system prompts
+    const sanitizedMessage = message
+      .replace(/\bsystem\s*:/gi, "System:") // Prevent "system:" role injection
+      .replace(/\bignore\s+(previous|above|all)\s+(instructions?|prompts?|rules?)/gi, "[filtered]") // Common injection
+      .replace(/\byou\s+are\s+now\b/gi, "[filtered]"); // Role override attempts
+
+    // Insert user message (original, not sanitized — sanitized version used in prompts only)
     await supabase.from("messages").insert({
       conversation_id: conversationId,
       role: "user",
@@ -850,7 +857,7 @@ Deno.serve(async (req) => {
           );
 
           // Classify whether this needs the full agentic flow or a direct answer
-          const taskMode = await classifyTask(actualProviderId, apiKey!, message);
+          const taskMode = await classifyTask(actualProviderId, apiKey!, sanitizedMessage);
 
           // === SKILLS SYSTEM: Load user's enabled skills and match to task ===
           let activeSkill: { id: string; name: string; system_prompt: string; tools: string[] } | null = null;
@@ -939,7 +946,7 @@ Deno.serve(async (req) => {
           if (taskMode !== "direct") {
             // Planner Agent creates structured plan with agent assignments
             const historyContext = messages.slice(-4).map(m => `${m.role}: ${m.content.substring(0, 200)}`).join('\n');
-            agentPlan = await planTask(message, historyContext);
+            agentPlan = await planTask(sanitizedMessage, historyContext);
             console.log(`[chat] Planner Agent: ${agentPlan.taskType}, ${agentPlan.steps.length} steps, research=${agentPlan.requiresResearch}`);
 
             // Override taskMode if planner disagrees with classifier
@@ -952,7 +959,7 @@ Deno.serve(async (req) => {
             if (agentPlan.steps.length > 0) {
               plan = agentPlan.steps.map(s => ({ label: s.action, detail: s.detail }));
             } else {
-              plan = await generatePlan(actualProviderId, apiKey!, message);
+              plan = await generatePlan(actualProviderId, apiKey!, sanitizedMessage);
             }
             startTime = Date.now();
 
@@ -1168,6 +1175,19 @@ Deno.serve(async (req) => {
                 for (const toolCall of result.toolCalls) {
                   const toolStartMs = Date.now();
                   const currentStepIdx = plan.length > 0 ? Math.min(toolIterations - 1, plan.length - 1) : 0;
+                  const prevStepIdx = plan.length > 0 ? Math.min(toolIterations - 2, plan.length - 1) : -1;
+
+                  // H1 FIX: Emit step status updates — mark previous complete, current active
+                  if (plan.length > 0 && prevStepIdx >= 0 && prevStepIdx !== currentStepIdx) {
+                    controller.enqueue(encoder.encode(`event: step\ndata: ${JSON.stringify({
+                      id: prevStepIdx + 1, label: plan[prevStepIdx].label, detail: plan[prevStepIdx].detail,
+                      status: "complete", logs: (stepLogs.get(prevStepIdx) || []).slice(-20),
+                    })}\n\n`));
+                    controller.enqueue(encoder.encode(`event: step\ndata: ${JSON.stringify({
+                      id: currentStepIdx + 1, label: plan[currentStepIdx].label, detail: plan[currentStepIdx].detail,
+                      status: "active", logs: [{ time: getElapsed(), text: "Starting...", type: "info" }],
+                    })}\n\n`));
+                  }
 
                   // Emit tool executing event
                   controller.enqueue(encoder.encode(`event: tool\ndata: ${JSON.stringify({
@@ -1593,6 +1613,11 @@ Deno.serve(async (req) => {
           } else {
             // ===== Direct mode OR non-Anthropic agentic: use standard streaming =====
             const reader = providerStream.getReader();
+            // Stateful XML leak buffer — catches tokens split across chunks (C2 fix)
+            let xmlBuffer = "";
+            const XML_PATTERNS = ["<function_calls>", "</function_calls>", "<invoke", "</invoke>", '<parameter name=', "<"];
+            const isXmlLeak = (text: string) => XML_PATTERNS.some(p => text.includes(p));
+            const mightBeXmlStart = (text: string) => text.includes("<") && !text.includes(">") && text.length < 30;
 
             while (true) {
               const { done, value } = await reader.read();
@@ -1601,18 +1626,33 @@ Deno.serve(async (req) => {
               const chunk = new TextDecoder().decode(value);
               const lines = chunk.split("\n");
 
-              // Filter out XML tool call leaks per-token (don't block entire stream)
+              // Filter out XML tool call leaks with stateful buffering
               let hasCleanTokens = false;
               for (const line of lines) {
                 if (line.startsWith("data: ") && !line.includes('"error"')) {
                   try {
                     const parsed = JSON.parse(line.slice(6));
                     if (parsed.token) {
-                      // Skip individual tokens that contain XML tool call patterns
-                      const isXml = parsed.token.includes("<function_calls>") || parsed.token.includes("<invoke") ||
-                        parsed.token.includes("</function_calls>") || parsed.token.includes("</invoke>") ||
-                        parsed.token.includes('<parameter name=');
-                      if (!isXml) {
+                      // Stateful buffer: if previous token started an XML tag, combine and check
+                      if (xmlBuffer) {
+                        xmlBuffer += parsed.token;
+                        if (xmlBuffer.includes(">") || xmlBuffer.length > 50) {
+                          // Tag is complete — check if it's an XML leak
+                          if (!isXmlLeak(xmlBuffer)) {
+                            fullResponse += xmlBuffer;
+                            hasCleanTokens = true;
+                          }
+                          xmlBuffer = "";
+                        }
+                        continue; // Don't process this token normally
+                      }
+                      // Check if this token starts an incomplete XML tag
+                      if (mightBeXmlStart(parsed.token)) {
+                        xmlBuffer = parsed.token;
+                        continue;
+                      }
+                      // Normal token — check for complete XML patterns
+                      if (!isXmlLeak(parsed.token)) {
                         fullResponse += parsed.token;
                         hasCleanTokens = true;
                       }
@@ -1623,16 +1663,11 @@ Deno.serve(async (req) => {
 
               // Forward clean chunks, rebuild SSE for filtered ones
               if (hasCleanTokens) {
-                // Rebuild the SSE data without XML tokens
                 const cleanLines = lines.filter(line => {
                   if (!line.startsWith("data: ")) return true;
                   try {
                     const parsed = JSON.parse(line.slice(6));
-                    if (parsed.token) {
-                      return !(parsed.token.includes("<function_calls>") || parsed.token.includes("<invoke") ||
-                        parsed.token.includes("</function_calls>") || parsed.token.includes("</invoke>") ||
-                        parsed.token.includes('<parameter name='));
-                    }
+                    if (parsed.token) return !isXmlLeak(parsed.token);
                   } catch {}
                   return true;
                 });
