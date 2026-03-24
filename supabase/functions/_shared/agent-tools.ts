@@ -816,7 +816,7 @@ const executeCode: AgentToolDefinition = {
   id: "execute_code",
   name: "Execute Code",
   description:
-    "Execute Python or JavaScript code in a sandboxed environment and return the output.",
+    "Execute JavaScript code in a sandboxed environment. Built-in 'utils' object available: utils.sum(arr), utils.avg(arr), utils.median(arr), utils.round(n, decimals), utils.parseCSV(str), utils.formatCurrency(n), utils.formatPercent(n). Use console.log() for output.",
   parameters: {
     code: { type: "string", description: "The code to execute", required: true },
     language: {
@@ -872,8 +872,24 @@ const executeCode: AgentToolDefinition = {
         debug: (...a: unknown[]) => logs.push(`[debug] ${a.map(String).join(" ")}`),
       };
 
+      // Built-in utilities available to user code
+      const utils = {
+        // Math helpers
+        sum: (arr: number[]) => arr.reduce((a, b) => a + b, 0),
+        avg: (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length,
+        median: (arr: number[]) => { const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; },
+        min: (arr: number[]) => Math.min(...arr),
+        max: (arr: number[]) => Math.max(...arr),
+        round: (n: number, d: number = 2) => Math.round(n * 10 ** d) / 10 ** d,
+        // Data helpers
+        parseCSV: (csv: string) => { const lines = csv.trim().split('\n'); const headers = lines[0].split(',').map(h => h.trim()); return lines.slice(1).map(l => { const vals = l.split(','); return Object.fromEntries(headers.map((h, i) => [h, vals[i]?.trim()])); }); },
+        // Formatting
+        formatCurrency: (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+        formatPercent: (n: number) => `${(n * 100).toFixed(1)}%`,
+      };
+
       // Wrap the user code in an async IIFE so `await` works, and inject
-      // our fake console as the `console` binding.
+      // our fake console + utilities as bindings.
       const wrappedCode = `
         return (async () => {
           ${code}
@@ -881,12 +897,12 @@ const executeCode: AgentToolDefinition = {
       `;
 
       // deno-lint-ignore no-new-func
-      const fn = new Function("console", wrappedCode);
+      const fn = new Function("console", "utils", wrappedCode);
 
       // Execute with a timeout using AbortController + Promise.race
       let returnValue: unknown;
       const execPromise = (async () => {
-        returnValue = await fn(fakeConsole);
+        returnValue = await fn(fakeConsole, utils);
       })();
 
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -942,6 +958,32 @@ const executeCode: AgentToolDefinition = {
 };
 
 // ---------------------------------------------------------------------------
+// READ WORKSPACE FILE — Access uploaded/generated documents
+// ---------------------------------------------------------------------------
+const readWorkspaceFile: AgentToolDefinition = {
+  id: "read_workspace_file",
+  name: "Read Workspace File",
+  description: "Read the content of a file from the user's workspace (uploaded documents, generated reports, etc.). Use this to analyze files the user has uploaded or previously generated.",
+  parameters: {
+    file_name: { type: "string", description: "Name or partial name of the file to read", required: true },
+    file_id: { type: "string", description: "Exact file ID (if known)" },
+  },
+  async execute(args) {
+    const fileName = String(args.file_name ?? "");
+    const fileId = args.file_id ? String(args.file_id) : null;
+
+    // This tool needs the Supabase client — injected at runtime via context
+    // For now, return the search parameters so the chat handler can look up the file
+    return {
+      type: "workspace_file_request",
+      file_name: fileName,
+      file_id: fileId,
+      message: "File lookup delegated to chat handler (requires user auth context)",
+    };
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
@@ -957,6 +999,7 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
   write_report: writeReport,
   generate_presentation: generatePresentation,
   execute_code: executeCode,
+  read_workspace_file: readWorkspaceFile,
 };
 
 /**

@@ -1165,6 +1165,28 @@ Deno.serve(async (req) => {
                   }
                   if (toolCall.name === "write_report") hasWrittenReport = true;
 
+                  // Handle workspace file reads (needs Supabase auth context)
+                  if (toolCall.name === "read_workspace_file" && (toolResult as any)?.type === "workspace_file_request") {
+                    const req = toolResult as any;
+                    try {
+                      let query = supabase.from("workspace_files").select("name, type, content, size_bytes").eq("user_id", user.id);
+                      if (req.file_id) {
+                        query = query.eq("id", req.file_id);
+                      } else if (req.file_name) {
+                        query = query.ilike("name", `%${req.file_name}%`);
+                      }
+                      const { data: files } = await query.limit(1).single();
+                      if (files) {
+                        toolResult = { name: files.name, type: files.type, content: files.content?.substring(0, 10000), size_bytes: files.size_bytes };
+                        addStepLog(currentStepIdx, `Read file: ${files.name} (${files.size_bytes} bytes)`, "result");
+                      } else {
+                        toolResult = { error: "File not found in workspace" };
+                      }
+                    } catch {
+                      toolResult = { error: "Could not access workspace files" };
+                    }
+                  }
+
                   // Add step log: tool completed
                   if (plan.length > 0) {
                     const resultLog = toolCall.name === "web_search"
