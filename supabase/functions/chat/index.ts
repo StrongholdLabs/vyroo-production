@@ -131,24 +131,27 @@ const ANALYSIS_PROMPT = `You are Vyroo, a senior data analyst. You analyze data,
 // Combined prompt used as fallback when task type is unclear
 const SYSTEM_PROMPT = RESEARCH_PROMPT;
 
-const DIRECT_SYSTEM_PROMPT = `You are Vyroo, a knowledgeable AI assistant. You provide clear, well-structured answers using your training knowledge.
+const DIRECT_SYSTEM_PROMPT = `You are Vyroo, a knowledgeable AI assistant. You give clear, authoritative answers.
 
-## Response Quality Standards
-- **Lead with a direct answer** — don't beat around the bush
-- **Be specific** — include data, numbers, names, and facts where possible
-- **Structure well** — use ## headings, bullet points, and markdown formatting
-- **Use bold** for key terms, metrics, and important figures
-- **Keep it concise** — 2-3 sentence paragraphs max
+## Response Style
+- Lead with a direct answer in the first sentence — no preamble
+- Write in flowing prose paragraphs, not bullet point lists
+- Be specific: include numbers, names, dates, and concrete examples
+- Use **bold** for key terms and important figures
+- Keep answers concise but complete — 2-4 paragraphs for most questions
+- For complex topics, use ## headings to organize sections
+- Use tables only for structured comparisons (3+ items)
 
-You do NOT have access to tools or web search in this mode. Answer from your knowledge.
+## Tone
+- Confident and authoritative, like a knowledgeable colleague
+- No hedging ("I think", "It seems", "It's worth noting") — just state facts
+- Address the user by name if known
 
-CRITICAL: NEVER output XML tags, function calls, tool invocations, or anything resembling <function_calls>, <invoke>, or <parameter> tags. You are in direct answer mode — just respond with plain text and markdown.
-
-CRITICAL FORMATTING RULES:
-- NEVER output raw JSON, XML, or structured data objects in your response
-- NEVER use <function_calls>, <invoke>, or any XML-like tags
-- Format everything as clean readable Markdown (headings, bullet points, tables)
-- If asked to create a presentation or document, format it as readable Markdown sections, not JSON`;
+## Restrictions
+- You do NOT have tools or web search in this mode — answer from knowledge
+- NEVER output XML tags, function calls, or <function_calls>/<invoke> patterns
+- NEVER output raw JSON or structured data objects
+- Format everything as clean Markdown`;
 
 const FOLLOWUP_PROMPT = `You are generating follow-up suggestions. Read the conversation and suggest 3-4 SPECIFIC next actions.
 
@@ -1085,6 +1088,7 @@ Deno.serve(async (req) => {
               let hasWrittenReport = false;
               // Accumulated logs per step for rich step progress
               const stepLogs: Map<number, Array<{time: string; text: string; type: string}>> = new Map();
+              let hasBrowsed = false; // Track if browse_url has been called (enforce browse-before-report)
               const getElapsed = () => {
                 const sec = Math.floor((Date.now() - startTime) / 1000);
                 return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
@@ -1110,7 +1114,11 @@ Deno.serve(async (req) => {
                 // Safeguard: after 5+ iterations, strongly push write_report
                 let extraPrompt = enrichedSystemPrompt;
                 if (toolIterations >= 5 && !hasWrittenReport && hasUsedTools) {
-                  extraPrompt += "\n\nCRITICAL: You have gathered enough research data. You MUST call write_report NOW as your next tool call. Pass all your gathered data/findings as the 'data' parameter and the topic as 'topic'. Do NOT make any more web_search or browse_url calls. Do NOT respond with text yet — call write_report first.";
+                  extraPrompt += "\n\nCRITICAL: You have gathered enough research data. You MUST call write_report NOW. Pass all gathered data as the 'data' parameter. Do NOT make more web_search or browse_url calls.";
+                }
+                // Enforce browse-before-report: if searched but never browsed, nudge to browse
+                if (toolIterations >= 2 && hasUsedTools && !hasBrowsed && !hasWrittenReport) {
+                  extraPrompt += "\n\nIMPORTANT: You have used web_search but have NOT yet browsed any source URLs. You MUST call browse_url on at least 2 of the search result URLs before calling write_report. Search snippets alone are insufficient — always read the actual page.";
                 }
 
                 const result = await callAnthropicWithTools(
@@ -1266,6 +1274,7 @@ Deno.serve(async (req) => {
                     addStepLog(currentStepIdx, `${toolCall.name} failed, adapting approach...`, "action");
                   }
                   if (toolCall.name === "write_report") hasWrittenReport = true;
+                  if (toolCall.name === "browse_url") hasBrowsed = true;
 
                   // Handle workspace file reads (needs Supabase auth context)
                   if (toolCall.name === "read_workspace_file" && (toolResult as any)?.type === "workspace_file_request") {
@@ -1991,6 +2000,15 @@ Deno.serve(async (req) => {
               .single();
 
             if (conv && !conv.auto_titled) {
+              // Set conversation icon based on task type
+              const iconMap: Record<string, string> = {
+                research: "🔍", presentation: "📊", code: "💻",
+                analysis: "📈", website: "🌐", direct: "💬",
+              };
+              const taskIcon = iconMap[taskMode || "direct"] || "💬";
+              const taskTypeLabel = taskMode === "direct" ? "intelligence" : taskMode === "presentation" ? "research" : (taskMode || "intelligence");
+              supabase.from("conversations").update({ icon: taskIcon, type: taskTypeLabel }).eq("id", conversationId).then(() => {});
+
               postTasks.push(
                 fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/auto-title`, {
                   method: "POST",
