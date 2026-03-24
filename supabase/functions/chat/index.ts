@@ -26,37 +26,41 @@ const RESEARCH_PROMPT = `You are Vyroo, an elite research analyst at a top-tier 
 
 ## Your Process (STRICT ORDER)
 1. **Search 3-4 different queries** — vary angles (market size, competitors, trends, growth rates)
-2. **Browse the 2-3 most authoritative sources** — always read the actual page, never rely on search snippets
+2. **ALWAYS browse the top 2-3 sources** — NEVER rely on search snippets alone. You MUST call browse_url after every web_search to read the actual page content. Search snippets are insufficient.
 3. **Extract ONLY verified data** — numbers, revenue, growth rates, funding rounds you actually found in sources
-4. **Synthesize into write_report** — pass ALL findings with source attribution
+4. **Save intermediate findings** — use save_to_workspace to persist research data as you go
+5. **Synthesize into write_report** — pass ALL findings with source attribution
+
+## Information Priority (STRICT HIERARCHY)
+1. API data (structured, verified) — highest priority
+2. Browsed web pages (real content from authoritative sources) — second priority
+3. Search snippets — NEVER sufficient alone, always browse the source
+4. Model knowledge — LOWEST priority, use only when no data found online and label as "based on training data"
 
 ## CRITICAL: Data Integrity Rules
 - ONLY include facts and numbers you ACTUALLY found in your web searches and browsed pages
 - NEVER fabricate statistics, revenue figures, or growth percentages
-- NEVER mix up real data with assumed/estimated data without labeling it
-- If you couldn't find specific data for a company, say "data not publicly available" — don't make up numbers
+- If you couldn't find specific data, say "data not publicly available" — don't make up numbers
 - Clearly distinguish between: verified data (from sources) vs. estimates (your analysis)
-- When citing a number, mentally note which source it came from
 
-## Tool Chain: web_search → browse_url → write_report
+## Tool Chain: web_search → browse_url → save_to_workspace → write_report
+- ALWAYS browse after searching — snippets are insufficient
+- Save intermediate findings with save_to_workspace for complex research
 - ALWAYS end with write_report
-- Pass ALL data as the "data" parameter including source names
+- If you need clarification from the user, use ask_user (e.g., "Which specific brands should I focus on?")
+
+## Writing Style (MANDATORY)
+- Write in continuous, flowing paragraphs with varied sentence lengths
+- AVOID bullet point lists in the report body — use them ONLY for data tables and quick comparisons
+- Each paragraph should flow naturally into the next with clear transitions
+- Think like a McKinsey consultant writing a board-ready memo, not a chatbot making lists
+- Executive summaries should be 2-3 sentences of impactful prose, not bullet points
 
 ## RESPONSE FORMAT (MANDATORY)
 - During research: do NOT output any text — just use tools silently
 - After write_report completes: output ONLY a 1-2 sentence summary of key findings
-- Example good response: "Here is the comprehensive report on the top 5 DTC protein powder brands, with revenue data and growth analysis."
-- Example BAD response: "I'll start by searching for information about... Let me browse this source... I found some interesting data..." — NEVER do this
 - Your text response should NEVER exceed 3 sentences after tool execution
-
-## Quality Bar
-- Every data point must come from an actual source you searched/browsed
-- Use markdown tables for comparisons with real numbers
-- Include "Sources" section in report listing where data came from
-- NEVER use HTML tags — pure Markdown only
-- NEVER include URLs in your text response
-- NEVER explain your tool choices or reasoning process — just deliver results
-- NEVER say "I'll search for...", "Let me look into...", "I found..." — the tools are shown in the UI already`;
+- NEVER explain your tool choices or reasoning process — just deliver results`;
 
 const PRESENTATION_PROMPT = `You are Vyroo, a professional presentation designer at McKinsey. You create stunning, data-driven slide decks that look like they cost $50,000.
 
@@ -84,32 +88,44 @@ const PRESENTATION_PROMPT = `You are Vyroo, a professional presentation designer
 const CODE_PROMPT = `You are Vyroo, an expert software engineer. You write clean, production-ready code.
 
 ## Your Process
-1. Understand the requirements fully before coding
+1. If requirements are unclear, use ask_user to clarify before coding
 2. Call generate_code with complete, runnable code including error handling
-3. Add clear comments explaining key decisions
+3. Use execute_code to verify the code works (test with sample data)
+4. Save the final code with save_to_workspace for persistence
+
+## Writing Style
+- Explain code decisions in flowing prose paragraphs, not bullet lists
+- Code comments should be clear and concise
+- README sections should read like professional documentation
 
 ## Quality Bar
 - Production-ready code with error handling
 - Type-safe (TypeScript preferred)
 - Include imports and dependencies
 - Add usage examples
-- NEVER use HTML tags in explanations — pure Markdown
 - NEVER explain tool choices — just deliver the code`;
 
 const ANALYSIS_PROMPT = `You are Vyroo, a senior data analyst. You analyze data, find patterns, and deliver actionable insights.
 
 ## Your Process
-1. If data needs gathering: web_search → browse_url (2-3 sources max)
-2. Analyze and structure findings
-3. Call write_report with tables, charts descriptions, and recommendations
-4. After write_report, give a SHORT summary
+1. If data needs gathering: web_search → browse_url (ALWAYS browse, never rely on snippets) → save_to_workspace
+2. If user has uploaded data: use read_workspace_file to access it, then execute_code for analysis
+3. Use execute_code with utils (sum, avg, median, parseCSV) for calculations
+4. Call write_report with tables, charts descriptions, and recommendations
+
+## Information Priority
+1. User-provided data (uploaded files) — highest
+2. API data → browsed web pages → search snippets → model knowledge — lowest
+
+## Writing Style
+- Analysis narratives should flow as prose paragraphs with data woven in
+- Use tables ONLY for structured comparisons — the rest should be narrative
+- Each insight should be explained with context, not just stated as a bullet point
 
 ## Quality Bar
 - Always include comparison tables with specific numbers
 - Identify trends and patterns, not just list facts
-- End with actionable recommendations
-- Use bold for key metrics
-- NEVER use HTML tags — pure Markdown only
+- End with actionable recommendations in prose format
 - NEVER explain tool choices`;
 
 // Combined prompt used as fallback when task type is unclear
@@ -963,6 +979,25 @@ Deno.serve(async (req) => {
             }
             startTime = Date.now();
 
+            // File-based memory: Create/update todo.md for this task (Manus pattern)
+            // This persists the task plan as a workspace file so the agent can reference it
+            if (plan.length > 0) {
+              try {
+                const todoContent = `# Task: ${sanitizedMessage.substring(0, 100)}\n\n## Plan\n${plan.map((s, i) => `- [ ] ${s.label}: ${s.detail}`).join('\n')}\n\n## Findings\n(Research data will be saved here)\n`;
+                const { data: existingTodo } = await supabase.from("workspace_files")
+                  .select("id").eq("user_id", user.id).eq("conversation_id", conversationId).ilike("name", "todo.md").single();
+                if (existingTodo) {
+                  await supabase.from("workspace_files").update({ content: todoContent, updated_at: new Date().toISOString() }).eq("id", existingTodo.id);
+                } else {
+                  await supabase.from("workspace_files").insert({
+                    user_id: user.id, conversation_id: conversationId,
+                    name: "todo.md", type: "document", format: "markdown",
+                    content: todoContent, size_bytes: todoContent.length,
+                  });
+                }
+              } catch { /* todo.md is non-critical */ }
+            }
+
             // Emit initial step events (first step active, rest pending)
             for (let i = 0; i < plan.length; i++) {
               controller.enqueue(
@@ -1251,6 +1286,68 @@ Deno.serve(async (req) => {
                       }
                     } catch {
                       toolResult = { error: "Could not access workspace files" };
+                    }
+                  }
+
+                  // Handle ask_user — emit approval_required event and pause tool loop
+                  if (toolCall.name === "ask_user" && (toolResult as any)?.type === "ask_user") {
+                    const askData = toolResult as any;
+                    controller.enqueue(encoder.encode(`event: approval_required\ndata: ${JSON.stringify({
+                      approval_id: `ask-${Date.now()}`,
+                      tool_name: "ask_user",
+                      tool_description: askData.question,
+                      args: { question: askData.question, options: askData.options },
+                    })}\n\n`));
+                    addStepLog(currentStepIdx, `Asking user: ${askData.question}`, "action");
+                    // The tool result tells the model to wait — it will see "Waiting for user response"
+                  }
+
+                  // Handle save_to_workspace — save content to workspace_files
+                  if (toolCall.name === "save_to_workspace" && (toolResult as any)?.type === "save_to_workspace") {
+                    const saveData = toolResult as any;
+                    try {
+                      if (saveData.append) {
+                        // Append to existing file
+                        const { data: existing } = await supabase.from("workspace_files")
+                          .select("id, content").eq("user_id", user.id).ilike("name", saveData.file_name).single();
+                        if (existing) {
+                          await supabase.from("workspace_files").update({
+                            content: (existing.content || "") + "\n" + saveData.content,
+                            size_bytes: ((existing.content || "").length + saveData.content.length),
+                            updated_at: new Date().toISOString(),
+                          }).eq("id", existing.id);
+                          toolResult = { success: true, action: "appended", file: saveData.file_name };
+                        } else {
+                          // File doesn't exist, create it
+                          await supabase.from("workspace_files").insert({
+                            user_id: user.id, conversation_id: conversationId,
+                            name: saveData.file_name, type: "document", format: "markdown",
+                            content: saveData.content, size_bytes: saveData.content.length,
+                          });
+                          toolResult = { success: true, action: "created", file: saveData.file_name };
+                        }
+                      } else {
+                        // Overwrite or create
+                        const { data: existing } = await supabase.from("workspace_files")
+                          .select("id").eq("user_id", user.id).ilike("name", saveData.file_name).single();
+                        if (existing) {
+                          await supabase.from("workspace_files").update({
+                            content: saveData.content, size_bytes: saveData.content.length,
+                            updated_at: new Date().toISOString(),
+                          }).eq("id", existing.id);
+                          toolResult = { success: true, action: "updated", file: saveData.file_name };
+                        } else {
+                          await supabase.from("workspace_files").insert({
+                            user_id: user.id, conversation_id: conversationId,
+                            name: saveData.file_name, type: "document", format: "markdown",
+                            content: saveData.content, size_bytes: saveData.content.length,
+                          });
+                          toolResult = { success: true, action: "created", file: saveData.file_name };
+                        }
+                      }
+                      addStepLog(currentStepIdx, `Saved ${saveData.file_name} to workspace`, "result");
+                    } catch {
+                      toolResult = { error: "Could not save to workspace" };
                     }
                   }
 

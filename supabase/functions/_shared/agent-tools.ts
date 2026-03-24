@@ -701,7 +701,23 @@ const writeReport: AgentToolDefinition = {
     try {
       const content = await callAnthropic(
         "claude-sonnet-4-20250514",
-        `You are a professional report writer. Write a well-structured ${format === "html" ? "HTML" : "Markdown"} report on the given topic. Include: Executive Summary, Key Findings, Analysis, and Recommendations sections. Be thorough but concise.\n\nIMPORTANT: Use ONLY pure Markdown. Never use HTML tags like <a>, <div>, <span>, <br>, etc. For section headers, use ## headings only. Do not add HTML anchor tags to headings.`,
+        `You are a McKinsey-level report writer. Write a professional ${format === "html" ? "HTML" : "Markdown"} report.
+
+## Structure
+Include: Executive Summary, Key Findings (with data), Detailed Analysis, and Strategic Recommendations.
+
+## Writing Style (CRITICAL)
+- Write in CONTINUOUS FLOWING PARAGRAPHS with varied sentence lengths
+- AVOID bullet point lists in the body — weave data into narrative prose
+- Use tables ONLY for structured comparisons (3+ items side by side)
+- Each paragraph should transition naturally to the next
+- Example GOOD: "The global protein powder market reached $24.6B in 2024, representing a 8.2% CAGR driven primarily by the wellness trend among millennials. Leading this growth is Optimum Nutrition, which captured 18% market share through..."
+- Example BAD: "- Market size: $24.6B\\n- Growth rate: 8.2%\\n- Top player: Optimum Nutrition"
+
+## Rules
+- Use ONLY pure Markdown. No HTML tags.
+- Every number must come from the provided data
+- Include a Sources section at the end`,
         `Write a report on: ${topic}${data ? `\n\nIncorporate these data/findings:\n${data.slice(0, 10000)}` : ""}`,
         4096
       );
@@ -987,6 +1003,55 @@ const readWorkspaceFile: AgentToolDefinition = {
 // Registry
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// ASK USER — Request input from user mid-task (like Manus message_ask_user)
+// ---------------------------------------------------------------------------
+const askUser: AgentToolDefinition = {
+  id: "ask_user",
+  name: "Ask User",
+  description: "Ask the user a clarifying question mid-task. Use this when you need specific input to proceed (e.g., preferred style, color scheme, which option to choose). The task pauses until the user responds. Use sparingly — only when the answer significantly affects the output.",
+  parameters: {
+    question: { type: "string", description: "The question to ask the user", required: true },
+    options: { type: "string", description: "Optional comma-separated list of suggested options (e.g., 'Option A, Option B, Option C')" },
+  },
+  async execute(args) {
+    const question = String(args.question ?? "");
+    const options = args.options ? String(args.options).split(",").map(o => o.trim()).filter(Boolean) : [];
+    return {
+      type: "ask_user",
+      question,
+      options,
+      message: "Waiting for user response...",
+    };
+  },
+};
+
+// ---------------------------------------------------------------------------
+// SAVE TO WORKSPACE — Persist intermediate results to workspace file
+// ---------------------------------------------------------------------------
+const saveToWorkspace: AgentToolDefinition = {
+  id: "save_to_workspace",
+  name: "Save to Workspace",
+  description: "Save content to a workspace file for persistence. Use this to save intermediate research findings, drafts, or any content that should persist across the conversation. Like Manus's file-based memory.",
+  parameters: {
+    file_name: { type: "string", description: "Name of the file to save (e.g., 'research-findings.md', 'todo.md')", required: true },
+    content: { type: "string", description: "The content to save", required: true },
+    append: { type: "string", description: "Set to 'true' to append instead of overwrite" },
+  },
+  async execute(args) {
+    return {
+      type: "save_to_workspace",
+      file_name: String(args.file_name ?? "output.md"),
+      content: String(args.content ?? ""),
+      append: String(args.append) === "true",
+    };
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Registry
+// ---------------------------------------------------------------------------
+
 export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
   web_search: webSearch,
   browse_url: browseUrl,
@@ -1000,6 +1065,8 @@ export const AGENT_TOOLS: Record<string, AgentToolDefinition> = {
   generate_presentation: generatePresentation,
   execute_code: executeCode,
   read_workspace_file: readWorkspaceFile,
+  ask_user: askUser,
+  save_to_workspace: saveToWorkspace,
 };
 
 /**
