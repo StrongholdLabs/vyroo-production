@@ -257,16 +257,18 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     return () => window.removeEventListener("keydown", handler);
   }, [isStreaming, abort]);
 
-  // Auto-send initial message from TaskInput (with double-send protection)
+  // Auto-send initial message from TaskInput
   const initialSentRef = useRef<string | null>(null);
   useEffect(() => {
     if (initialMessage && initialSentRef.current !== initialMessage && !isStreaming) {
       initialSentRef.current = initialMessage;
-      onSendMessage?.(initialMessage);
-      sendAI(initialMessage);
-      onInitialMessageSent?.();
+      // Small delay to ensure sendAI has the correct conversationId
+      setTimeout(() => {
+        sendAI(initialMessage);
+        onInitialMessageSent?.();
+      }, 100);
     }
-  }, [initialMessage]);
+  }, [initialMessage, sendAI]);
 
   const { steps, messages, followUps: staticFollowUps } = conversation;
   // Use AI-generated follow-ups if available, otherwise fall back to conversation's static ones
