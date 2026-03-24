@@ -6,24 +6,54 @@
 
 ## Overzicht
 
-| # | Taak | Prioriteit | Geschatte effort |
-|---|------|-----------|-----------------|
-| 1 | Library Page (`/library`) | HIGH | 1-2 dagen |
-| 2 | Search Page (`/search`) | HIGH | 1 dag |
-| 3 | Onboarding Empty State | HIGH | 0.5 dag |
-| 4 | Slide Theme Selector | MEDIUM | 1 dag |
-| 5 | Mobile Responsive Audit | MEDIUM | 1-2 dagen |
-| 6 | Mobile Floating Action Button | MEDIUM | 0.5 dag |
-| 7 | Export Modal (PPTX/PDF/Share) | MEDIUM | 0.5 dag |
-| 8 | File Upload UI in Composer | MEDIUM | 1 dag |
-| 9 | Conversation Type Badges | LOW | 0.5 dag |
-| 10 | Voice Transcription Preview | LOW | 0.5 dag |
-| **11** | **Website/Landing Page Builder Flow** | **HIGH** | **2-3 dagen** |
-| **12** | **Landing Page Theme Selector** | **HIGH** | **1 dag** |
+> **STATUS UPDATE (March 24, 2026):** Lovable heeft Library Page (#1) al gebouwd (604 regels).
+> Ook: PromoCarousel, TaskProgressPanel verbeterd, Settings Dialog uitgebreid, website mock conversations.
+> ⚠️ Lovable heeft onze PPTX export en download dropdown GEREVERTED — moet opnieuw!
+
+| # | Taak | Prioriteit | Status | Geschatte effort |
+|---|------|-----------|--------|-----------------|
+| 1 | Library Page (`/library`) | HIGH | ✅ DONE door Lovable | — |
+| 2 | Search Page (`/search`) | HIGH | ❌ Niet gebouwd | 1 dag |
+| 3 | Onboarding Empty State | HIGH | ❌ Niet gebouwd | 0.5 dag |
+| 4 | Slide Theme Selector | MEDIUM | ❌ Niet gebouwd | 1 dag |
+| 5 | Mobile Responsive Audit | MEDIUM | ❌ Niet gebouwd | 1-2 dagen |
+| 6 | Mobile Floating Action Button | MEDIUM | ❌ Niet gebouwd | 0.5 dag |
+| 7 | Export Modal (PPTX/PDF/Share) | MEDIUM | ⚠️ GEREVERTED door Lovable | 0.5 dag |
+| 8 | File Upload UI in Composer | MEDIUM | ❌ Niet gebouwd | 1 dag |
+| 9 | Conversation Type Badges | LOW | ❌ Niet gebouwd | 0.5 dag |
+| 10 | Voice Transcription Preview | LOW | ❌ Niet gebouwd | 0.5 dag |
+| **11** | **Website/Landing Page Builder Flow** | **HIGH** | **⚡ MOCK DATA bestaat, UI deels** | **1-2 dagen** |
+| **12** | **Landing Page Theme Selector** | **HIGH** | **❌ Niet gebouwd** | **1 dag** |
+
+### Wat Lovable AL heeft gebouwd (NIET opnieuw doen):
+- **Library Page** (`src/pages/Library.tsx`) — 604 regels, grid/list view, filters, favorites, type badges
+- **PromoCarousel** (`src/components/PromoCarousel.tsx`) — 4-slide carousel op landing page
+- **TaskProgressPanel** verbeterd — circular progress, expandable steps
+- **Settings Dialog** uitgebreid — dark/light theme, language, notifications (761 regels)
+- **Website mock conversations** — 3 website-type convs met project cards en build steps
+
+### Wat Lovable GEREVERTED heeft (opnieuw bouwen):
+- **PPTX Export** — `src/lib/export-pptx.ts` is VERWIJDERD, download dropdown in SlideViewerPanel GEREVERTED
+- **Download buttons** in ComputerPanel document tab
+
+### Wat Lovable GEWIJZIGD heeft in protected files (REVIEW NODIG):
+- `src/App.tsx` — 289 regels changed ⚠️
+- `src/components/ChatPanel.tsx` — 476 regels changed ⚠️
+- `src/hooks/useAIChat.ts` — 129 regels changed ⚠️
+- `src/lib/ai-stream.ts` — 34 regels changed ⚠️
+- `src/contexts/AuthContext.tsx` — 36 regels changed ⚠️
+- `src/lib/supabase.ts` — 29 regels changed ⚠️
+
+> **⚠️ CRITICAL**: Lovable heeft PROTECTED files gewijzigd! Cherry-pick alleen de UI/design files.
+> NOOIT de backend integration files overnemen — die bevatten onze multi-agent pipeline, race condition fixes, etc.
 
 ---
 
-## 1. Library Page (`/library`)
+## 1. Library Page (`/library`) — ✅ DONE door Lovable
+
+> **STATUS**: Lovable heeft dit al gebouwd in `src/pages/Library.tsx` (604 regels).
+> Grid + list view, type filters (slides/website/document/image/audio/spreadsheet), favorites, zoekbalk.
+> **ACTIE**: Cherry-pick dit bestand naar onze repo. Wire het aan de `workspace_files` Supabase tabel (Lovable gebruikt mock data).
 
 ### Wat is het?
 Een pagina waar de gebruiker al zijn gegenereerde bestanden kan terugvinden: rapporten, presentaties, code, en data. Dit is vergelijkbaar met de "Library" in Manus — een centrale plek voor alle output.
