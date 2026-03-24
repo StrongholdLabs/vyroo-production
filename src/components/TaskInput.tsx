@@ -99,7 +99,8 @@ export function TaskInput() {
       const conv = await createConversation.mutateAsync({
         title: value.slice(0, 60) + (value.length > 60 ? "..." : ""),
       });
-      // Navigate with the message in state so ChatPanel can send it to the AI
+      // Store initial message in sessionStorage (reliable across navigations)
+      sessionStorage.setItem("vyroo-initial-message", value);
       navigate(`/dashboard/${conv.id}`, { state: { initialMessage: value } });
       setValue("");
     } catch {

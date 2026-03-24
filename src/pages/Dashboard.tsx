@@ -65,13 +65,17 @@ const Dashboard = () => {
 
   // Pick up initial message from TaskInput navigation
   useEffect(() => {
+    // Try location.state first, then sessionStorage as fallback
     const state = location.state as { initialMessage?: string } | null;
-    if (state?.initialMessage) {
-      setPendingMessage(state.initialMessage);
-      // Clear state so refresh doesn't re-send
+    const stateMsg = state?.initialMessage;
+    const sessionMsg = sessionStorage.getItem("vyroo-initial-message");
+    const msg = stateMsg || sessionMsg;
+    if (msg && activeConversation) {
+      setPendingMessage(msg);
+      sessionStorage.removeItem("vyroo-initial-message");
       window.history.replaceState({}, "");
     }
-  }, [location.state]);
+  }, [location.state, activeConversation]);
 
   // Real-time subscriptions for multi-tab sync
   useRealtimeMessages(activeConversation);
