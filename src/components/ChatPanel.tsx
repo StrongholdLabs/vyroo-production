@@ -72,6 +72,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
   const [voiceAgentOpen, setVoiceAgentOpen] = useState(false);
   const [stepsCollapsed, setStepsCollapsed] = useState(false);
   const [downloadSubOpen, setDownloadSubOpen] = useState(false);
+  const [voiceInterim, setVoiceInterim] = useState("");
   const [voiceAiResponse, setVoiceAiResponse] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -244,6 +245,18 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     }
   }, [isStreaming, streamingContent]);
 
+  // Keyboard shortcuts: Escape to abort streaming
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isStreaming) {
+        e.preventDefault();
+        abort();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isStreaming, abort]);
+
   // Auto-send initial message from TaskInput (with double-send protection)
   const initialSentRef = useRef<string | null>(null);
   useEffect(() => {
@@ -311,10 +324,23 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         {messages.map((msg) => (
           <div key={msg.id}>
             {msg.role === "user" ? (
-              <div className="flex justify-end">
+              <div className="flex flex-col items-end gap-0.5">
                 <div className="chat-bubble-user px-4 py-3 max-w-lg">
                   <p className="text-sm text-foreground">{msg.content}</p>
                 </div>
+                {(msg as any).created_at && (
+                  <span className="text-[10px] text-muted-foreground/50 pr-1">
+                    {(() => {
+                      const d = new Date((msg as any).created_at);
+                      const now = new Date();
+                      const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+                      if (diff < 60) return "just now";
+                      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                    })()}
+                  </span>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -834,7 +860,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
             }}
-            placeholder="Send message to Vyroo"
+            placeholder={voiceInterim ? `🎤 ${voiceInterim}` : "Send message to Vyroo"}
             rows={1}
             className="w-full resize-none bg-transparent px-5 pt-4 pb-1 text-foreground placeholder:text-muted-foreground/40 text-sm leading-relaxed focus:outline-none font-body"
           />
@@ -874,7 +900,10 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
               </button>
             </div>
             <div className="flex items-center gap-1">
-              <VoiceMicButton onTranscript={(text) => setMessage((prev) => prev + text)} />
+              <VoiceMicButton
+                onTranscript={(text) => { setMessage((prev) => prev + text); setVoiceInterim(""); }}
+                onInterim={(text) => setVoiceInterim(text)}
+              />
               {isStreaming ? (
                 <button
                   onClick={abort}

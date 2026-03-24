@@ -1,16 +1,23 @@
+import React from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { cn } from '@/lib/utils';
 
 interface VoiceMicButtonProps {
   onTranscript: (text: string) => void;
+  onInterim?: (text: string) => void;
   className?: string;
 }
 
-export function VoiceMicButton({ onTranscript, className }: VoiceMicButtonProps) {
+export function VoiceMicButton({ onTranscript, onInterim, className }: VoiceMicButtonProps) {
   const { isListening, isSupported, toggle, interimTranscript } = useVoiceInput({
     onTranscript,
   });
+
+  // Pass interim transcript to parent for live preview
+  React.useEffect(() => {
+    onInterim?.(isListening ? interimTranscript : "");
+  }, [interimTranscript, isListening, onInterim]);
 
   if (!isSupported) return null;
 
