@@ -42,7 +42,7 @@ const Dashboard = () => {
   const [mobileComputerOpen, setMobileComputerOpen] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  const initialMessageHandled = useRef(false);
+  // initialMessageHandled ref removed — was blocking subsequent new tasks
 
   // Fetch all conversations to auto-select first when none specified
   const { data: conversations } = useConversations();
@@ -66,8 +66,7 @@ const Dashboard = () => {
   // Pick up initial message from TaskInput navigation
   useEffect(() => {
     const state = location.state as { initialMessage?: string } | null;
-    if (state?.initialMessage && !initialMessageHandled.current) {
-      initialMessageHandled.current = true;
+    if (state?.initialMessage) {
       setPendingMessage(state.initialMessage);
       // Clear state so refresh doesn't re-send
       window.history.replaceState({}, "");
