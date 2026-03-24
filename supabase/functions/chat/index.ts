@@ -8,6 +8,7 @@ import { checkUsageGate } from "../_shared/usage-gate.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limiter.ts";
 import { streamAnthropic, callAnthropicWithTools } from "../_shared/providers/anthropic.ts";
 import { getToolDefinitions, executeTool } from "../_shared/agent-tools.ts";
+import { planTask, evaluateOutput, getResearcherSystemPrompt } from "../_shared/agents.ts";
 import { streamOpenAI } from "../_shared/providers/openai.ts";
 import { streamGemini } from "../_shared/providers/gemini.ts";
 import { streamTogether } from "../_shared/providers/together.ts";
@@ -886,9 +887,26 @@ Deno.serve(async (req) => {
             } catch {}
           }
 
+          // Multi-Agent: Use Planner Agent to create execution plan
+          let agentPlan: Awaited<ReturnType<typeof planTask>> | null = null;
           if (taskMode !== "direct") {
-            // Generate task plan for agentic step visualization
-            plan = await generatePlan(actualProviderId, apiKey!, message);
+            // Planner Agent creates structured plan with agent assignments
+            const historyContext = messages.slice(-4).map(m => `${m.role}: ${m.content.substring(0, 200)}`).join('\n');
+            agentPlan = await planTask(message, historyContext);
+            console.log(`[chat] Planner Agent: ${agentPlan.taskType}, ${agentPlan.steps.length} steps, research=${agentPlan.requiresResearch}`);
+
+            // Override taskMode if planner disagrees with classifier
+            if (agentPlan.taskType === "direct" && taskMode !== "direct") {
+              taskMode = "direct" as any;
+              controller.enqueue(encoder.encode(`event: mode\ndata: ${JSON.stringify({ mode: "direct" })}\n\n`));
+            }
+
+            // Generate step labels from planner output (or use legacy generatePlan as fallback)
+            if (agentPlan.steps.length > 0) {
+              plan = agentPlan.steps.map(s => ({ label: s.action, detail: s.detail }));
+            } else {
+              plan = await generatePlan(actualProviderId, apiKey!, message);
+            }
             startTime = Date.now();
 
             // Emit initial step events (first step active, rest pending)
@@ -902,6 +920,20 @@ Deno.serve(async (req) => {
                   logs: i === 0 ? [{ time: "0:00", text: "Starting...", type: "info" }] : [],
                 })}\n\n`)
               );
+            }
+
+            // Multi-Agent: Use agent-specific system prompt based on current phase
+            // During research phase, use Researcher Agent prompt for better data gathering
+            if (agentPlan.requiresResearch) {
+              enrichedSystemPrompt = getResearcherSystemPrompt(taskMode);
+              // Re-inject memory + RAG context
+              try {
+                const memories = await getRelevantMemories(user.id, message, supabase);
+                const memorySection = injectMemoryContext(memories);
+                if (memorySection) enrichedSystemPrompt += memorySection;
+              } catch {}
+              if (ragContext) enrichedSystemPrompt += ragContext;
+              console.log(`[chat] Using Researcher Agent prompt for ${taskMode} task`);
             }
           }
 
@@ -1372,45 +1404,25 @@ Deno.serve(async (req) => {
                 }
               }
 
-              // ===== EVALUATOR AGENT =====
-              // Separate agent reviews output quality before sending to user
-              if ((lastReportContent || lastSlidesData) && finalTextContent) {
+              // ===== EVALUATOR AGENT (Multi-Agent) =====
+              // Runs on ALL agentic responses, not just reports (H4 fix)
+              if (finalTextContent && hasUsedTools) {
                 try {
-                  const evalApiKey = apiKey || Deno.env.get("ANTHROPIC_API_KEY");
-                  if (evalApiKey) {
-                    const evalContent = lastReportContent
-                      ? `Report: ${lastReportContent.substring(0, 2000)}`
-                      : `Slides: ${JSON.stringify(lastSlidesData?.slides?.slice(0, 3)).substring(0, 1500)}`;
-                    const evalRes = await fetch("https://api.anthropic.com/v1/messages", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json", "x-api-key": evalApiKey, "anthropic-version": "2023-06-01" },
-                      body: JSON.stringify({
-                        model: "claude-haiku-4-5-20251001",
-                        max_tokens: 256,
-                        system: `You are a strict quality evaluator for an AI research platform. Review this output.
-Score 1-10. Return ONLY JSON: {"score": N, "issues": ["issue1", "issue2"] or [], "improved_summary": "better 1-2 sentence summary" or null}
-Deduct points for: fabricated/unverified data, vague claims without numbers, generic filler text, missing key insights.
-If score >= 8, set improved_summary to null (summary is good enough).`,
-                        messages: [{ role: "user", content: `User asked: "${message}"\n\nAI summary: "${finalTextContent}"\n\n${evalContent}` }],
-                      }),
-                    });
-                    if (evalRes.ok) {
-                      const evalData = await evalRes.json();
-                      const evalText = evalData.content?.[0]?.text || "";
-                      const evalMatch = evalText.match(/\{[\s\S]*\}/);
-                      if (evalMatch) {
-                        const eval_ = JSON.parse(evalMatch[0]);
-                        console.log(`[chat] Evaluator score: ${eval_.score}/10, issues: ${eval_.issues?.length || 0}`);
-                        // If evaluator provides a better summary, use it
-                        if (eval_.improved_summary && eval_.score < 8) {
-                          finalTextContent = eval_.improved_summary;
-                          console.log("[chat] Evaluator improved the summary");
-                        }
-                      }
-                    }
+                  const outputToEvaluate = lastReportContent
+                    ? `Report:\n${lastReportContent.substring(0, 4000)}`
+                    : lastSlidesData
+                    ? `Slides:\n${JSON.stringify(lastSlidesData.slides?.slice(0, 4)).substring(0, 2000)}`
+                    : `Response:\n${finalTextContent.substring(0, 2000)}`;
+
+                  const evalResult = await evaluateOutput(message, outputToEvaluate, taskMode || "research");
+                  console.log(`[chat] Evaluator Agent: score=${evalResult.score}/10, improved=${evalResult.improved}`);
+
+                  if (evalResult.improved && evalResult.content && evalResult.score !== undefined && evalResult.score < 8) {
+                    finalTextContent = evalResult.content;
+                    console.log("[chat] Evaluator Agent improved the summary");
                   }
                 } catch (evalError) {
-                  console.warn("[chat] Evaluator failed (non-critical):", evalError);
+                  console.warn("[chat] Evaluator Agent failed (non-critical):", evalError);
                 }
               }
 
