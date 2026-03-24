@@ -840,9 +840,35 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
           />
           <div className="flex items-center justify-between px-3 pb-3">
             <div className="flex items-center gap-1">
-              <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent active:scale-95">
+              <label className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent active:scale-95 cursor-pointer">
                 <Plus size={18} />
-              </button>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".csv,.tsv,.json,.txt,.md,.py,.js,.ts,.html,.pdf"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    if (file.size > 10 * 1024 * 1024) { alert("File too large (max 10MB)"); return; }
+                    try {
+                      const text = await file.text();
+                      const { supabase } = await import("@/lib/supabase");
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (!session) return;
+                      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL || "https://lwcklhkqibyvlwvfrort.supabase.co"}/functions/v1/upload`, {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+                        body: JSON.stringify({ fileName: file.name, fileContent: text, conversationId: conversation.id }),
+                      });
+                      if (res.ok) {
+                        setMessage((prev) => prev + `\n[Uploaded: ${file.name}]`);
+                        textareaRef.current?.focus();
+                      }
+                    } catch {}
+                    e.target.value = "";
+                  }}
+                />
+              </label>
               <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent active:scale-95">
                 <Sparkles size={18} />
               </button>

@@ -236,7 +236,7 @@ function TimeGroup({ title, conversations, activeId, onSelect, onDelete }: TimeG
                 className="flex-1 min-w-0 text-left flex flex-col gap-0.5"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-xs flex-shrink-0">{conv.icon}</span>
+                  <span className="text-xs flex-shrink-0">{conv.icon || (conv.type === "website" ? "🌐" : conv.type === "research" ? "🔍" : "💬")}</span>
                   <span className="truncate text-sm">{conv.title}</span>
                 </div>
                 {conv.last_message_preview && (

@@ -1,8 +1,17 @@
-import { useState, useCallback } from "react";
-import { Download, Share2, Play, MoreHorizontal, Sparkles, FileDown } from "lucide-react";
+import { useState, useCallback, useMemo } from "react";
+import { Download, Share2, Play, MoreHorizontal, Sparkles, FileDown, Palette, Check } from "lucide-react";
 import type { SlideData } from "@/components/SlidePreviewCard";
 import { useToast } from "@/hooks/use-toast";
 import { exportPptx } from "@/lib/export-pptx";
+
+const SLIDE_THEMES = [
+  { id: "dark", name: "Dark", bg: "#0f172a", accent: "#38bdf8", text: "#ffffff" },
+  { id: "midnight", name: "Midnight", bg: "#1a1a2e", accent: "#4fc3f7", text: "#e0e0e0" },
+  { id: "corporate", name: "Corporate", bg: "#0d1b2a", accent: "#48c9b0", text: "#c8d6e5" },
+  { id: "warm", name: "Warm", bg: "#1b1b2f", accent: "#e2b04a", text: "#f0e6d3" },
+  { id: "coral", name: "Coral", bg: "#162447", accent: "#e43f5a", text: "#ffffff" },
+  { id: "light", name: "Light", bg: "#f8fafc", accent: "#2563eb", text: "#1e293b" },
+] as const;
 
 interface SlideViewerPanelProps {
   slides: SlideData[];
@@ -10,8 +19,21 @@ interface SlideViewerPanelProps {
   lastModified?: string;
 }
 
-export function SlideViewerPanel({ slides, presentationTitle, lastModified }: SlideViewerPanelProps) {
+export function SlideViewerPanel({ slides: rawSlides, presentationTitle, lastModified }: SlideViewerPanelProps) {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [selectedTheme, setSelectedTheme] = useState<string>("dark");
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
+
+  // Apply selected theme to all slides
+  const slides = useMemo(() => {
+    const theme = SLIDE_THEMES.find(t => t.id === selectedTheme) || SLIDE_THEMES[0];
+    return rawSlides.map(slide => ({
+      ...slide,
+      bgColor: theme.bg,
+      accentColor: theme.accent,
+    }));
+  }, [rawSlides, selectedTheme]);
+
   const current = slides[activeSlide];
   const { toast } = useToast();
 
@@ -65,6 +87,43 @@ export function SlideViewerPanel({ slides, presentationTitle, lastModified }: Sl
           {lastModified && <p className="text-[10px] text-muted-foreground">Last modified: {lastModified}</p>}
         </div>
         <div className="flex items-center gap-1">
+          {/* Theme picker */}
+          <div className="relative">
+            <button
+              onClick={() => setThemePickerOpen(!themePickerOpen)}
+              className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors"
+              title="Change theme"
+            >
+              <Palette size={14} />
+            </button>
+            {themePickerOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setThemePickerOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-52 rounded-xl border border-border py-2 px-3 z-20 shadow-xl" style={{ backgroundColor: "hsl(var(--popover))" }}>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2 font-medium">Slide Theme</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SLIDE_THEMES.map(theme => (
+                      <button
+                        key={theme.id}
+                        onClick={() => { setSelectedTheme(theme.id); setThemePickerOpen(false); }}
+                        className={`flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all ${selectedTheme === theme.id ? "ring-2 ring-primary" : "hover:bg-accent/50"}`}
+                      >
+                        <div className="w-full aspect-[16/9] rounded-md relative overflow-hidden" style={{ backgroundColor: theme.bg }}>
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: theme.accent }} />
+                          {selectedTheme === theme.id && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Check size={10} style={{ color: theme.accent }} />
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[9px] text-muted-foreground">{theme.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <button className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-accent transition-colors" title="Share">
             <Share2 size={14} />
           </button>
@@ -141,11 +200,11 @@ export function SlideViewerPanel({ slides, presentationTitle, lastModified }: Sl
                   </div>
                 )}
                 <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
-                  <p className="text-[5px] font-semibold leading-tight" style={{ color: "hsl(220 9% 20%)" }}>
+                  <p className="text-[5px] font-semibold leading-tight" style={{ color: SLIDE_THEMES.find(t => t.id === selectedTheme)?.text || "#fff" }}>
                     {slide.title}
                   </p>
                   {slide.subtitle && (
-                    <p className="text-[3px] mt-0.5" style={{ color: "hsl(215 10% 44%)" }}>
+                    <p className="text-[3px] mt-0.5" style={{ color: SLIDE_THEMES.find(t => t.id === selectedTheme)?.text || "#fff", opacity: 0.7 }}>
                       {slide.subtitle}
                     </p>
                   )}
