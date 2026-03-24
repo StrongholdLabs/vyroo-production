@@ -255,7 +255,8 @@ async function generateFollowUps(
 
   // Use report content for better context (the text response may be just a short summary)
   // Give follow-ups generator MORE context for specificity (3000 chars of report or 1000 of response)
-  const contextText = reportContent ? reportContent.slice(0, 3000) : assistantResponse.slice(0, 1000);
+  // Give follow-up generator generous context for specificity (5000 chars of report or 3000 of response)
+  const contextText = reportContent ? reportContent.slice(0, 5000) : assistantResponse.slice(0, 3000);
 
   const condensedHistory = [
     { role: "user" as const, content: userMessage },
@@ -1516,7 +1517,7 @@ Deno.serve(async (req) => {
                       title: toolCall.input.topic || "Report",
                       content: reportContent,
                       format: reportFormat,
-                      word_count: (toolResult as any).word_count || 0,
+                      word_count: (toolResult as any).word_count || reportContent.split(/\s+/).length,
                       summary: reportSummary || reportContent.substring(0, 200),
                       headers: tableHeaders,
                       rows: tableRows.slice(0, 10), // Max 10 rows in card
@@ -1628,13 +1629,14 @@ Deno.serve(async (req) => {
 
               // Emit collected sources with favicons for Perplexity-style display
               const allSources: Array<{title: string; url: string; favicon: string; domain: string}> = [];
-              const seenUrls = new Set<string>();
+              const seenDomains = new Set<string>(); // Dedup by domain, not URL (prevents multiple entries from same site)
 
               const addSource = (url: string, title?: string) => {
                 try {
-                  if (!url || seenUrls.has(url)) return;
-                  seenUrls.add(url);
+                  if (!url) return;
                   const domain = new URL(url).hostname.replace("www.", "");
+                  if (seenDomains.has(domain)) return; // Skip if we already have this domain
+                  seenDomains.add(domain);
                   allSources.push({
                     title: title || domain,
                     url,
