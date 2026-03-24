@@ -90,7 +90,7 @@ export function DashboardSidebar({
             <SidebarNavItem icon={<Plug size={16} />} label="Connectors" to="/connectors" />
             <SidebarNavItem icon={<Store size={16} />} label="Plugins" to="/plugins" badge="New" />
             <SidebarNavItem icon={<Search size={16} />} label="Search" />
-            <SidebarNavItem icon={<BookOpen size={16} />} label="Library" />
+            <SidebarNavItem icon={<BookOpen size={16} />} label="Library" to="/library" />
             <SidebarNavItem icon={<Settings size={16} />} label="Settings" to="/settings" />
             <SidebarNavItem icon={<ShieldCheck size={16} />} label="Admin" to="/admin" />
           </div>

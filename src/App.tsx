@@ -26,6 +26,7 @@ const AgentConfig = lazy(() => import("./pages/AgentConfig.tsx"));
 const AgentRun = lazy(() => import("./pages/AgentRun.tsx"));
 const WorkflowEditor = lazy(() => import("./pages/WorkflowEditor.tsx"));
 const Onboarding = lazy(() => import("./pages/Onboarding.tsx"));
+const Library = lazy(() => import("./pages/Library.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
 const Admin = lazy(() => import("./pages/Admin.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
@@ -107,6 +108,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Plugins />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/library"
+                element={
+                  <ProtectedRoute>
+                    <Library />
                   </ProtectedRoute>
                 }
               />
