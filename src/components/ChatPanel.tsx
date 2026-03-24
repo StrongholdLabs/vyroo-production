@@ -387,88 +387,45 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                                 Preview
                               </button>
                               <button
-                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                               >
                                 <Share2 size={16} className="text-muted-foreground" />
                                 Share
                               </button>
-                              {/* Download with submenu */}
-                              <div className="relative">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setDownloadSubOpen(!downloadSubOpen); }}
-                                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                                >
-                                  <Download size={16} className="text-muted-foreground" />
-                                  <span className="flex-1 text-left">Download</span>
-                                  <ChevronRight size={14} className="text-muted-foreground" />
-                                </button>
-                                {downloadSubOpen && (
-                                  <div
-                                    className="absolute left-full top-0 ml-1 w-44 rounded-xl border border-border py-1.5 shadow-xl"
-                                    style={{ backgroundColor: "hsl(var(--popover))" }}
-                                  >
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setReportMenuOpen(null); setDownloadSubOpen(false);
-                                        const content = (msg as any).reportContent || msg.reportSummary || "";
-                                        const blob = new Blob([content], { type: 'text/markdown' });
-                                        const url = URL.createObjectURL(blob);
-                                        const a = document.createElement('a'); a.href = url;
-                                        a.download = `${(msg.reportTitle || "report").replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}.md`;
-                                        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-                                      }}
-                                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                                    >
-                                      <FileText size={16} className="text-blue-400" />
-                                      Markdown
-                                    </button>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
-                                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                                    >
-                                      <FileText size={16} className="text-red-400" />
-                                      PDF
-                                    </button>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
-                                      className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                                    >
-                                      <FileText size={16} className="text-blue-500" />
-                                      Docx
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
                               <div className="h-px bg-border my-1" />
+                              {/* Direct download buttons — no submenu needed */}
                               <button
-                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                onClick={(e) => {
+                                  e.stopPropagation(); e.preventDefault();
+                                  setReportMenuOpen(null);
+                                  const content = (msg as any).reportContent || msg.reportSummary || msg.content || "";
+                                  const blob = new Blob([content], { type: "text/markdown" });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement("a"); a.href = url;
+                                  a.download = `${(msg.reportTitle || "report").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 50)}.md`;
+                                  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                                }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                               >
-                                <Globe size={16} className="text-[hsl(210_60%_55%)]" />
-                                Convert to Google Docs
+                                <Download size={16} className="text-blue-400" />
+                                Download Markdown
                               </button>
                               <button
-                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
-                                className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
-                              >
-                                <Globe size={16} className="text-[hsl(45_80%_55%)]" />
-                                Save to Google Drive
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("PDF export coming soon!"); }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                               >
-                                <Globe size={16} />
-                                Save to OneDrive (personal)
+                                <Download size={16} className="text-red-400" />
+                                Download PDF
+                                <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
                               </button>
                               <button
-                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("Docx export coming soon!"); }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                               >
-                                <Globe size={16} />
-                                Save to OneDrive (work/school)
+                                <Download size={16} className="text-blue-500" />
+                                Download Docx
+                                <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
                               </button>
                             </div>
                           </>
@@ -649,50 +606,26 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                       <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); setPreviewMsg({ id: "streaming", role: "assistant", content: "", reportContent: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: activeReport.headers.length > 0 ? { headers: activeReport.headers, rows: activeReport.rows } : undefined } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
                         <Eye size={16} className="text-muted-foreground" />Preview
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                      <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
                         <Share2 size={16} className="text-muted-foreground" />Share
                       </button>
-                      {/* Download submenu */}
-                      <div className="relative">
-                        <button onClick={(e) => { e.stopPropagation(); setDownloadSubOpen(!downloadSubOpen); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
-                          <Download size={16} className="text-muted-foreground" />
-                          <span className="flex-1 text-left">Download</span>
-                          <ChevronRight size={14} className="text-muted-foreground" />
-                        </button>
-                        {downloadSubOpen && (
-                          <div className="absolute left-full top-0 ml-1 w-44 rounded-xl border border-border py-1.5 shadow-xl" style={{ backgroundColor: "hsl(var(--popover))" }}>
-                            <button onClick={(e) => {
-                              e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false);
-                              const content = activeReport.content || "";
-                              const blob = new Blob([content], { type: 'text/markdown' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a'); a.href = url;
-                              a.download = `${(activeReport.title || "report").replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50)}.md`;
-                              document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-                            }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
-                              <FileText size={16} className="text-blue-400" />Markdown
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
-                              <FileText size={16} className="text-red-400" />PDF
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
-                              <FileText size={16} className="text-blue-500" />Docx
-                            </button>
-                          </div>
-                        )}
-                      </div>
                       <div className="h-px bg-border my-1" />
-                      <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
-                        <Globe size={16} className="text-[hsl(210_60%_55%)]" />Convert to Google Docs
+                      <button onClick={(e) => {
+                        e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null);
+                        const content = activeReport.content || "";
+                        const blob = new Blob([content], { type: "text/markdown" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a"); a.href = url;
+                        a.download = `${(activeReport.title || "report").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 50)}.md`;
+                        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                      }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
+                        <Download size={16} className="text-blue-400" />Download Markdown
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
-                        <Globe size={16} className="text-[hsl(45_80%_55%)]" />Save to Google Drive
+                      <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("PDF export coming soon!"); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                        <Download size={16} className="text-red-400" />Download PDF <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                        <Globe size={16} />Save to OneDrive (personal)
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                        <Globe size={16} />Save to OneDrive (work/school)
+                      <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); setReportMenuOpen(null); alert("Docx export coming soon!"); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                        <Download size={16} className="text-blue-500" />Download Docx <span className="text-[10px] text-muted-foreground ml-auto">Soon</span>
                       </button>
                     </div>
                   </>

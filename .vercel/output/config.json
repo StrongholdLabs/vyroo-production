@@ -11,12 +11,6 @@
       }
     },
     {
-      "src": "/sw.js",
-      "headers": {
-        "Cache-Control": "no-cache, no-store, must-revalidate"
-      }
-    },
-    {
       "src": "/(.*)",
       "dest": "/index.html",
       "headers": {
