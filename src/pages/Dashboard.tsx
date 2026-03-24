@@ -190,7 +190,7 @@ const Dashboard = () => {
 
           {/* Main content area */}
           <ResizablePanel defaultSize={!conversation || !computerVisible ? 82 : 45} minSize={30}>
-            {!conversation ? (
+            {!conversation && !pendingMessage ? (
               <div className="flex-1 flex flex-col items-center justify-center px-4 pb-24 h-full">
                 <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
                   <h2 className="font-display text-3xl md:text-4xl text-foreground tracking-tight text-center">
@@ -236,7 +236,11 @@ const Dashboard = () => {
             ) : (
               <div className="flex flex-col h-full min-w-0">
                 <ChatPanel
-                  conversation={conversation}
+                  conversation={conversation || {
+                    id: activeConversation, title: "New task", type: "intelligence" as const,
+                    icon: "💬", steps: [], messages: [], followUps: [], codeLines: [],
+                    fileName: "", editorLabel: "Editor",
+                  }}
                   computerVisible={computerVisible}
                   onOpenComputer={handleOpenComputer}
                   onSendMessage={handleSendMessage}
@@ -271,7 +275,7 @@ const Dashboard = () => {
       ) : (
         /* Mobile layout */
         <main className="flex-1 flex overflow-hidden relative">
-          {!conversation ? (
+          {!conversation && !pendingMessage ? (
             <div className="flex-1 flex flex-col items-center justify-center px-4 pb-24">
               <div className="flex flex-col items-center gap-5 w-full max-w-2xl">
                 <h2 className="font-display text-3xl text-foreground tracking-tight text-center">
@@ -306,10 +310,16 @@ const Dashboard = () => {
           ) : (
             <div className="flex-1 flex flex-col min-w-0">
               <ChatPanel
-                conversation={conversation}
+                conversation={conversation || {
+                  id: activeConversation, title: "New task", type: "intelligence" as const,
+                  icon: "💬", steps: [], messages: [], followUps: [], codeLines: [],
+                  fileName: "", editorLabel: "Editor",
+                }}
                 computerVisible={false}
                 onOpenComputer={handleOpenComputer}
                 onSendMessage={handleSendMessage}
+                initialMessage={pendingMessage}
+                onInitialMessageSent={() => setPendingMessage(null)}
               />
             </div>
           )}
