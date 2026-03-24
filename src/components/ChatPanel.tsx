@@ -257,18 +257,42 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
     return () => window.removeEventListener("keydown", handler);
   }, [isStreaming, abort]);
 
-  // Auto-send initial message from TaskInput
+  // Auto-send initial message from TaskInput (via CustomEvent OR prop OR sessionStorage)
   const initialSentRef = useRef<string | null>(null);
   useEffect(() => {
+    // Method 1: Listen for global custom event from TaskInput
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.message && detail?.conversationId === conversation.id && initialSentRef.current !== detail.message) {
+        initialSentRef.current = detail.message;
+        sendAI(detail.message);
+        onInitialMessageSent?.();
+      }
+    };
+    window.addEventListener("vyroo-send-message", handler);
+
+    // Method 2: Check sessionStorage on mount (fallback)
+    const storedMsg = sessionStorage.getItem("vyroo-initial-message");
+    const storedConv = sessionStorage.getItem("vyroo-initial-conv");
+    if (storedMsg && storedConv === conversation.id && initialSentRef.current !== storedMsg) {
+      initialSentRef.current = storedMsg;
+      sessionStorage.removeItem("vyroo-initial-message");
+      sessionStorage.removeItem("vyroo-initial-conv");
+      setTimeout(() => sendAI(storedMsg), 150);
+      onInitialMessageSent?.();
+    }
+
+    // Method 3: Via prop (original method)
     if (initialMessage && initialSentRef.current !== initialMessage && !isStreaming) {
       initialSentRef.current = initialMessage;
-      // Small delay to ensure sendAI has the correct conversationId
       setTimeout(() => {
         sendAI(initialMessage);
         onInitialMessageSent?.();
       }, 100);
     }
-  }, [initialMessage, sendAI]);
+
+    return () => window.removeEventListener("vyroo-send-message", handler);
+  }, [initialMessage, sendAI, conversation.id]);
 
   const { steps, messages, followUps: staticFollowUps } = conversation;
   // Use AI-generated follow-ups if available, otherwise fall back to conversation's static ones

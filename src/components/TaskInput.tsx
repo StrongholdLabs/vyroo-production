@@ -94,19 +94,23 @@ export function TaskInput() {
       return;
     }
 
-    // Create a new conversation — the chat edge function inserts the user message
+    // Create a new conversation and dispatch global event for ChatPanel
     try {
+      const msg = value;
+      setValue("");
       const conv = await createConversation.mutateAsync({
-        title: value.slice(0, 60) + (value.length > 60 ? "..." : ""),
+        title: msg.slice(0, 60) + (msg.length > 60 ? "..." : ""),
       });
-      // Store initial message in sessionStorage (reliable across navigations)
-      sessionStorage.setItem("vyroo-initial-message", value);
-      navigate(`/dashboard/${conv.id}`, { state: { initialMessage: value } });
-      setValue("");
+      // Store in sessionStorage AND dispatch custom event (belt + suspenders)
+      sessionStorage.setItem("vyroo-initial-message", msg);
+      sessionStorage.setItem("vyroo-initial-conv", conv.id);
+      navigate(`/dashboard/${conv.id}`);
+      // Fire event AFTER navigation so ChatPanel can pick it up
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent("vyroo-send-message", { detail: { message: msg, conversationId: conv.id } }));
+      }, 200);
     } catch {
-      // Fallback for mock mode
-      navigate("/dashboard", { state: { task: value } });
-      setValue("");
+      navigate("/dashboard");
     }
   };
 

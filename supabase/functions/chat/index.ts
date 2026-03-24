@@ -1267,7 +1267,46 @@ Deno.serve(async (req) => {
                     console.warn(`[chat] Tool ${toolCall.name} failed, keeping error in context for recovery:`, toolError);
                     addStepLog(currentStepIdx, `${toolCall.name} failed, adapting approach...`, "action");
                   }
-                  if (toolCall.name === "write_report") hasWrittenReport = true;
+                  if (toolCall.name === "write_report") {
+                    hasWrittenReport = true;
+                    // Emit report SSE event so frontend shows the report card
+                    const rptContent = (toolResult as any).content || "";
+                    if (rptContent) {
+                      lastReportContent = rptContent;
+                      // Extract table
+                      let tblH: string[] = [], tblR: string[][] = [];
+                      const rptL = rptContent.split('\n');
+                      for (let li = 0; li < rptL.length; li++) {
+                        const ln = rptL[li].trim();
+                        if (ln.startsWith('|') && ln.endsWith('|')) {
+                          const nxt = (rptL[li + 1] || "").trim();
+                          if (nxt.match(/^\|[\s\-:|]+\|$/)) {
+                            tblH = ln.split('|').map((h: string) => h.trim()).filter(Boolean);
+                            for (let ri = li + 2; ri < rptL.length; ri++) {
+                              const rl = rptL[ri].trim();
+                              if (!rl.startsWith('|') || !rl.endsWith('|')) break;
+                              tblR.push(rl.split('|').map((c: string) => c.trim()).filter(Boolean));
+                            }
+                            break;
+                          }
+                        }
+                      }
+                      let rptSummary = "";
+                      for (const rl of rptL) {
+                        const t = rl.trim();
+                        if (t && !t.startsWith('#') && !t.startsWith('|') && !t.startsWith('---')) { rptSummary = t.substring(0, 300); break; }
+                      }
+                      controller.enqueue(encoder.encode(`event: report\ndata: ${JSON.stringify({
+                        title: toolCall.input.topic || "Report",
+                        content: rptContent,
+                        format: (toolResult as any).format || "markdown",
+                        word_count: (toolResult as any).word_count || 0,
+                        summary: rptSummary || rptContent.substring(0, 200),
+                        headers: tblH,
+                        rows: tblR.slice(0, 10),
+                      })}\n\n`));
+                    }
+                  }
                   if (toolCall.name === "browse_url") hasBrowsed = true;
 
                   // Handle workspace file reads (needs Supabase auth context)
@@ -2063,7 +2102,7 @@ Deno.serve(async (req) => {
             if (followUpItems.length === 0) {
               const hasReport = !!lastReportContent;
               const topic = message
-                .replace(/^(hey[!,.]?\s*|hi[!,.]?\s*|hello[!,.]?\s*|can you |please |could you |help me |I want to |I need to |I want you to |research |analyze |find |search for |look into |tell me |what are |what is |how to |how do )/gi, '')
+                .replace(/^(hey[!,.]?\s*|hi[!,.]?\s*|hello[!,.]?\s*|can you |please |could you |help me |I want to |I need to |I want you to |research |analyze |find |search for |look into |tell me |what are |what is |how to |how do |create a report about |create a presentation about |compare .* for |compare .* in |build a .* for |analyze .* in |deep dive into |dive into |export |write a report about |write a report on )/gi, '')
                 .split(/[.!?]/)[0].trim().substring(0, 60) || message.substring(0, 60);
               // Extract brand/product names from report if available
               const reportFirstLine = lastReportContent ? lastReportContent.split('\n').find((l: string) => l.trim() && !l.startsWith('#'))?.substring(0, 100) || "" : "";
