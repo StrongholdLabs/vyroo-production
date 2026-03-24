@@ -328,10 +328,10 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                 <div className="chat-bubble-user px-4 py-3 max-w-lg">
                   <p className="text-sm text-foreground">{msg.content}</p>
                 </div>
-                {(msg as any).created_at && (
+                {msg.created_at && (
                   <span className="text-[10px] text-muted-foreground/50 pr-1">
                     {(() => {
-                      const d = new Date((msg as any).created_at);
+                      const d = new Date(msg.created_at);
                       const now = new Date();
                       const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
                       if (diff < 60) return "just now";

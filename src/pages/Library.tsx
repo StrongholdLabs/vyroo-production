@@ -322,7 +322,7 @@ const Library = () => {
     })();
   }, []);
 
-  const libraryData = dbGroups !== null ? dbGroups : mockLibraryData;
+  const libraryData = dbGroups !== null ? dbGroups : [];
 
   const filteredGroups = useMemo(() => {
     return libraryData

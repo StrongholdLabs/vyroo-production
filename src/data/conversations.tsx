@@ -52,6 +52,7 @@ export interface ChatMessage {
   tableData?: { headers: string[]; rows: string[][] };
   reportContent?: string;
   slidesData?: { title: string; slides: any[]; slideCount: number };
+  created_at?: string;
 }
 
 export interface SuggestedFollowUp {

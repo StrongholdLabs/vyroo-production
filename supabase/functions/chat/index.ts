@@ -850,15 +850,8 @@ Deno.serve(async (req) => {
       }
     } catch { /* RAG is non-critical */ }
 
-    try {
-      const memories = await getRelevantMemories(user.id, message, supabase);
-      const memorySection = injectMemoryContext(memories);
-      if (memorySection) {
-        enrichedSystemPrompt = SYSTEM_PROMPT + memorySection;
-      }
-    } catch {
-      // Memory retrieval is non-critical — proceed without it
-    }
+    // H5 FIX: Memory retrieval removed here — it was redundant.
+    // Memory is now loaded AFTER task classification at ~line 939 (not wasted on prompt that gets replaced).
 
     // Create the provider stream for direct mode (each adapter returns SSE-formatted ReadableStream)
     const providerStream = streamFn(apiKey, messages, selectedModel, enrichedSystemPrompt);
@@ -1623,13 +1616,13 @@ Deno.serve(async (req) => {
 
               // Stream the final text response as token events with typewriter pacing
               if (finalTextContent) {
-                const chunkSize = 12;
+                const chunkSize = 16; // Larger chunks for faster delivery
                 for (let i = 0; i < finalTextContent.length; i += chunkSize) {
                   const chunk = finalTextContent.substring(i, i + chunkSize);
                   controller.enqueue(encoder.encode(`event: token\ndata: ${JSON.stringify({ token: chunk })}\n\n`));
                   fullResponse += chunk;
-                  // Small delay for typewriter effect (15ms per chunk ≈ natural reading pace)
-                  await new Promise(r => setTimeout(r, 15));
+                  // Reduced delay: 8ms per chunk (was 15ms — 47% faster perceived speed)
+                  await new Promise(r => setTimeout(r, 8));
                 }
               }
 
@@ -1873,25 +1866,35 @@ Deno.serve(async (req) => {
             };
             // Persist report card data so it survives page reload
             if (lastReportContent) {
-              // Extract table from report for the card
+              // Extract LARGEST table from report for the card (H2 fix — was only getting first table)
               let rptHeaders: string[] = [];
               let rptRows: string[][] = [];
               const rptLines = lastReportContent.split('\n');
+              let bestHeaders: string[] = [];
+              let bestRows: string[][] = [];
               for (let li = 0; li < rptLines.length; li++) {
                 const line = rptLines[li].trim();
                 if (line.startsWith('|') && line.endsWith('|')) {
                   const nextLine = (rptLines[li + 1] || "").trim();
                   if (nextLine.match(/^\|[\s\-:|]+\|$/)) {
-                    rptHeaders = line.split('|').map((h: string) => h.trim()).filter(Boolean);
+                    const headers = line.split('|').map((h: string) => h.trim()).filter(Boolean);
+                    const rows: string[][] = [];
                     for (let ri = li + 2; ri < rptLines.length; ri++) {
                       const rowLine = rptLines[ri].trim();
                       if (!rowLine.startsWith('|') || !rowLine.endsWith('|')) break;
-                      rptRows.push(rowLine.split('|').map((c: string) => c.trim()).filter(Boolean));
+                      rows.push(rowLine.split('|').map((c: string) => c.trim()).filter(Boolean));
                     }
-                    break;
+                    // Keep the table with the most rows
+                    if (rows.length > bestRows.length) {
+                      bestHeaders = headers;
+                      bestRows = rows;
+                    }
+                    li += rows.length + 1; // Skip past this table
                   }
                 }
               }
+              rptHeaders = bestHeaders;
+              rptRows = bestRows;
               messageData.metadata = {
                 hasReport: true,
                 reportTitle: plan[plan.length - 1]?.label || "Report",
