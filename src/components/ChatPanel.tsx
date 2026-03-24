@@ -350,7 +350,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
 
                 {msg.hasReport && (
                   <div
-                    className="rounded-xl border border-border overflow-hidden cursor-pointer hover:border-foreground/20 transition-colors"
+                    className="rounded-xl border border-border cursor-pointer hover:border-foreground/20 transition-colors relative"
                     style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
                   >
                     {/* Clickable card header — opens preview */}
@@ -374,9 +374,9 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                         </button>
                         {reportMenuOpen === msg.id && (
                           <>
-                            <div className="fixed inset-0 z-10" onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }} />
+                            <div className="fixed inset-0 z-40" onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }} />
                             <div
-                              className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-20 shadow-xl"
+                              className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-50 shadow-xl max-h-[70vh] overflow-y-auto"
                               style={{ backgroundColor: "hsl(var(--popover))" }}
                             >
                               <button
@@ -622,7 +622,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
         {/* Report card — persists across follow-ups (streaming/active session) */}
         {(() => { const activeReport = streamingReport || lastReport; return activeReport ? (
           <div
-            className="rounded-xl border border-border overflow-hidden cursor-pointer hover:border-foreground/20 transition-colors"
+            className="rounded-xl border border-border cursor-pointer hover:border-foreground/20 transition-colors relative"
             style={{ backgroundColor: "hsl(var(--surface-elevated))" }}
             onClick={() => setPreviewMsg({ id: "streaming", role: "assistant", content: "", reportContent: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: activeReport.headers.length > 0 ? { headers: activeReport.headers, rows: activeReport.rows } : undefined } as any)}
           >
@@ -643,8 +643,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                 </button>
                 {reportMenuOpen === "streaming" && (
                   <>
-                    <div className="fixed inset-0 z-10" onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }} />
-                    <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-20 shadow-xl" style={{ backgroundColor: "hsl(var(--popover))" }}>
+                    <div className="fixed inset-0 z-40" onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }} />
+                    <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-50 shadow-xl max-h-[70vh] overflow-y-auto" style={{ backgroundColor: "hsl(var(--popover))" }}>
                       <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); setPreviewMsg({ id: "streaming", role: "assistant", content: "", reportContent: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: activeReport.headers.length > 0 ? { headers: activeReport.headers, rows: activeReport.rows } : undefined } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
                         <Eye size={16} className="text-muted-foreground" />Preview
                       </button>
