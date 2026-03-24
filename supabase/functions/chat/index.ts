@@ -2062,7 +2062,9 @@ Deno.serve(async (req) => {
             // Smart fallback — extract REAL topic from user's message for specific follow-ups
             if (followUpItems.length === 0) {
               const hasReport = !!lastReportContent;
-              const topic = message.replace(/^(can you |please |could you |help me |I want to |I need to |research |analyze |find |search for |look into )/gi, '').split(/[.!?]/)[0].trim().substring(0, 60);
+              const topic = message
+                .replace(/^(hey[!,.]?\s*|hi[!,.]?\s*|hello[!,.]?\s*|can you |please |could you |help me |I want to |I need to |I want you to |research |analyze |find |search for |look into |tell me |what are |what is |how to |how do )/gi, '')
+                .split(/[.!?]/)[0].trim().substring(0, 60) || message.substring(0, 60);
               // Extract brand/product names from report if available
               const reportFirstLine = lastReportContent ? lastReportContent.split('\n').find((l: string) => l.trim() && !l.startsWith('#'))?.substring(0, 100) || "" : "";
               followUpItems = hasReport ? [

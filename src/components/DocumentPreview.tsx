@@ -36,24 +36,19 @@ interface DocumentPreviewProps {
   fullContent?: string;
 }
 
-// Build pages from the document content
+// Build pages from the document content (NO mock data — only uses real title/summary/table)
 function buildPages(title: string, summary: string, tableData?: { headers: string[]; rows: string[][] }) {
   const pages = [
     {
       id: 1,
-      label: "Overview",
+      label: title || "Report",
       content: (
         <>
           <h1 className="text-3xl font-display text-foreground leading-tight mb-6" style={{ lineHeight: "1.15" }}>
-            {title}
+            {title || "Report"}
           </h1>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-8">{summary}</p>
-          <h2 className="text-xl font-semibold text-foreground mb-3 font-body">
-            1. Overview of the Top 5 DTC Skincare Brands
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            The following brands have been selected based on their market influence, viral growth, and distinct pricing models:
-          </p>
+          {summary && <p className="text-sm text-muted-foreground leading-relaxed mb-8">{summary}</p>}
+          {!summary && <p className="text-sm text-muted-foreground leading-relaxed mb-8">The full report content is being loaded. If this page appears empty, the report data may not have been saved yet. Try generating a new report.</p>}
           {tableData && (
             <div className="rounded-lg border border-border overflow-hidden mb-8">
               <table className="w-full text-sm">
@@ -79,148 +74,12 @@ function buildPages(title: string, summary: string, tableData?: { headers: strin
         </>
       ),
     },
-    {
-      id: 2,
-      label: "Pricing",
-      content: (
-        <>
-          <h2 className="text-xl font-semibold text-foreground mb-3 font-body">
-            2. Comparative Pricing Table
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            The table below compares pricing of key product categories across the five brands (prices are approximate for 2025-2026).
-          </p>
-          <div className="rounded-lg border border-border overflow-hidden mb-8">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
-                  {["Product Type", "The Ordinary", "Glossier", "Rhode Skin", "Dieux Skin", "Drunk Elephant"].map((h, i) => (
-                    <th key={i} className="text-left py-3 px-3 font-semibold text-foreground border-b border-border text-xs">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="text-xs">
-                {[
-                  ["Cleanser", "$9.00 - $12.00", "$20.00 - $24.00", "N/A (Limited SKU)", "$32.00", "$34.00"],
-                  ["Moisturizer", "$7.00 - $15.00", "$35.00", "$29.00", "$28.00", "$68.00"],
-                  ["Serum", "$6.00 - $18.00", "$28.00 - $42.00", "N/A", "$29.00", "$72.00 - $134.00"],
-                  ["SPF", "$10.00 - $16.00", "$22.00", "$29.00", "$29.00", "$36.00"],
-                  ["Eye Cream", "$8.00", "$26.00", "N/A", "N/A", "$60.00"],
-                ].map((row, ri) => (
-                  <tr key={ri} className="border-b border-border/50">
-                    {row.map((cell, ci) => (
-                      <td key={ci} className={`py-2.5 px-3 ${ci === 0 ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{cell}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      ),
-    },
-    {
-      id: 3,
-      label: "Marketing",
-      content: (
-        <>
-          <h2 className="text-xl font-semibold text-foreground mb-3 font-body">
-            3. Marketing & Growth Strategies
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Each brand leverages unique marketing approaches to capture their target demographics:
-          </p>
-          <div className="space-y-4 mb-8">
-            {[
-              { brand: "The Ordinary", strategy: "Science-first transparency with minimal packaging. Their ingredient-forward naming convention (e.g., 'Niacinamide 10% + Zinc 1%') positions them as the anti-marketing brand, which paradoxically became their strongest marketing asset." },
-              { brand: "Glossier", strategy: "Community-driven content with the 'skin first, makeup second' philosophy. Heavy investment in UGC and referral programs. Their Into The Gloss blog created a content moat." },
-              { brand: "Rhode Skin", strategy: "Celebrity-founder halo effect combined with TikTok-native content. The lip peptide treatment became the #1 viral beauty product in 2024-2025 through organic creator partnerships." },
-              { brand: "Dieux Skin", strategy: "Sustainability-first messaging with refillable packaging. Transparent pricing breakdowns showing cost-of-goods vs retail became a viral differentiator." },
-              { brand: "Drunk Elephant", strategy: "Clean-compatible positioning with the 'Suspicious 6' ingredient exclusion list. Premium pricing justified through clinical efficacy claims and dermatologist endorsements." },
-            ].map((item) => (
-              <div key={item.brand} className="rounded-lg border border-border p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-1.5">{item.brand}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{item.strategy}</p>
-              </div>
-            ))}
-          </div>
-        </>
-      ),
-    },
-    {
-      id: 4,
-      label: "Audience",
-      content: (
-        <>
-          <h2 className="text-xl font-semibold text-foreground mb-3 font-body">
-            4. Target Audience & Demographics
-          </h2>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Understanding the core customer profiles reveals strategic positioning differences:
-          </p>
-          <div className="rounded-lg border border-border overflow-hidden mb-8">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ backgroundColor: "hsl(var(--surface-elevated))" }}>
-                  {["Brand", "Primary Age", "Income Range", "Key Value Driver"].map((h, i) => (
-                    <th key={i} className="text-left py-3 px-4 font-semibold text-foreground border-b border-border text-xs">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="text-xs">
-                {[
-                  ["The Ordinary", "18–28", "$25K–$55K", "Affordability & Efficacy"],
-                  ["Glossier", "22–34", "$40K–$80K", "Community & Aesthetic"],
-                  ["Rhode Skin", "16–30", "$30K–$65K", "Trend & Celebrity"],
-                  ["Dieux Skin", "25–38", "$50K–$90K", "Sustainability"],
-                  ["Drunk Elephant", "28–45", "$65K–$120K", "Premium Clean Beauty"],
-                ].map((row, ri) => (
-                  <tr key={ri} className="border-b border-border/50">
-                    {row.map((cell, ci) => (
-                      <td key={ci} className={`py-2.5 px-4 ${ci === 0 ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{cell}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
-      ),
-    },
-    {
-      id: 5,
-      label: "Conclusion",
-      content: (
-        <>
-          <h2 className="text-xl font-semibold text-foreground mb-3 font-body">
-            5. Key Takeaways & Recommendations
-          </h2>
-          <div className="space-y-3 mb-8">
-            {[
-              "Price sensitivity varies dramatically by channel — DTC margins allow The Ordinary's $6 serums while Drunk Elephant commands $134 for comparable formulations.",
-              "TikTok virality has replaced traditional PR as the primary launch vehicle, with Rhode Skin capturing 47% of skincare mentions in Q4 2025.",
-              "Sustainability messaging is transitioning from differentiator to baseline expectation — brands without refillable or recyclable packaging face growing consumer resistance.",
-              "The 'skinification' trend is expanding addressable markets as bodycare, haircare, and even fragrance adopt skincare-style ingredient storytelling.",
-              "Subscription models remain under-penetrated in prestige skincare, representing a $2.1B opportunity in the DTC segment alone.",
-            ].map((takeaway, i) => (
-              <div key={i} className="flex gap-3 items-start">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold bg-accent text-foreground mt-0.5">
-                  {i + 1}
-                </span>
-                <p className="text-sm text-muted-foreground leading-relaxed">{takeaway}</p>
-              </div>
-            ))}
-          </div>
-        </>
-      ),
-    },
   ];
   return pages;
 }
 
 function generateMarkdown(title: string, summary: string, tableData?: { headers: string[]; rows: string[][] }) {
   let md = `# ${title}\n\n${summary}\n\n`;
-  md += `## 1. Overview of the Top 5 DTC Skincare Brands\n\nThe following brands have been selected based on their market influence, viral growth, and distinct pricing models:\n\n`;
 
   if (tableData) {
     md += `| ${tableData.headers.join(" | ")} |\n`;
@@ -230,19 +89,6 @@ function generateMarkdown(title: string, summary: string, tableData?: { headers:
     });
     md += "\n";
   }
-
-  md += `## 2. Comparative Pricing Table\n\n`;
-  md += `| Product Type | The Ordinary | Glossier | Rhode Skin | Dieux Skin | Drunk Elephant |\n`;
-  md += `| --- | --- | --- | --- | --- | --- |\n`;
-  md += `| Cleanser | $9.00 - $12.00 | $20.00 - $24.00 | N/A | $32.00 | $34.00 |\n`;
-  md += `| Moisturizer | $7.00 - $15.00 | $35.00 | $29.00 | $28.00 | $68.00 |\n`;
-  md += `| Serum | $6.00 - $18.00 | $28.00 - $42.00 | N/A | $29.00 | $72.00 - $134.00 |\n\n`;
-
-  md += `## 3. Marketing & Growth Strategies\n\n`;
-  md += `Each brand leverages unique marketing approaches to capture their target demographics.\n\n`;
-
-  md += `## 4. Target Audience & Demographics\n\n`;
-  md += `## 5. Key Takeaways & Recommendations\n`;
 
   return md;
 }

@@ -12,6 +12,8 @@ interface UpgradeBannerProps {
 }
 
 export function UpgradeBanner({ onTryLite, onUpgrade }: UpgradeBannerProps) {
+  // Disabled: we don't have a "Max" tier yet. Re-enable when pricing tiers are built.
+  return null;
   const [dismissed, setDismissed] = useState(false);
   const [visible, setVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
