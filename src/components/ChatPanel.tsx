@@ -374,20 +374,20 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                         </button>
                         {reportMenuOpen === msg.id && (
                           <>
-                            <div className="fixed inset-0 z-40" onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }} />
+                            <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }} />
                             <div
                               className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-50 shadow-xl max-h-[70vh] overflow-y-auto"
                               style={{ backgroundColor: "hsl(var(--popover))" }}
                             >
                               <button
-                                onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); setPreviewMsg(msg); }}
+                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); setPreviewMsg(msg); }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                               >
                                 <Eye size={16} className="text-muted-foreground" />
                                 Preview
                               </button>
                               <button
-                                onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                               >
                                 <Share2 size={16} className="text-muted-foreground" />
@@ -396,7 +396,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                               {/* Download with submenu */}
                               <div className="relative">
                                 <button
-                                  onClick={() => setDownloadSubOpen(!downloadSubOpen)}
+                                  onClick={(e) => { e.stopPropagation(); setDownloadSubOpen(!downloadSubOpen); }}
                                   className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                                 >
                                   <Download size={16} className="text-muted-foreground" />
@@ -409,7 +409,8 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                                     style={{ backgroundColor: "hsl(var(--popover))" }}
                                   >
                                     <button
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setReportMenuOpen(null); setDownloadSubOpen(false);
                                         const content = (msg as any).reportContent || msg.reportSummary || "";
                                         const blob = new Blob([content], { type: 'text/markdown' });
@@ -424,14 +425,14 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                                       Markdown
                                     </button>
                                     <button
-                                      onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                      onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
                                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                                     >
                                       <FileText size={16} className="text-red-400" />
                                       PDF
                                     </button>
                                     <button
-                                      onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                      onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
                                       className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                                     >
                                       <FileText size={16} className="text-blue-500" />
@@ -442,28 +443,28 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                               </div>
                               <div className="h-px bg-border my-1" />
                               <button
-                                onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                               >
                                 <Globe size={16} className="text-[hsl(210_60%_55%)]" />
                                 Convert to Google Docs
                               </button>
                               <button
-                                onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors"
                               >
                                 <Globe size={16} className="text-[hsl(45_80%_55%)]" />
                                 Save to Google Drive
                               </button>
                               <button
-                                onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                               >
                                 <Globe size={16} />
                                 Save to OneDrive (personal)
                               </button>
                               <button
-                                onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }}
+                                onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }}
                                 className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                               >
                                 <Globe size={16} />
@@ -643,7 +644,7 @@ export function ChatPanel({ conversation, computerVisible, onOpenComputer, onSen
                 </button>
                 {reportMenuOpen === "streaming" && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => { setReportMenuOpen(null); setDownloadSubOpen(false); }} />
+                    <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); }} />
                     <div className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-border py-1.5 z-50 shadow-xl max-h-[70vh] overflow-y-auto" style={{ backgroundColor: "hsl(var(--popover))" }}>
                       <button onClick={(e) => { e.stopPropagation(); setReportMenuOpen(null); setDownloadSubOpen(false); setPreviewMsg({ id: "streaming", role: "assistant", content: "", reportContent: activeReport.content || "", hasReport: true, reportTitle: activeReport.title, reportSummary: activeReport.summary, tableData: activeReport.headers.length > 0 ? { headers: activeReport.headers, rows: activeReport.rows } : undefined } as any); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-foreground hover:bg-accent transition-colors">
                         <Eye size={16} className="text-muted-foreground" />Preview
