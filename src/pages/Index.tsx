@@ -47,7 +47,8 @@ const verticalSlogans: Record<VerticalType, { headline: string; sub: string }> =
 // ── Page ─────────────────────────────────────────────────────────────────
 const Index = () => {
   const [visible, setVisible] = useState(false);
-  const [workspace, setWorkspace] = useState<VerticalType>("general");
+  // Always show "general" workspace — verticals disabled for now
+  const workspace: VerticalType = "general";
   const [transitioning, setTransitioning] = useState(false);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
